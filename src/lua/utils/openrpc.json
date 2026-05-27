@@ -3,7 +3,7 @@
   "info": {
     "title": "BalatroBot API",
     "description": "JSON-RPC 2.0 API for Balatro bot development. This API allows external clients to control the Balatro game, query game state, and execute actions through an HTTP server.",
-    "version": "1.4.1",
+    "version": "1.5.0",
     "license": {
       "name": "MIT"
     }
