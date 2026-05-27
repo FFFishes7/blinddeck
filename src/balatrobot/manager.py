@@ -10,6 +10,7 @@ import httpx
 
 from balatrobot.config import Config
 from balatrobot.platforms import get_launcher
+from balatrobot.platforms.base import BaseLauncher
 
 HEALTH_TIMEOUT = 30.0
 
@@ -32,6 +33,7 @@ class BalatroInstance:
         self._process: subprocess.Popen | None = None
         self._log_path: Path | None = None
         self._session_id = session_id
+        self._launcher: BaseLauncher | None = None
 
     @property
     def port(self) -> int:
@@ -84,10 +86,10 @@ class BalatroInstance:
         self._log_path = session_dir / f"{self._config.port}.log"
 
         # Get launcher and start process
-        launcher = get_launcher(self._config.platform)
+        self._launcher = get_launcher(self._config.platform)
         print(f"Starting Balatro on port {self._config.port}...")
 
-        self._process = await launcher.start(self._config, session_dir)
+        self._process = await self._launcher.start(self._config, session_dir)
 
         # Wait for health
         print(f"Waiting for health check on {self._config.host}:{self._config.port}...")
@@ -108,6 +110,10 @@ class BalatroInstance:
         self._process = None
 
         print(f"Stopping instance on port {self._config.port}...")
+
+        # Platform-specific cleanup (e.g. wineserver -k on Linux/Proton)
+        if self._launcher is not None:
+            self._launcher.cleanup(self._config)
 
         # Try graceful termination first
         process.terminate()

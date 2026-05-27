@@ -67,3 +67,12 @@ class BaseLauncher(ABC):
             )
 
         return process
+
+    def cleanup(self, config: Config) -> None:
+        """Platform-specific cleanup before terminating the process.
+
+        Called by the manager before process.terminate().
+        Override in platform launchers that need special shutdown
+        (e.g. wineserver -k for Proton on Linux).
+        """
+        pass
