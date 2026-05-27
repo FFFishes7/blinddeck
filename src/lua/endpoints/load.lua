@@ -40,22 +40,16 @@ return {
     sendDebugMessage("Init load()", "BB.ENDPOINTS")
     local path = args.path
 
-    -- Check if file exists
-    local file_info = nativefs.getInfo(path)
-    if not file_info or file_info.type ~= "file" then
-      send_response({
-        message = "File not found: '" .. path .. "'",
-        name = BB_ERROR_NAMES.INTERNAL_ERROR,
-      })
-      return
-    end
-
     -- Read file using nativefs
+    -- NOTE: We intentionally skip nativefs.getInfo() and go straight to
+    -- nativefs.read().  On Proton/Wine, getInfo() uses PHYSFS_mount which
+    -- cannot resolve Linux absolute paths, but read() goes through fopen()
+    -- which Wine intercepts and handles correctly.
     local compressed_data = nativefs.read(path)
     ---@cast compressed_data string
     if not compressed_data then
       send_response({
-        message = "Failed to read save file",
+        message = "Failed to read save file: '" .. path .. "'",
         name = BB_ERROR_NAMES.INTERNAL_ERROR,
       })
       return
