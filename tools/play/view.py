@@ -1,4 +1,5 @@
 """Compact gamestate display for manual play."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -90,7 +91,9 @@ def is_playing_card(card: dict[str, Any]) -> bool:
     if "_" not in key:
         return False
     suit, rank = key.split("_", 1)
-    return suit in SUIT_LABEL and (rank in RANK_LABEL or rank in {str(n) for n in range(2, 10)})
+    return suit in SUIT_LABEL and (
+        rank in RANK_LABEL or rank in {str(n) for n in range(2, 10)}
+    )
 
 
 def display_name(
@@ -99,7 +102,7 @@ def display_name(
     include_card_face: bool = True,
     show_cost: bool = True,
 ) -> str:
-    label = card.get('label', card.get('key', '?'))
+    label = card.get("label", card.get("key", "?"))
     if include_card_face and is_playing_card(card):
         label = f"{card_label(card)} {label}"
     name = f"{label}{card_cost(card, show_cost=show_cost)}"
@@ -123,7 +126,10 @@ def named_area(
     include_effect: bool = False,
     show_cost: bool = True,
 ) -> list[tuple[int, str]]:
-    return [(i, display_name(c, include_effect=include_effect, show_cost=show_cost)) for i, c in enumerate(cards)]
+    return [
+        (i, display_name(c, include_effect=include_effect, show_cost=show_cost))
+        for i, c in enumerate(cards)
+    ]
 
 
 def print_hint(state_name: str) -> None:
@@ -178,7 +184,12 @@ def print_summary(state: dict[str, Any]) -> None:
         print(
             "blinds:",
             {
-                k: (v["name"], v.get("tag_name", ""), v.get("tag_effect", ""), v["score"])
+                k: (
+                    v["name"],
+                    v.get("tag_name", ""),
+                    v.get("tag_effect", ""),
+                    v["score"],
+                )
                 for k, v in state.get("blinds", {}).items()
             },
         )
@@ -202,7 +213,10 @@ def print_summary(state: dict[str, Any]) -> None:
             print(f"  [{i}] {card_label(c)} ({c['key']}){extra}{hidden}{debuff}")
     pack = state.get("pack", {}).get("cards", [])
     if pack:
-        print("pack_open (free pick):", named_area(pack, include_effect=True, show_cost=False))
+        print(
+            "pack_open (free pick):",
+            named_area(pack, include_effect=True, show_cost=False),
+        )
     leveled = {
         h: (d["level"], d["chips"], d["mult"])
         for h, d in state.get("hands", {}).items()
@@ -211,4 +225,3 @@ def print_summary(state: dict[str, Any]) -> None:
     if leveled:
         print("leveled_hands:", leveled)
     print_hint(state_name)
-

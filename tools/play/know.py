@@ -12,6 +12,7 @@ Usage:
     python know.py list jokers|bosses|tags|stakes|planets|tarots|vouchers|spectrals|rules
     python know.py stats              # library counts
 """
+
 from __future__ import annotations
 
 import json
@@ -22,7 +23,12 @@ from pathlib import Path
 
 from bot_client import APIError, rpc
 
-KNOWLEDGE_DIR = Path(os.getenv("BALATROBOT_KNOWLEDGE_DIR", Path(__file__).resolve().parents[2] / "knowledge" / "balatro"))
+KNOWLEDGE_DIR = Path(
+    os.getenv(
+        "BALATROBOT_KNOWLEDGE_DIR",
+        Path(__file__).resolve().parents[2] / "knowledge" / "balatro",
+    )
+)
 
 LIBRARIES = {
     "joker": "balatro-jokers-verified.json",
@@ -76,8 +82,17 @@ def resolve_name(kind: str, name: str, library: dict) -> str | None:
 def print_entry(label: str, entry: dict) -> None:
     print(f"VERIFIED: {label}")
     for key in (
-        "key", "trigger", "effect", "limits", "notes", "score_mult", "min_ante",
-        "title", "category", "rule", "source",
+        "key",
+        "trigger",
+        "effect",
+        "limits",
+        "notes",
+        "score_mult",
+        "min_ante",
+        "title",
+        "category",
+        "rule",
+        "source",
     ):
         if entry.get(key) is not None and entry.get(key) != "":
             title = {
@@ -105,7 +120,9 @@ def check_kind(kind: str, name: str, library: dict | None = None) -> int:
     resolved = resolve_name(kind, name, library)
     if not resolved:
         print(f"UNKNOWN {kind.upper()}: {name.strip()}")
-        print("  → 查 https://balatrowiki.org/ 后写入 overrides 并运行 build_knowledge.py")
+        print(
+            "  → 查 https://balatrowiki.org/ 后写入 overrides 并运行 build_knowledge.py"
+        )
         print("  → 入库前禁止基于该项做决策")
         return 1
     print_entry(resolved, library[resolved])
@@ -220,7 +237,6 @@ def cmd_preflight() -> int:
             if check_kind("tag", tag, tag_lib) != 0:
                 failed = True
 
-
     print("--- core rules ---")
     rule_lib = load_library("rule")
     for rule_key in (
@@ -235,7 +251,6 @@ def cmd_preflight() -> int:
         else:
             print(f"  missing rule: {rule_key}")
             failed = True
-
 
     if failed:
         print("\nPREFLIGHT FAIL")

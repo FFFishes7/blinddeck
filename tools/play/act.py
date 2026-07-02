@@ -19,6 +19,7 @@ Examples:
     python act.py cash_out
     python act.py next_round
 """
+
 from __future__ import annotations
 
 import sys
@@ -102,13 +103,23 @@ def normalize_sort_mode(mode: str = "rank") -> str:
         "sa": "suit-asc",
     }
     normalized = aliases.get(mode, mode)
-    if normalized not in ("rank", "rank-desc", "rank-asc", "suit", "suit-desc", "suit-asc"):
-        raise ValueError("sort mode must be rank|rank-desc|rank-asc|suit|suit-desc|suit-asc")
+    if normalized not in (
+        "rank",
+        "rank-desc",
+        "rank-asc",
+        "suit",
+        "suit-desc",
+        "suit-asc",
+    ):
+        raise ValueError(
+            "sort mode must be rank|rank-desc|rank-asc|suit|suit-desc|suit-asc"
+        )
     return normalized
 
 
 def sort_hand(mode: str = "rank") -> dict:
     return rpc("sort", {"mode": normalize_sort_mode(mode)})
+
 
 def build_rearrange_params(args: list[str]) -> dict:
     if len(args) < 2:
@@ -158,7 +169,9 @@ def main() -> int:
     try:
         if method == "death":
             if len(args) != 3:
-                raise ValueError("death needs: CONSUMABLE_INDEX SOURCE_CARD_INDEX TARGET_CARD_INDEX")
+                raise ValueError(
+                    "death needs: CONSUMABLE_INDEX SOURCE_CARD_INDEX TARGET_CARD_INDEX"
+                )
             state = use_death(int(args[0]), int(args[1]), int(args[2]))
             print_summary(state)
             return 0

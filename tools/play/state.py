@@ -1,4 +1,5 @@
 """Print a compact summary of the current Balatro gamestate."""
+
 import sys
 
 from bot_client import APIError, rpc

@@ -6,6 +6,7 @@ Usage (from repo root or knowledge/balatro/):
 Reads overrides from balatro-*-overrides.json for factual corrections only.
 Writes balatro-*-verified.json used by know.py preflight.
 """
+
 from __future__ import annotations
 
 import json
@@ -19,7 +20,14 @@ TABLE_ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|\s*$")
 
 # The knowledge library is fact-only. Do not publish strategic recommendations
 # in generated lookup tables; keep those in play policy/code, not rule data.
-FACT_ONLY_DROP_FIELDS = {"strategy", "implication", "decision", "synergy", "anti", "misconception"}
+FACT_ONLY_DROP_FIELDS = {
+    "strategy",
+    "implication",
+    "decision",
+    "synergy",
+    "anti",
+    "misconception",
+}
 TAG_SKIP_TRIGGER = "跳过当前 Blind 时获得该 Tag；打过该 Blind 不会获得。"
 
 # Game display labels (API gamestate uses these, not raw keys).
@@ -668,7 +676,9 @@ def wiki_slug(label: str) -> str:
     return label.replace(" ", "_").replace("!", "%21").replace("'", "%27")
 
 
-def build_cards(keys: dict[str, str], labels: dict[str, str], kind: str) -> dict[str, dict]:
+def build_cards(
+    keys: dict[str, str], labels: dict[str, str], kind: str
+) -> dict[str, dict]:
     out: dict[str, dict] = {}
     for key, effect in sorted(keys.items()):
         label = labels.get(key, key)
@@ -686,7 +696,9 @@ def main() -> None:
 
     api_text = API_MD.read_text(encoding="utf-8")
     joker_keys = parse_api_section(api_text, "j_")
-    tarot_keys = parse_api_section(api_text, "c_fool") | parse_api_section(api_text, "c_magician")
+    tarot_keys = parse_api_section(api_text, "c_fool") | parse_api_section(
+        api_text, "c_magician"
+    )
     # tarot/planet/spectral share c_ prefix — split by known label sets
     all_c = parse_api_section(api_text, "c_")
     tarot_keys = {k: v for k, v in all_c.items() if k in TAROT_LABELS}
@@ -709,15 +721,23 @@ def main() -> None:
         "balatro-bosses-verified.json": merge_entries(BOSSES, load_overrides("bosses")),
         "balatro-tags-verified.json": tags,
         "balatro-stakes-verified.json": merge_entries(STAKES, load_overrides("stakes")),
-        "balatro-tarots-verified.json": fact_only_table(build_cards(tarot_keys, TAROT_LABELS, "tarot")),
+        "balatro-tarots-verified.json": fact_only_table(
+            build_cards(tarot_keys, TAROT_LABELS, "tarot")
+        ),
         "balatro-planets-verified.json": fact_only_table(planets),
-        "balatro-spectrals-verified.json": fact_only_table(build_cards(spectral_keys, SPECTRAL_LABELS, "spectral")),
-        "balatro-vouchers-verified.json": fact_only_table(build_cards(voucher_keys, VOUCHER_LABELS, "voucher")),
+        "balatro-spectrals-verified.json": fact_only_table(
+            build_cards(spectral_keys, SPECTRAL_LABELS, "spectral")
+        ),
+        "balatro-vouchers-verified.json": fact_only_table(
+            build_cards(voucher_keys, VOUCHER_LABELS, "voucher")
+        ),
     }
 
     for fname, data in outputs.items():
         path = ROOT / fname
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
         print(f"Wrote {path.name}: {len(data)} entries")
 
     if len(joker_keys) != 150:
@@ -730,4 +750,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
