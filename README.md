@@ -1,8 +1,8 @@
-<div align="center">
-  <h1>BalatroBot</h1>
-  <div><img src="./docs/assets/balatrobot.svg" alt="balatrobot" width="170" height="170"></div>
-  <p><em>Personal Balatro play setup with API and helpers</em></p>
-</div>
+# BalatroBot
+
+![balatrobot](./docs/assets/balatrobot.svg)
+
+*Personal Balatro play setup with API and helpers*
 
 ---
 
@@ -30,32 +30,34 @@ This is the workflow I use on Windows. Two parts: get the mod into Balatro once,
 **In Balatro**
 
 1. Install [Lovely Injector](https://github.com/ethangreen-dev/lovely-injector) — copy `version.dll` into your Balatro game folder (same directory as `Balatro.exe`).
+
 2. Install [Steamodded](https://github.com/Steamodded/smods/wiki) — put `smods` under `%AppData%\Balatro\Mods\`.
+
 3. Put this repo under `%AppData%\Balatro\Mods\balatrobot\`. For development, a symlink works well:
 
-   ```powershell
-   New-Item -ItemType SymbolicLink -Path "$env:APPDATA\Balatro\Mods\balatrobot" -Target (Get-Location)
-   ```
+    ```powershell
+    New-Item -ItemType SymbolicLink -Path "$env:APPDATA\Balatro\Mods\balatrobot" -Target (Get-Location)
+    ```
 
-   (Run PowerShell as Administrator if the symlink command fails.)
+    (Run PowerShell as Administrator if the symlink command fails.)
 
 **In this repo**
 
-4. Install dependencies — creates `.venv` with the `balatrobot` CLI and play-helper Python packages:
+1. Install dependencies — creates `.venv` with the `balatrobot` CLI and play-helper Python packages:
 
-   ```powershell
-   make install
-   ```
+    ```powershell
+    make install
+    ```
 
-   If `make` is unavailable, run `uv sync --group dev --group test` instead.
+    If `make` is unavailable, run `uv sync --group dev --group test` instead.
 
-5. Copy `tools/play/serve.example.ps1` to `tools/play/serve.ps1` and set `$BalatroDir` to your Steam Balatro folder if it is not the default:
+2. Copy `tools/play/serve.example.ps1` to `tools/play/serve.ps1` and set `$BalatroDir` to your Steam Balatro folder if it is not the default:
 
-   ```powershell
-   Copy-Item tools\play\serve.example.ps1 tools\play\serve.ps1
-   ```
+    ```powershell
+    Copy-Item tools\play\serve.example.ps1 tools\play\serve.ps1
+    ```
 
-   `serve.ps1` stays untracked (machine-specific). You can also set the user env var `BALATROBOT_GAME_DIR` instead of editing the file.
+    `serve.ps1` stays untracked (machine-specific). You can also set the user env var `BALATROBOT_GAME_DIR` instead of editing the file.
 
 More detail: [Installation](docs/installation.md).
 
