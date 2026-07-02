@@ -1,13 +1,5 @@
 <div align="center">
   <h1>BalatroBot</h1>
-  <p align="center">
-    <a href="https://github.com/coder/balatrobot/releases">
-      <img alt="GitHub release" src="https://img.shields.io/github/v/release/coder/balatrobot?include_prereleases&sort=semver&style=for-the-badge&logo=github"/>
-    </a>
-    <a href="https://discord.gg/TPn6FYgGPv">
-      <img alt="Discord" src="https://img.shields.io/badge/discord-server?style=for-the-badge&logo=discord&logoColor=%23FFFFFF&color=%235865F2"/>
-    </a>
-  </p>
   <div><img src="./docs/assets/balatrobot.svg" alt="balatrobot" width="170" height="170"></div>
   <p><em>API for developing Balatro bots</em></p>
 </div>
@@ -25,7 +17,7 @@ This repository is a personal fork of [`coder/balatrobot`](https://github.com/co
 This fork includes an optional helper layer for manual/LLM-assisted Balatro play:
 
 - `tools/play/`: command wrappers, compact state display, and JSON-RPC helper scripts.
-- `knowledge/balatro/`: verified Balatro lookup tables and strategy notes used by `tools/play/know.py`.
+- `knowledge/balatro/`: source-backed Balatro fact tables used by `tools/play/know.py`.
 
 Example:
 
@@ -35,16 +27,6 @@ Example:
 ```
 
 To launch a local GUI session, copy `tools/play/serve.example.ps1` to `tools/play/serve.ps1`, adjust the Balatro install path, then run it from the repository root or via the script path.
-
-## 📚 Documentation
-
-https://coder.github.io/balatrobot/
-
-## 🚀 Related Projects
-
-- [**BalatroBot**](https://github.com/coder/balatrobot): API for developing Balatro bots
-- [**BalatroLLM**](https://github.com/coder/balatrollm): Play Balatro with LLMs
-- [**BalatroBench**](https://github.com/coder/balatrobench): Benchmark LLMs playing Balatro
 
 ## 🙏 Acknowledgments
 
