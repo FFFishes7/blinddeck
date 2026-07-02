@@ -1,8 +1,7 @@
 """Look up wiki-verified Balatro facts before deciding.
 
 Usage:
-    python know.py preflight          # fact gate: jokers + boss + stake + tags + core rules
-    python know.py run                # jokers only
+    python know.py preflight          # fact gate: stake + jokers + boss + tags
     python know.py check joker "Name"
     python know.py check boss "The Psychic"
     python know.py check tag "Coupon Tag"
@@ -94,23 +93,11 @@ def print_entry(label: str, entry: dict) -> None:
         "rule",
         "source",
     ):
-        if entry.get(key) is not None and entry.get(key) != "":
-            title = {
-                "key": "API key",
-                "limits": "限制",
-                "trigger": "触发",
-                "notes": "备注",
-                "score_mult": "分数倍率",
-                "min_ante": "最早 Ante",
-                "title": "标题",
-                "category": "类别",
-                "rule": "规则",
-                "source": "来源",
-            }.get(key, key)
-            value = entry[key]
+        value = entry.get(key)
+        if value is not None and value != "":
             if isinstance(value, list):
                 value = "; ".join(str(v) for v in value)
-            print(f"  {title}: {value}")
+            print(f"  {key}: {value}")
     if entry.get("wiki"):
         print(f"  wiki: {entry['wiki']}")
 
@@ -121,9 +108,9 @@ def check_kind(kind: str, name: str, library: dict | None = None) -> int:
     if not resolved:
         print(f"UNKNOWN {kind.upper()}: {name.strip()}")
         print(
-            "  → 查 https://balatrowiki.org/ 后写入 overrides 并运行 build_knowledge.py"
+            "  → Look up https://balatrowiki.org/, add to overrides, and run build_knowledge.py"
         )
-        print("  → 入库前禁止基于该项做决策")
+        print("  → Do not make decisions based on this entry until it is verified")
         return 1
     print_entry(resolved, library[resolved])
     return 0
@@ -149,36 +136,13 @@ def cmd_stats() -> int:
     return 0
 
 
-def cmd_run() -> int:
-    try:
-        state = rpc("gamestate")
-    except APIError as e:
-        print(f"RPC error: {e}", file=sys.stderr)
-        return 1
-    jokers = [c["label"] for c in state.get("jokers", {}).get("cards", [])]
-    if not jokers:
-        print("No jokers in current run.")
-        return 0
-    library = load_library("joker")
-    failed = False
-    for label in jokers:
-        print("---")
-        if check_kind("joker", label, library) != 0:
-            failed = True
-    if failed:
-        print("\nGATE FAIL: 存在未验证小丑。")
-        return 1
-    print("\nGATE OK: 当前小丑均已验证。")
-    return 0
-
-
 def relevant_boss(state: dict) -> str | None:
-    if state.get("blind", {}).get("type") == "BOSS":
-        return state["blind"].get("name")
     for blind in state.get("blinds", {}).values():
-        if blind.get("status") in ("CURRENT", "SELECT") and blind.get("type") == "BOSS":
-            return blind.get("name")
-        if blind.get("status") == "UPCOMING" and blind.get("type") == "BOSS":
+        if blind.get("type") == "BOSS" and blind.get("status") in (
+            "CURRENT",
+            "SELECT",
+            "UPCOMING",
+        ):
             return blind.get("name")
     return None
 
@@ -237,21 +201,6 @@ def cmd_preflight() -> int:
             if check_kind("tag", tag, tag_lib) != 0:
                 failed = True
 
-    print("--- core rules ---")
-    rule_lib = load_library("rule")
-    for rule_key in (
-        "scoring_hand_only",
-        "held_in_hand_effects",
-        "the_fool_copies_last_tarot_or_planet",
-        "death_uses_rightmost_selected_card_as_target",
-        "cartomancer_needs_consumable_space",
-    ):
-        if rule_key in rule_lib:
-            print(f"  {rule_key}: {rule_lib[rule_key].get('rule', '')}")
-        else:
-            print(f"  missing rule: {rule_key}")
-            failed = True
-
     if failed:
         print("\nPREFLIGHT FAIL")
         return 1
@@ -266,8 +215,6 @@ def main() -> int:
     cmd = sys.argv[1]
     if cmd == "preflight":
         return cmd_preflight()
-    if cmd == "run":
-        return cmd_run()
     if cmd == "stats":
         return cmd_stats()
     if cmd == "list":

@@ -23,7 +23,7 @@
     "key": "c_mars",
     "effect": "Increases Four of a Kind hand value by +3 Mult and +30 Chips",
     "wiki": "https://balatrowiki.org/w/Mars",
-    "notes": "升 Four of a Kind，不是 Three of a Kind。"
+    "notes": "Upgrades Four of a Kind, not Three of a Kind."
   },
   "Mercury": {
     "key": "c_mercury",

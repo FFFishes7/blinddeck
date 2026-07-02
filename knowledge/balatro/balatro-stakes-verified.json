@@ -1,34 +1,34 @@
 {
   "WHITE": {
-    "effect": "基础难度，无额外 modifier。",
+    "effect": "Base difficulty, no additional modifiers.",
     "wiki": "https://balatrowiki.org/w/Stakes#White_Stake"
   },
   "RED": {
-    "effect": "Small Blind 打赢不给钱（Big/Boss 仍给）。",
+    "effect": "Winning the Small Blind gives no money. Big and Boss Blinds still pay.",
     "wiki": "https://balatrowiki.org/w/Stakes#Red_Stake"
   },
   "GREEN": {
-    "effect": "需求分随 Ante 涨得更快（叠在 Red 上）。",
+    "effect": "Required score scales faster with Ante (stacks with Red Stake).",
     "wiki": "https://balatrowiki.org/w/Stakes#Green_Stake"
   },
   "BLACK": {
-    "effect": "商店 30% Eternal 贴纸（不可卖/毁）。",
+    "effect": "Shop Jokers have a 30% chance of having an Eternal sticker (cannot be sold or destroyed).",
     "wiki": "https://balatrowiki.org/w/Stakes#Black_Stake"
   },
   "BLUE": {
-    "effect": "-1 discard（叠在前序 stake 上）。",
+    "effect": "-1 discard per round (stacks with previous stakes).",
     "wiki": "https://balatrowiki.org/w/Stakes#Blue_Stake"
   },
   "PURPLE": {
-    "effect": "需求分涨得更快（叠在前序 stake 上）。",
+    "effect": "Required score scales faster (stacks with previous stakes).",
     "wiki": "https://balatrowiki.org/w/Stakes#Purple_Stake"
   },
   "ORANGE": {
-    "effect": "商店可出现 Perishable 小丑（N 回合后自毁）。",
+    "effect": "Perishable Jokers can appear in the shop (self-destruct after a set number of rounds).",
     "wiki": "https://balatrowiki.org/w/Stakes#Orange_Stake"
   },
   "GOLD": {
-    "effect": "商店可出现 Rental 小丑（每回合 -$1）。",
+    "effect": "Rental Jokers can appear in the shop (costs $1 per round).",
     "wiki": "https://balatrowiki.org/w/Stakes#Gold_Stake"
   }
 }

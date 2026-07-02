@@ -6,7 +6,7 @@ This directory contains the local, machine-readable Balatro knowledge used by th
 
 - `balatro-*-verified.json`: generated verified lookup tables used by `tools/play/know.py`.
 - `balatro-rules-verified.json`: hand-curated universal mechanics rules with source references. Prefer this for scoring/order/capacity rules that are not tied to one card name.
-- `balatro-*-overrides.json`: hand-written notes, corrections, and strategy hints merged into generated data.
+- `balatro-*-overrides.json`: hand-written factual notes and corrections merged into generated data.
 - `build_knowledge.py`: regenerates the verified JSON files from `docs/api.md` plus overrides.
 
 ## Regenerate

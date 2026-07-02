@@ -1,132 +1,132 @@
 {
   "Boss Tag": {
-    "effect": "重 roll 下一个 Boss Blind。",
+    "effect": "Rerolls the next Boss Blind.",
     "wiki": "https://balatrowiki.org/w/Boss_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Buffoon Tag": {
-    "effect": "免费 Mega Buffoon Pack。",
+    "effect": "Free Mega Buffoon Pack.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Buffoon_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Charm Tag": {
-    "effect": "免费 Mega Arcana Pack。",
+    "effect": "Free Mega Arcana Pack.",
     "wiki": "https://balatrowiki.org/w/Charm_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Coupon Tag": {
-    "effect": "下一家店首次进店时，初始小丑/消耗品/补充包免费。",
-    "limits": "券不含；reroll 后新商品不含。",
+    "effect": "On first entry to the next shop, all initial Jokers, consumables, and packs are free.",
+    "limits": "Vouchers are not included. Items added after a reroll are not included.",
     "wiki": "https://balatrowiki.org/w/Coupon_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "D6 Tag": {
-    "effect": "下一家店 reroll 起始 $0。",
+    "effect": "Reroll cost starts at $0 in the next shop.",
     "wiki": "https://balatrowiki.org/w/D6_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Double Tag": {
-    "effect": "复制「下一个」获得的 Tag（不能复制自身）。",
+    "effect": "Copies the next Tag obtained (cannot copy itself).",
     "wiki": "https://balatrowiki.org/w/Double_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Economy Tag": {
-    "effect": "skip 后按当前资金翻倍，上限 $40。",
+    "effect": "After skipping, doubles current money up to a maximum of $40.",
     "wiki": "https://balatrowiki.org/w/Economy_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Ethereal Tag": {
-    "effect": "免费 Spectral Pack。",
+    "effect": "Free Spectral Pack.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Ethereal_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Foil Tag": {
-    "effect": "下一家店某初始 base 小丑免费且带 Foil。",
+    "effect": "A random base Joker in the next shop is free with Foil edition.",
     "wiki": "https://balatrowiki.org/w/Foil_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Garbage Tag": {
-    "effect": "本局每次未使用的 discard 得 $1（skip 时按当前剩余 discard 结算）。",
+    "effect": "Earn $1 for each unused discard this round (paid at skip time based on remaining discards).",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Garbage_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Handy Tag": {
-    "effect": "本局每打出过一次 hand 得 $1（skip 时按已打 hand 数结算）。",
+    "effect": "Earn $1 for each hand played this round (paid at skip time based on hands played so far).",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Handy_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Holographic Tag": {
-    "effect": "下一家店某初始 base 小丑免费且带 Holographic。",
+    "effect": "A random base Joker in the next shop is free with Holographic edition.",
     "wiki": "https://balatrowiki.org/w/Holographic_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Investment Tag": {
-    "effect": "击败下一个 Boss 后 +$25；可叠加。",
+    "effect": "Earn +$25 after defeating the next Boss Blind. Stackable.",
     "wiki": "https://balatrowiki.org/w/Investment_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Juggle Tag": {
-    "effect": "下一轮 +3 手牌上限。",
+    "effect": "+3 hand size for the next round.",
     "wiki": "https://balatrowiki.org/w/Juggle_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Meteor Tag": {
-    "effect": "免费 Mega Celestial Pack。",
+    "effect": "Free Mega Celestial Pack.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Meteor_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Negative Tag": {
-    "effect": "下一家店某初始 base 小丑免费且带 Negative。",
+    "effect": "A random base Joker in the next shop is free with Negative edition.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Negative_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Orbital Tag": {
-    "effect": "选一个牌型 +3 级。",
+    "effect": "Upgrade one selected hand type by 3 levels.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Orbital_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Polychrome Tag": {
-    "effect": "下一家店某初始 base 小丑免费且带 Polychrome。",
+    "effect": "A random base Joker in the next shop is free with Polychrome edition.",
     "wiki": "https://balatrowiki.org/w/Polychrome_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Rare Tag": {
-    "effect": "下一家店生成一张免费 Rare 小丑（占 shop 槽）。",
+    "effect": "A free Rare Joker appears in the next shop (occupies a shop slot).",
     "wiki": "https://balatrowiki.org/w/Rare_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Speed Tag": {
-    "effect": "本 run 每 skip 过一个 Blind 得 $5（skip 时至少 $5）。",
+    "effect": "Earn $5 for each Blind skipped this run (at least $5 when obtained).",
     "wiki": "https://balatrowiki.org/w/Speed_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Standard Tag": {
-    "effect": "免费 Mega Standard Pack。",
+    "effect": "Free Mega Standard Pack.",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Standard_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Top-up Tag": {
-    "effect": "生成最多 2 张 Common 小丑（需有空槽）。",
+    "effect": "Generates up to 2 Common Jokers (requires available Joker slots).",
     "min_ante": 2,
     "wiki": "https://balatrowiki.org/w/Top-up_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Uncommon Tag": {
-    "effect": "下一家店生成一张免费 Uncommon 小丑（占 shop 槽）。",
+    "effect": "A free Uncommon Joker appears in the next shop (occupies a shop slot).",
     "wiki": "https://balatrowiki.org/w/Uncommon_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   },
   "Voucher Tag": {
-    "effect": "下一家店额外出现一张券。",
+    "effect": "An additional Voucher appears in the next shop.",
     "wiki": "https://balatrowiki.org/w/Voucher_Tag",
-    "trigger": "跳过当前 Blind 后获得该 Tag。"
+    "trigger": "Obtained by skipping the shown Blind."
   }
 }

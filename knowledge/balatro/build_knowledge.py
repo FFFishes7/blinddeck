@@ -28,7 +28,7 @@ FACT_ONLY_DROP_FIELDS = {
     "anti",
     "misconception",
 }
-TAG_SKIP_TRIGGER = "跳过当前 Blind 后获得该 Tag。"
+TAG_SKIP_TRIGGER = "Obtained by skipping the shown Blind."
 
 # Game display labels (API gamestate uses these, not raw keys).
 JOKER_LABELS: dict[str, str] = {
@@ -282,173 +282,168 @@ VOUCHER_LABELS: dict[str, str] = {
 
 BOSSES: dict[str, dict] = {
     "The Hook": {
-        "effect": "每打出一手后，随机弃掉手中 2 张未打出的牌。",
+        "effect": "After each hand played, 2 random unplayed cards are discarded from hand.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Hook",
     },
     "The Ox": {
-        "effect": "打出本 run 最常打的牌型 → 资金归 $0。",
+        "effect": "Playing the most-played hand type this run sets money to $0.",
         "score_mult": "2x",
         "min_ante": 6,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Ox",
     },
     "The House": {
-        "effect": "第一手抽牌全部面朝下。",
+        "effect": "The first drawn hand is all face-down.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_House",
     },
     "The Wall": {
-        "effect": "超大盲注：需 4× base 分（Luchador/Chicot 可降回 2×）。",
+        "effect": "Extra large blind: requires 4× base score. Luchador or Chicot can reduce it to 2×.",
         "score_mult": "4x",
         "min_ante": 2,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Wall",
     },
     "The Wheel": {
-        "effect": "1/7 概率抽到的牌面朝下。",
+        "effect": "Each drawn card has a 1 in 7 chance of being face-down.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Wheel",
     },
     "The Arm": {
-        "effect": "打出的牌型等级永久 -1（最低 1 级，在计分前生效）。",
+        "effect": "Permanently reduces the level of the played hand type by 1 (minimum level 1). Applied before scoring.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Arm",
     },
     "The Club": {
-        "effect": "梅花 debuff：不能当计分牌。",
+        "effect": "All Club cards are debuffed and cannot be scoring cards.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Club",
     },
     "The Fish": {
-        "effect": "每手打出后新抽的牌面朝下。",
+        "effect": "After each hand played, newly drawn cards are face-down.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Fish",
     },
     "The Psychic": {
-        "effect": "每手必须打出恰好 5 张牌（不必全部计分）。",
+        "effect": "Must play exactly 5 cards each hand (not all need to score).",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
-        "strategy": "Four Fingers 4 张成顺/花 + 1 废牌；减手牌构筑极危险。",
         "wiki": "https://balatrowiki.org/w/The_Psychic",
     },
     "The Goad": {
-        "effect": "黑桃 debuff：不能当计分牌。",
+        "effect": "All Spade cards are debuffed and cannot be scoring cards.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Goad",
     },
     "The Water": {
-        "effect": "本盲注 0 discard。",
+        "effect": "0 discards available this blind.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Water",
     },
     "The Window": {
-        "effect": "方块 debuff：不能当计分牌。",
+        "effect": "All Diamond cards are debuffed and cannot be scoring cards.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Window",
     },
     "The Manacle": {
-        "effect": "手牌上限 -1。",
+        "effect": "-1 hand size.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": False,
-        "strategy": "Juggler/Troubadour/Turtle Bean/Juggle Tag 抵消。",
         "wiki": "https://balatrowiki.org/w/The_Manacle",
     },
     "The Eye": {
-        "effect": "本盲注每种牌型只能打一次。",
+        "effect": "Each hand type can only be played once per blind.",
         "score_mult": "2x",
         "min_ante": 3,
         "matador": True,
-        "strategy": "最后一手留爆发；勿弱牌收尾。",
         "wiki": "https://balatrowiki.org/w/The_Eye",
     },
     "The Mouth": {
-        "effect": "本盲注只能打一种牌型（之后只能重复该型）。",
+        "effect": "Can only play one hand type this blind. After the first hand, must repeat that same type.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Mouth",
     },
     "The Plant": {
-        "effect": "所有人头牌 debuff。",
+        "effect": "All face cards (J, Q, K) are debuffed.",
         "score_mult": "2x",
         "min_ante": 4,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Plant",
     },
     "The Serpent": {
-        "effect": "每次 play 或 discard 后固定抽 3 张（无视手牌上限）。",
+        "effect": "After each play or discard, always draw exactly 3 cards regardless of hand size limit.",
         "score_mult": "2x",
         "min_ante": 5,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Serpent",
     },
     "The Pillar": {
-        "effect": "本 Ante 之前在 Small/Big 打过的牌 debuff。",
+        "effect": "Cards played during Small and Big blinds this Ante are debuffed.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Pillar",
     },
     "The Needle": {
-        "effect": "整轮仅 1 hand；discard 仍可用。",
+        "effect": "Only 1 hand allowed per round. Discards are still available.",
         "score_mult": "1x",
         "min_ante": 2,
         "matador": False,
-        "strategy": "Boss 前须 Planet/构筑到位；Dusk/Acrobat 仍吃「最后一手」。",
         "wiki": "https://balatrowiki.org/w/The_Needle",
     },
     "The Head": {
-        "effect": "红心 debuff：不能当计分牌。",
+        "effect": "All Heart cards are debuffed and cannot be scoring cards.",
         "score_mult": "2x",
         "min_ante": 1,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Head",
     },
     "The Tooth": {
-        "effect": "每打出一张牌 -$1。",
+        "effect": "-$1 for each card played.",
         "score_mult": "2x",
         "min_ante": 3,
         "matador": False,
         "wiki": "https://balatrowiki.org/w/The_Tooth",
     },
     "The Flint": {
-        "effect": "本盲注所有牌型的 base chips 和 mult 减半。",
+        "effect": "Base chips and mult of all hand types are halved this blind.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": True,
         "wiki": "https://balatrowiki.org/w/The_Flint",
     },
     "The Mark": {
-        "effect": "所有人头牌抽牌时面朝下。",
+        "effect": "All face cards are drawn face-down.",
         "score_mult": "2x",
         "min_ante": 2,
         "matador": False,
-        "strategy": "1 张高牌 + 人头构筑。",
         "wiki": "https://balatrowiki.org/w/The_Mark",
     },
     "Amber Acorn": {
-        "effect": "翻转并洗牌所有小丑。",
+        "effect": "Flips and shuffles all Jokers.",
         "score_mult": "2x",
         "min_ante": 8,
         "showdown": True,
@@ -456,7 +451,7 @@ BOSSES: dict[str, dict] = {
         "wiki": "https://balatrowiki.org/w/Amber_Acorn",
     },
     "Verdant Leaf": {
-        "effect": "所有牌 debuff，直到卖掉 1 张小丑。",
+        "effect": "All cards are debuffed until 1 Joker is sold.",
         "score_mult": "2x",
         "min_ante": 8,
         "showdown": True,
@@ -464,7 +459,7 @@ BOSSES: dict[str, dict] = {
         "wiki": "https://balatrowiki.org/w/Verdant_Leaf",
     },
     "Violet Vessel": {
-        "effect": "超大盲注：需 6× base 分（Luchador/Chicot 可降回 2×）。",
+        "effect": "Extra large blind: requires 6× base score. Luchador or Chicot can reduce it to 2×.",
         "score_mult": "6x",
         "min_ante": 8,
         "showdown": True,
@@ -472,7 +467,7 @@ BOSSES: dict[str, dict] = {
         "wiki": "https://balatrowiki.org/w/Violet_Vessel",
     },
     "Crimson Heart": {
-        "effect": "每手随机 debuff 一张小丑（每手换一张）。",
+        "effect": "Each hand, one random Joker is debuffed. The debuffed Joker changes each hand.",
         "score_mult": "2x",
         "min_ante": 8,
         "showdown": True,
@@ -480,7 +475,7 @@ BOSSES: dict[str, dict] = {
         "wiki": "https://balatrowiki.org/w/Crimson_Heart",
     },
     "Cerulean Bell": {
-        "effect": "强制始终选中 1 张牌。",
+        "effect": "One card is always forced into the selection.",
         "score_mult": "2x",
         "min_ante": 8,
         "showdown": True,
@@ -491,144 +486,181 @@ BOSSES: dict[str, dict] = {
 
 TAGS: dict[str, dict] = {
     "Boss Tag": {
-        "effect": "重 roll 下一个 Boss Blind。",
+        "effect": "Rerolls the next Boss Blind.",
         "wiki": "https://balatrowiki.org/w/Boss_Tag",
     },
     "Buffoon Tag": {
-        "effect": "免费 Mega Buffoon Pack。",
+        "effect": "Free Mega Buffoon Pack.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Buffoon_Tag",
     },
     "Charm Tag": {
-        "effect": "免费 Mega Arcana Pack。",
+        "effect": "Free Mega Arcana Pack.",
         "wiki": "https://balatrowiki.org/w/Charm_Tag",
     },
     "Coupon Tag": {
-        "effect": "下一家店首次进店时，初始小丑/消耗品/补充包免费。",
-        "limits": "券不含；reroll 后新商品不含。",
+        "effect": "On first entry to the next shop, all initial Jokers, consumables, and packs are free.",
+        "limits": "Vouchers are not included. Items added after a reroll are not included.",
         "wiki": "https://balatrowiki.org/w/Coupon_Tag",
     },
     "D6 Tag": {
-        "effect": "下一家店 reroll 起始 $0。",
+        "effect": "Reroll cost starts at $0 in the next shop.",
         "wiki": "https://balatrowiki.org/w/D6_Tag",
     },
     "Double Tag": {
-        "effect": "复制「下一个」获得的 Tag（不能复制自身）。",
+        "effect": "Copies the next Tag obtained (cannot copy itself).",
         "wiki": "https://balatrowiki.org/w/Double_Tag",
     },
     "Economy Tag": {
-        "effect": "skip 后按当前资金翻倍，上限 $40。",
+        "effect": "After skipping, doubles current money up to a maximum of $40.",
         "wiki": "https://balatrowiki.org/w/Economy_Tag",
     },
     "Ethereal Tag": {
-        "effect": "免费 Spectral Pack。",
+        "effect": "Free Spectral Pack.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Ethereal_Tag",
     },
     "Foil Tag": {
-        "effect": "下一家店某初始 base 小丑免费且带 Foil。",
+        "effect": "A random base Joker in the next shop is free with Foil edition.",
         "wiki": "https://balatrowiki.org/w/Foil_Tag",
     },
     "Garbage Tag": {
-        "effect": "本局每次未使用的 discard 得 $1（skip 时按当前剩余 discard 结算）。",
+        "effect": "Earn $1 for each unused discard this round (paid at skip time based on remaining discards).",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Garbage_Tag",
     },
     "Handy Tag": {
-        "effect": "本局每打出过一次 hand 得 $1（skip 时按已打 hand 数结算）。",
+        "effect": "Earn $1 for each hand played this round (paid at skip time based on hands played so far).",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Handy_Tag",
     },
     "Holographic Tag": {
-        "effect": "下一家店某初始 base 小丑免费且带 Holographic。",
+        "effect": "A random base Joker in the next shop is free with Holographic edition.",
         "wiki": "https://balatrowiki.org/w/Holographic_Tag",
     },
     "Investment Tag": {
-        "effect": "击败下一个 Boss 后 +$25；可叠加。",
+        "effect": "Earn +$25 after defeating the next Boss Blind. Stackable.",
         "wiki": "https://balatrowiki.org/w/Investment_Tag",
     },
     "Juggle Tag": {
-        "effect": "下一轮 +3 手牌上限。",
+        "effect": "+3 hand size for the next round.",
         "wiki": "https://balatrowiki.org/w/Juggle_Tag",
     },
     "Meteor Tag": {
-        "effect": "免费 Mega Celestial Pack。",
+        "effect": "Free Mega Celestial Pack.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Meteor_Tag",
     },
     "Negative Tag": {
-        "effect": "下一家店某初始 base 小丑免费且带 Negative。",
+        "effect": "A random base Joker in the next shop is free with Negative edition.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Negative_Tag",
     },
     "Orbital Tag": {
-        "effect": "选一个牌型 +3 级。",
+        "effect": "Upgrade one selected hand type by 3 levels.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Orbital_Tag",
     },
     "Polychrome Tag": {
-        "effect": "下一家店某初始 base 小丑免费且带 Polychrome。",
+        "effect": "A random base Joker in the next shop is free with Polychrome edition.",
         "wiki": "https://balatrowiki.org/w/Polychrome_Tag",
     },
     "Rare Tag": {
-        "effect": "下一家店生成一张免费 Rare 小丑（占 shop 槽）。",
+        "effect": "A free Rare Joker appears in the next shop (occupies a shop slot).",
         "wiki": "https://balatrowiki.org/w/Rare_Tag",
     },
     "Speed Tag": {
-        "effect": "本 run 每 skip 过一个 Blind 得 $5（skip 时至少 $5）。",
+        "effect": "Earn $5 for each Blind skipped this run (at least $5 when obtained).",
         "wiki": "https://balatrowiki.org/w/Speed_Tag",
     },
     "Standard Tag": {
-        "effect": "免费 Mega Standard Pack。",
+        "effect": "Free Mega Standard Pack.",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Standard_Tag",
     },
     "Top-up Tag": {
-        "effect": "生成最多 2 张 Common 小丑（需有空槽）。",
+        "effect": "Generates up to 2 Common Jokers (requires available Joker slots).",
         "min_ante": 2,
         "wiki": "https://balatrowiki.org/w/Top-up_Tag",
     },
     "Uncommon Tag": {
-        "effect": "下一家店生成一张免费 Uncommon 小丑（占 shop 槽）。",
+        "effect": "A free Uncommon Joker appears in the next shop (occupies a shop slot).",
         "wiki": "https://balatrowiki.org/w/Uncommon_Tag",
     },
     "Voucher Tag": {
-        "effect": "下一家店额外出现一张券。",
+        "effect": "An additional Voucher appears in the next shop.",
         "wiki": "https://balatrowiki.org/w/Voucher_Tag",
+    },
+}
+
+JOKER_OVERRIDES: dict[str, dict] = {
+    "Oops! All 6s": {
+        "effect": "Doubles all X-in-Y probabilities (e.g. 1/3→2/3, 1/5→2/5), including negative ones such as Glass shattering, Gros Michel extinction, and Wheel of Fortune dark card.",
+    },
+    "Wee Joker": {
+        "effect": "Starts at +0 Chips; gains +8 Chips permanently each time a 2 is scored in the scoring hand. Each retrigger (Hack, Dusk, Red Seal, etc.) counts as a separate scoring event and adds another +8.",
+    },
+    "To Do List": {
+        "effect": "Each round randomly targets one poker hand type; scores +$4 when that exact hand type is played and scored. Target changes at end of round. Multiple copies have independent random targets.",
+        "notes": "Gives money, not Mult. Must match the hand type exactly — Full House does not satisfy a Two Pair target.",
+    },
+    "Dusk": {
+        "effect": "On the final hand of a blind, all played cards retrigger twice.",
+        "notes": "Retriggers apply to individual card scoring (chips, enhancements, editions), not to the total hand multiplier. When Needle forces exactly 1 hand per round, that hand is always the final hand.",
+    },
+    "Joker Stencil": {
+        "effect": "Each empty Joker slot, including the slot occupied by Stencil itself, contributes ×1 Mult. Multiple Stencils multiply together.",
+        "notes": "This is an XMult effect, not flat +Mult.",
+    },
+    "Misprint": {
+        "effect": "Adds a random +0 to +23 flat Mult each hand (uniform distribution, expected ~+11.5).",
+        "notes": "High variance: can roll 0.",
+    },
+    "Blueprint": {
+        "notes": "Copies the Joker immediately to its right. Incompatible with Oops! All 6s.",
+    },
+    "Brainstorm": {
+        "notes": "Copies the leftmost Joker. Incompatible with Oops! All 6s.",
+    },
+}
+
+PLANET_OVERRIDES: dict[str, dict] = {
+    "Mars": {
+        "notes": "Upgrades Four of a Kind, not Three of a Kind.",
     },
 }
 
 STAKES: dict[str, dict] = {
     "WHITE": {
-        "effect": "基础难度，无额外 modifier。",
+        "effect": "Base difficulty, no additional modifiers.",
         "wiki": "https://balatrowiki.org/w/Stakes#White_Stake",
     },
     "RED": {
-        "effect": "Small Blind 打赢不给钱（Big/Boss 仍给）。",
+        "effect": "Winning the Small Blind gives no money. Big and Boss Blinds still pay.",
         "wiki": "https://balatrowiki.org/w/Stakes#Red_Stake",
     },
     "GREEN": {
-        "effect": "需求分随 Ante 涨得更快（叠在 Red 上）。",
+        "effect": "Required score scales faster with Ante (stacks with Red Stake).",
         "wiki": "https://balatrowiki.org/w/Stakes#Green_Stake",
     },
     "BLACK": {
-        "effect": "商店 30% Eternal 贴纸（不可卖/毁）。",
+        "effect": "Shop Jokers have a 30% chance of having an Eternal sticker (cannot be sold or destroyed).",
         "wiki": "https://balatrowiki.org/w/Stakes#Black_Stake",
     },
     "BLUE": {
-        "effect": "-1 discard（叠在前序 stake 上）。",
+        "effect": "-1 discard per round (stacks with previous stakes).",
         "wiki": "https://balatrowiki.org/w/Stakes#Blue_Stake",
     },
     "PURPLE": {
-        "effect": "需求分涨得更快（叠在前序 stake 上）。",
+        "effect": "Required score scales faster (stacks with previous stakes).",
         "wiki": "https://balatrowiki.org/w/Stakes#Purple_Stake",
     },
     "ORANGE": {
-        "effect": "商店可出现 Perishable 小丑（N 回合后自毁）。",
+        "effect": "Perishable Jokers can appear in the shop (self-destruct after a set number of rounds).",
         "wiki": "https://balatrowiki.org/w/Stakes#Orange_Stake",
     },
     "GOLD": {
-        "effect": "商店可出现 Rental 小丑（每回合 -$1）。",
+        "effect": "Rental Jokers can appear in the shop (costs $1 per round).",
         "wiki": "https://balatrowiki.org/w/Stakes#Gold_Stake",
     },
 }
@@ -645,12 +677,6 @@ def parse_api_section(text: str, prefix: str) -> dict[str, str]:
             out[key] = effect
     return out
 
-
-def load_overrides(name: str) -> dict:
-    path = ROOT / f"balatro-{name}-overrides.json"
-    if path.is_file():
-        return json.loads(path.read_text(encoding="utf-8"))
-    return {}
 
 
 def fact_only(entry: dict) -> dict:
@@ -705,25 +731,22 @@ def main() -> None:
     spectral_keys = {k: v for k, v in all_c.items() if k in SPECTRAL_LABELS}
     voucher_keys = parse_api_section(api_text, "v_")
 
-    jokers = build_cards(joker_keys, JOKER_LABELS, "joker")
-    jokers = merge_entries(jokers, load_overrides("jokers"))
+    jokers = merge_entries(build_cards(joker_keys, JOKER_LABELS, "joker"), JOKER_OVERRIDES)
+    planets = merge_entries(build_cards(planet_keys, PLANET_LABELS, "planet"), PLANET_OVERRIDES)
 
-    planets = build_cards(planet_keys, PLANET_LABELS, "planet")
-    planets = merge_entries(planets, load_overrides("planets"))
-
-    tags = merge_entries(TAGS, load_overrides("tags"))
+    tags = fact_only_table(TAGS)
     for tag in tags.values():
         tag["trigger"] = TAG_SKIP_TRIGGER
 
     outputs = {
-        "balatro-jokers-verified.json": fact_only_table(jokers),
-        "balatro-bosses-verified.json": merge_entries(BOSSES, load_overrides("bosses")),
+        "balatro-jokers-verified.json": jokers,
+        "balatro-bosses-verified.json": fact_only_table(BOSSES),
         "balatro-tags-verified.json": tags,
-        "balatro-stakes-verified.json": merge_entries(STAKES, load_overrides("stakes")),
+        "balatro-stakes-verified.json": fact_only_table(STAKES),
         "balatro-tarots-verified.json": fact_only_table(
             build_cards(tarot_keys, TAROT_LABELS, "tarot")
         ),
-        "balatro-planets-verified.json": fact_only_table(planets),
+        "balatro-planets-verified.json": planets,
         "balatro-spectrals-verified.json": fact_only_table(
             build_cards(spectral_keys, SPECTRAL_LABELS, "spectral")
         ),

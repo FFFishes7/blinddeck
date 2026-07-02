@@ -1,167 +1,167 @@
 {
   "The Hook": {
-    "effect": "每打出一手后，随机弃掉手中 2 张未打出的牌。",
+    "effect": "After each hand played, 2 random unplayed cards are discarded from hand.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Hook"
   },
   "The Ox": {
-    "effect": "打出本 run 最常打的牌型 → 资金归 $0。",
+    "effect": "Playing the most-played hand type this run sets money to $0.",
     "score_mult": "2x",
     "min_ante": 6,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Ox"
   },
   "The House": {
-    "effect": "第一手抽牌全部面朝下。",
+    "effect": "The first drawn hand is all face-down.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_House"
   },
   "The Wall": {
-    "effect": "超大盲注：需 4× base 分（Luchador/Chicot 可降回 2×）。",
+    "effect": "Extra large blind: requires 4× base score. Luchador or Chicot can reduce it to 2×.",
     "score_mult": "4x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Wall"
   },
   "The Wheel": {
-    "effect": "1/7 概率抽到的牌面朝下。",
+    "effect": "Each drawn card has a 1 in 7 chance of being face-down.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Wheel"
   },
   "The Arm": {
-    "effect": "打出的牌型等级永久 -1（最低 1 级，在计分前生效）。",
+    "effect": "Permanently reduces the level of the played hand type by 1 (minimum level 1). Applied before scoring.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Arm"
   },
   "The Club": {
-    "effect": "梅花 debuff：不能当计分牌。",
+    "effect": "All Club cards are debuffed and cannot be scoring cards.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Club"
   },
   "The Fish": {
-    "effect": "每手打出后新抽的牌面朝下。",
+    "effect": "After each hand played, newly drawn cards are face-down.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Fish"
   },
   "The Psychic": {
-    "effect": "每手必须打出恰好 5 张牌（不必全部计分）。",
+    "effect": "Must play exactly 5 cards each hand (not all need to score).",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Psychic"
   },
   "The Goad": {
-    "effect": "黑桃 debuff：不能当计分牌。",
+    "effect": "All Spade cards are debuffed and cannot be scoring cards.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Goad"
   },
   "The Water": {
-    "effect": "本盲注 0 discard。",
+    "effect": "0 discards available this blind.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Water"
   },
   "The Window": {
-    "effect": "方块 debuff：不能当计分牌。",
+    "effect": "All Diamond cards are debuffed and cannot be scoring cards.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Window"
   },
   "The Manacle": {
-    "effect": "手牌上限 -1。",
+    "effect": "-1 hand size.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Manacle"
   },
   "The Eye": {
-    "effect": "本盲注每种牌型只能打一次。",
+    "effect": "Each hand type can only be played once per blind.",
     "score_mult": "2x",
     "min_ante": 3,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Eye"
   },
   "The Mouth": {
-    "effect": "本盲注只能打一种牌型（之后只能重复该型）。",
+    "effect": "Can only play one hand type this blind. After the first hand, must repeat that same type.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Mouth"
   },
   "The Plant": {
-    "effect": "所有人头牌 debuff。",
+    "effect": "All face cards (J, Q, K) are debuffed.",
     "score_mult": "2x",
     "min_ante": 4,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Plant"
   },
   "The Serpent": {
-    "effect": "每次 play 或 discard 后固定抽 3 张（无视手牌上限）。",
+    "effect": "After each play or discard, always draw exactly 3 cards regardless of hand size limit.",
     "score_mult": "2x",
     "min_ante": 5,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Serpent"
   },
   "The Pillar": {
-    "effect": "本 Ante 之前在 Small/Big 打过的牌 debuff。",
+    "effect": "Cards played during Small and Big blinds this Ante are debuffed.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Pillar"
   },
   "The Needle": {
-    "effect": "整轮仅 1 hand；discard 仍可用。",
+    "effect": "Only 1 hand allowed per round. Discards are still available.",
     "score_mult": "1x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Needle"
   },
   "The Head": {
-    "effect": "红心 debuff：不能当计分牌。",
+    "effect": "All Heart cards are debuffed and cannot be scoring cards.",
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Head"
   },
   "The Tooth": {
-    "effect": "每打出一张牌 -$1。",
+    "effect": "-$1 for each card played.",
     "score_mult": "2x",
     "min_ante": 3,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Tooth"
   },
   "The Flint": {
-    "effect": "本盲注所有牌型的 base chips 和 mult 减半。",
+    "effect": "Base chips and mult of all hand types are halved this blind.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": true,
     "wiki": "https://balatrowiki.org/w/The_Flint"
   },
   "The Mark": {
-    "effect": "所有人头牌抽牌时面朝下。",
+    "effect": "All face cards are drawn face-down.",
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
     "wiki": "https://balatrowiki.org/w/The_Mark"
   },
   "Amber Acorn": {
-    "effect": "翻转并洗牌所有小丑。",
+    "effect": "Flips and shuffles all Jokers.",
     "score_mult": "2x",
     "min_ante": 8,
     "showdown": true,
@@ -169,7 +169,7 @@
     "wiki": "https://balatrowiki.org/w/Amber_Acorn"
   },
   "Verdant Leaf": {
-    "effect": "所有牌 debuff，直到卖掉 1 张小丑。",
+    "effect": "All cards are debuffed until 1 Joker is sold.",
     "score_mult": "2x",
     "min_ante": 8,
     "showdown": true,
@@ -177,7 +177,7 @@
     "wiki": "https://balatrowiki.org/w/Verdant_Leaf"
   },
   "Violet Vessel": {
-    "effect": "超大盲注：需 6× base 分（Luchador/Chicot 可降回 2×）。",
+    "effect": "Extra large blind: requires 6× base score. Luchador or Chicot can reduce it to 2×.",
     "score_mult": "6x",
     "min_ante": 8,
     "showdown": true,
@@ -185,7 +185,7 @@
     "wiki": "https://balatrowiki.org/w/Violet_Vessel"
   },
   "Crimson Heart": {
-    "effect": "每手随机 debuff 一张小丑（每手换一张）。",
+    "effect": "Each hand, one random Joker is debuffed. The debuffed Joker changes each hand.",
     "score_mult": "2x",
     "min_ante": 8,
     "showdown": true,
@@ -193,7 +193,7 @@
     "wiki": "https://balatrowiki.org/w/Crimson_Heart"
   },
   "Cerulean Bell": {
-    "effect": "强制始终选中 1 张牌。",
+    "effect": "One card is always forced into the selection.",
     "score_mult": "2x",
     "min_ante": 8,
     "showdown": true,
