@@ -28,7 +28,7 @@ FACT_ONLY_DROP_FIELDS = {
     "anti",
     "misconception",
 }
-TAG_SKIP_TRIGGER = "跳过当前 Blind 时获得该 Tag；打过该 Blind 不会获得。"
+TAG_SKIP_TRIGGER = "跳过当前 Blind 后获得该 Tag。"
 
 # Game display labels (API gamestate uses these, not raw keys).
 JOKER_LABELS: dict[str, str] = {
@@ -572,7 +572,6 @@ TAGS: dict[str, dict] = {
     },
     "Rare Tag": {
         "effect": "下一家店生成一张免费 Rare 小丑（占 shop 槽）。",
-        "notes": "需已解锁 Blueprint 才出现。",
         "wiki": "https://balatrowiki.org/w/Rare_Tag",
     },
     "Speed Tag": {

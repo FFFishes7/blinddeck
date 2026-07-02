@@ -100,7 +100,7 @@
   "tags_are_skip_rewards": {
     "title": "Tags are rewards for skipping the shown Blind",
     "category": "tag",
-    "rule": "In blind selection, the tag UI is bound to the skip_blind action. When skip_blind runs, the game adds the displayed tag, marks the skipped blind as Skipped, and advances to the next blind. Playing and defeating that blind does not award the displayed tag.",
+    "rule": "In blind selection, the tag UI is bound to the skip_blind action. When skip_blind runs, the game adds the displayed tag, marks the current blind as skipped, and advances to the next blind.",
     "source": [
       "Balatro.exe:functions/button_callbacks.lua:2653-2657",
       "Balatro.exe:functions/button_callbacks.lua:2740-2762"
