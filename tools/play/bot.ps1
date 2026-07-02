@@ -20,6 +20,7 @@ if (-not (Test-Path $Python)) {
 
 if ($BotArgs.Count -eq 0) {
     Write-Host 'Usage:'
+    Write-Host '  .\bot.ps1 help              list all commands (state-aware)'
     Write-Host '  .\bot.ps1 state'
     Write-Host '  .\bot.ps1 know preflight'
     Write-Host '  .\bot.ps1 play 0 1 2 3 4'

@@ -132,6 +132,24 @@ def named_area(
     ]
 
 
+def print_hand_levels(state: dict[str, Any]) -> None:
+    """Print every poker hand type with its level, chips, and mult.
+
+    Sorted by Balatro's hand ``order`` so the layout is stable. Unlike the
+    old leveled-only highlight, this shows base (L1) hands too, which lets the
+    AI weigh played hands against current scoring values.
+    """
+    hands = state.get("hands") or {}
+    if not hands:
+        return
+    ordered = sorted(hands.items(), key=lambda kv: kv[1].get("order", 0))
+    parts = [
+        f"{name}[L{d.get('level', 1)} {d.get('chips', 0)}\u00d7{d.get('mult', 0)}]"
+        for name, d in ordered
+    ]
+    print("hands: " + ", ".join(parts))
+
+
 def print_round_start_rules(state: dict[str, Any]) -> None:
     if state.get("state") != "SELECTING_HAND":
         return
@@ -162,6 +180,7 @@ def print_hint(state_name: str) -> None:
     }
     if state_name in hints:
         print(hints[state_name])
+    print("? .\\bot.ps1 help  — full command list (state-aware)")
 
 
 def print_summary(state: dict[str, Any]) -> None:
@@ -235,12 +254,6 @@ def print_summary(state: dict[str, Any]) -> None:
             "pack_open (free pick):",
             named_area(pack, include_effect=True, show_cost=False),
         )
-    leveled = {
-        h: (d["level"], d["chips"], d["mult"])
-        for h, d in state.get("hands", {}).items()
-        if d["level"] > 1
-    }
-    if leveled:
-        print("leveled_hands:", leveled)
+    print_hand_levels(state)
     print_round_start_rules(state)
     print_hint(state_name)

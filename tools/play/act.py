@@ -1,23 +1,6 @@
 """Run one BalatroBot action and print a compact summary.
 
-Examples:
-    python act.py select
-    python act.py skip
-    python act.py play 0 1 2 3 4
-    python act.py discard 0 1
-    python act.py buy card 0
-    python act.py buy pack 0
-    python act.py pack 0
-    python act.py pack 0 1 2      # choose pack card 0, target hand cards 1 and 2
-    python act.py pack skip
-    python act.py use 0 1 2       # use consumable 0 on hand cards 1 and 2
-    python act.py death 0 4 3     # consumable 0: convert source card 4 into target card 3
-    python act.py rearrange hand 0 2 1 3 4 5 6 7
-    python act.py sort rank       # use Balatro's native rank sort button logic
-    python act.py sort suit       # use Balatro's native suit sort button logic
-    python act.py start RED WHITE
-    python act.py cash_out
-    python act.py next_round
+Run `python act.py help` for a full, state-aware command reference.
 """
 
 from __future__ import annotations
@@ -37,6 +20,104 @@ ALIASES = {
     "nr": "next_round",
     "cash": "cash_out",
 }
+
+
+# (category, syntax, description, applicable_states or None for "any state")
+COMMANDS = [
+    ("query", "state", "current gamestate summary", None),
+    ("query", "hand", "alias for state", None),
+    ("query", "rpc METHOD [json-stdin]", "send any JSON-RPC call", None),
+    ("query", "know preflight", "verify stake/jokers/boss/tags vs knowledge base", None),
+    (
+        "query",
+        'know check joker|boss|tag|stake|planet|tarot|voucher|spectral|rule "Name"',
+        "look up one verified entry",
+        None,
+    ),
+    ("query", "know list jokers|bosses|tags|...", "list all entries of a kind", None),
+    ("query", "know stats", "knowledge library counts", None),
+    ("run flow", "start DECK STAKE [seed]", "start a new run", {"MENU"}),
+    ("run flow", "menu", "return to main menu", None),
+    ("run flow", "select", "select the current blind", {"BLIND_SELECT"}),
+    ("run flow", "skip", "skip the current blind (small/big only)", {"BLIND_SELECT"}),
+    ("run flow", "cash_out", "cash out round rewards", {"ROUND_EVAL"}),
+    ("run flow", "next_round", "leave shop -> next blind select", {"SHOP"}),
+    ("hand", "play i [j ...]", "play hand cards at given indices", {"SELECTING_HAND"}),
+    ("hand", "discard i [j ...]", "discard hand cards at given indices", {"SELECTING_HAND"}),
+    (
+        "hand",
+        "sort rank|rank-desc|rank-asc|suit|suit-desc|suit-asc",
+        "Balatro's native sort",
+        {"SELECTING_HAND", "SMODS_BOOSTER_OPENED"},
+    ),
+    (
+        "hand",
+        "rearrange hand|jokers|consumables i j k ...",
+        "custom ordering by full index order",
+        {"SELECTING_HAND", "SHOP", "SMODS_BOOSTER_OPENED"},
+    ),
+    ("shop", "buy card|voucher|pack N", "buy a shop card/voucher/pack", {"SHOP"}),
+    ("shop", "reroll", "reroll the shop", {"SHOP"}),
+    (
+        "shop",
+        "sell joker|consumable N",
+        "sell a joker or consumable",
+        {"SELECTING_HAND", "SHOP", "SMODS_BOOSTER_OPENED"},
+    ),
+    (
+        "pack",
+        "pack N [targets...]",
+        "pick pack card N, optionally target hand cards",
+        {"SMODS_BOOSTER_OPENED"},
+    ),
+    ("pack", "pack skip", "skip the opened booster pack", {"SMODS_BOOSTER_OPENED"}),
+    (
+        "consumable",
+        "use N [cards...]",
+        "use consumable N, optionally on hand cards",
+        {"SELECTING_HAND", "SHOP"},
+    ),
+    (
+        "consumable",
+        "death CONSUMABLE SRC TGT",
+        "Death: turn source card SRC into target TGT (auto-orders)",
+        {"SELECTING_HAND"},
+    ),
+    ("help", "help [all|STATE]", "show commands (filtered by state)", None),
+]
+
+_HELP_CATEGORIES = ["query", "run flow", "hand", "shop", "pack", "consumable", "help"]
+
+
+def print_help(filter_state: str | None = None) -> None:
+    """Print the command reference.
+
+    If ``filter_state`` is a concrete state name, only commands valid in that
+    state (plus always-available ones) are shown. ``"all"`` or ``None`` shows
+    everything.
+    """
+    if filter_state and filter_state != "all":
+        print(f"BalatroBot commands (state={filter_state}):")
+    else:
+        print("BalatroBot commands (all):")
+    by_cat: dict[str, list[tuple[str, str, set[str] | None]]] = {}
+    for cat, syntax, desc, states in COMMANDS:
+        by_cat.setdefault(cat, []).append((syntax, desc, states))
+    for cat in _HELP_CATEGORIES:
+        rows = by_cat.get(cat, [])
+        if filter_state and filter_state != "all":
+            rows = [r for r in rows if r[2] is None or filter_state in r[2]]
+        if not rows:
+            continue
+        print(f"  [{cat}]")
+        for syntax, desc, states in rows:
+            tag = " (any state)" if states is None else ""
+            print(f"    {syntax:<52} {desc}{tag}")
+    print(
+        "notes: indices are 0-based; server is single-connection/serial; "
+        "each action prints state after."
+    )
+    print("tip: run `python act.py help` for state-aware help, `help all` for full list.")
 
 
 def build_params(method: str, args: list[str]) -> dict:
@@ -163,9 +244,24 @@ def use_death(consumable: int, source: int, target: int) -> dict:
 def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__, file=sys.stderr)
+        print("Run `python act.py help` for the command reference.", file=sys.stderr)
         return 2
     method = ALIASES.get(sys.argv[1], sys.argv[1])
     args = sys.argv[2:]
+    if method in ("help", "-h", "--help"):
+        arg = args[0] if args else None
+        if arg is None:
+            # State-aware: probe the server, fall back to full list if down.
+            try:
+                filter_state = rpc("gamestate").get("state")
+            except Exception:
+                filter_state = "all"
+        elif arg == "all":
+            filter_state = "all"
+        else:
+            filter_state = arg
+        print_help(filter_state)
+        return 0
     try:
         if method == "death":
             if len(args) != 3:

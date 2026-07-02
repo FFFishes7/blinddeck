@@ -9,6 +9,9 @@ Usage:
     python know.py check planet Mars
     python know.py check rule scoring_hand_only
     python know.py list jokers|bosses|tags|stakes|planets|tarots|vouchers|spectrals|rules
+    python know.py list jokers wrap   # substring filter (case-insensitive)
+    python know.py check joker "Mad Joker" --json   # JSON output (null if unknown)
+    python know.py list jokers --json              # JSON array of names
     python know.py stats              # library counts
 """
 
@@ -62,7 +65,7 @@ def load_library(kind: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def resolve_name(kind: str, name: str, library: dict) -> str | None:
+def resolve_name(kind: str, name: str, library: dict, quiet: bool = False) -> str | None:
     key = name.strip()
     if key in library:
         return key
@@ -71,9 +74,10 @@ def resolve_name(kind: str, name: str, library: dict) -> str | None:
         return lower_map[key.lower()]
     matches = get_close_matches(key, library.keys(), n=3, cutoff=0.6)
     if len(matches) == 1:
-        print(f"  (matched '{matches[0]}')")
+        if not quiet:
+            print(f"  (matched '{matches[0]}')")
         return matches[0]
-    if matches:
+    if matches and not quiet:
         print(f"  ambiguous — did you mean: {', '.join(matches)}?")
     return None
 
@@ -102,24 +106,35 @@ def print_entry(label: str, entry: dict) -> None:
         print(f"  wiki: {entry['wiki']}")
 
 
-def check_kind(kind: str, name: str, library: dict | None = None) -> int:
+def check_kind(kind: str, name: str, library: dict | None = None, json_mode: bool = False) -> int:
     library = library or load_library(kind)
-    resolved = resolve_name(kind, name, library)
+    resolved = resolve_name(kind, name, library, quiet=json_mode)
     if not resolved:
-        print(f"UNKNOWN {kind.upper()}: {name.strip()}")
-        print(
-            "  → Look up https://balatrowiki.org/, add to overrides, and run build_knowledge.py"
-        )
-        print("  → Do not make decisions based on this entry until it is verified")
+        if json_mode:
+            print("null")
+        else:
+            print(f"UNKNOWN {kind.upper()}: {name.strip()}")
         return 1
-    print_entry(resolved, library[resolved])
+    entry = library[resolved]
+    if json_mode:
+        out = {"name": resolved, **entry}
+        print(json.dumps(out, ensure_ascii=False))
+    else:
+        print_entry(resolved, entry)
     return 0
 
 
-def cmd_list(kind: str) -> int:
+def cmd_list(kind: str, substring: str | None = None, json_mode: bool = False) -> int:
     library = load_library(kind)
-    for name in sorted(library):
-        print(name)
+    names = sorted(library)
+    if substring:
+        sub = substring.lower()
+        names = [n for n in names if sub in n.lower()]
+    if json_mode:
+        print(json.dumps(names, ensure_ascii=False))
+    else:
+        for n in names:
+            print(n)
     return 0
 
 
@@ -212,36 +227,40 @@ def main() -> int:
     if len(sys.argv) < 2:
         print(__doc__, file=sys.stderr)
         return 2
-    cmd = sys.argv[1]
+    argv = sys.argv[1:]
+    json_mode = "--json" in argv
+    argv = [a for a in argv if a != "--json"]
+    cmd = argv[0]
     if cmd == "preflight":
         return cmd_preflight()
     if cmd == "stats":
         return cmd_stats()
     if cmd == "list":
-        if len(sys.argv) < 3:
+        if len(argv) < 2:
             print(
-                "Usage: python know.py list jokers|bosses|tags|stakes|planets|tarots|vouchers|spectrals|rules",
+                "Usage: python know.py list jokers|bosses|tags|stakes|planets|tarots|vouchers|spectrals|rules [substring] [--json]",
                 file=sys.stderr,
             )
             return 2
-        kind = ALIASES.get(sys.argv[2].lower())
+        kind = ALIASES.get(argv[1].lower())
         if not kind:
-            print(f"Unknown library: {sys.argv[2]}", file=sys.stderr)
+            print(f"Unknown library: {argv[1]}", file=sys.stderr)
             return 2
-        return cmd_list(kind)
+        substring = argv[2] if len(argv) > 2 else None
+        return cmd_list(kind, substring=substring, json_mode=json_mode)
     if cmd == "check":
-        if len(sys.argv) < 4:
+        if len(argv) < 3:
             print(
-                'Usage: python know.py check joker|boss|tag|stake|planet|tarot|voucher|spectral|rule "Name"',
+                'Usage: python know.py check joker|boss|tag|stake|planet|tarot|voucher|spectral|rule "Name" [--json]',
                 file=sys.stderr,
             )
             return 2
-        kind = ALIASES.get(sys.argv[2].lower(), sys.argv[2].lower())
+        kind = ALIASES.get(argv[1].lower(), argv[1].lower())
         if kind not in LIBRARIES:
-            print(f"Unknown kind: {sys.argv[2]}", file=sys.stderr)
+            print(f"Unknown kind: {argv[1]}", file=sys.stderr)
             return 2
-        name = " ".join(sys.argv[3:])
-        return check_kind(kind, name)
+        name = " ".join(argv[2:])
+        return check_kind(kind, name, json_mode=json_mode)
     print(f"Unknown command: {cmd}", file=sys.stderr)
     return 2
 
