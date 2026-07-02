@@ -2,13 +2,9 @@
   "id": "balatrobot",
   "name": "BalatroBot",
   "author": [
-    "S1M0N38",
-    "stirby",
-    "phughesion",
-    "besteon",
-    "giewev"
+    "FFFishes7"
   ],
-  "description": "BalatroBot API opening balatro to bot.",
+  "description": "Personal Balatro play setup with JSON-RPC API and local play helpers.",
   "prefix": "BB",
   "main_file": "balatrobot.lua",
   "priority": 0,

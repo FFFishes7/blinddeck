@@ -1,6 +1,6 @@
 # Installation
 
-This guide covers installing the BalatroBot mod for Balatro.
+This guide covers installing the BalatroBot mod for local personal play.
 
 ## Prerequisites
 
@@ -11,9 +11,14 @@ This guide covers installing the BalatroBot mod for Balatro.
 
 ## Mod Installation
 
-### 1. Download BalatroBot
+### 1. Get the Repository
 
-Download the latest release from the [releases page](https://github.com/coder/balatrobot/releases) or clone the repository.
+Clone this repository:
+
+```bash
+git clone https://github.com/FFFishes7/balatrobot.git
+cd balatrobot
+```
 
 ### 2. Copy to Mods Folder
 

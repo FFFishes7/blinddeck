@@ -65,7 +65,9 @@ def load_library(kind: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def resolve_name(kind: str, name: str, library: dict, quiet: bool = False) -> str | None:
+def resolve_name(
+    kind: str, name: str, library: dict, quiet: bool = False
+) -> str | None:
     key = name.strip()
     if key in library:
         return key
@@ -106,7 +108,9 @@ def print_entry(label: str, entry: dict) -> None:
         print(f"  wiki: {entry['wiki']}")
 
 
-def check_kind(kind: str, name: str, library: dict | None = None, json_mode: bool = False) -> int:
+def check_kind(
+    kind: str, name: str, library: dict | None = None, json_mode: bool = False
+) -> int:
     library = library or load_library(kind)
     resolved = resolve_name(kind, name, library, quiet=json_mode)
     if not resolved:

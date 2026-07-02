@@ -1,6 +1,6 @@
 # Contributing
 
-Guide for contributing to BalatroBot development.
+Guide for working on this personal Balatro play repository.
 
 ## Prerequisites
 
@@ -90,7 +90,7 @@ The `.luarc.json` file should be placed at the root of the balatrobot repository
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-repo/balatrobot.git
+git clone https://github.com/FFFishes7/balatrobot.git
 cd balatrobot
 ```
 
@@ -279,22 +279,20 @@ make quality  # Runs lint, typecheck, and format
 3. **Update docs** - Update api.md and openrpc.json for API changes
 4. **Run code quality checks** - Execute `make quality` before committing (see [Code Quality Tools](#code-quality-tools))
 5. **Test locally** - Ensure both `pytest -n 6 tests/lua` and `pytest tests/cli` pass
-6. **Use Conventional Commits** - Follow [Conventional Commits](https://www.conventionalcommits.org/) for automated changelog generation
+6. **Use Conventional Commits** - Follow [Conventional Commits](https://www.conventionalcommits.org/)
 
 ## CI/CD Pipeline
 
-The project uses GitHub Actions for continuous integration and deployment.
+The project uses GitHub Actions for continuous integration.
 
 ### Workflows
 
 - **code_quality.yml**: Runs linting, type checking, and formatting on every PR (equivalent to `make quality`)
-- **deploy_docs.yml**: Deploys documentation to GitHub Pages when a release is published
-- **release_please.yml**: Automated version management and changelog generation
-- **release_pypi.yml**: Publishes the package to PyPI on release
+- **commit_lint.yml**: Validates commit messages and PR titles against Conventional Commits
 
 ### For Contributors
 
-You don't need to worry about most CI/CD workflows—just ensure your PR passes the **code quality checks**:
+You don't need to worry about CI setup—just ensure your PR passes the **code quality checks**:
 
 ```bash
 make quality  # Run this before pushing

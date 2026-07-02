@@ -1,6 +1,6 @@
 # CLI Reference
 
-Command-line interface for the BalatroBot framework.
+Command-line interface for this personal Balatro play setup.
 
 ## Usage
 

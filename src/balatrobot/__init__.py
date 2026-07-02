@@ -1,4 +1,4 @@
-"""BalatroBot - API for developing Balatro bots."""
+"""Personal Balatro play setup with API and helpers."""
 
 from balatrobot.cli.client import APIError, BalatroClient
 from balatrobot.config import Config

@@ -2,11 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-**GitHub Repository**: [`coder/balatrobot`](https://github.com/coder/balatrobot)
+**GitHub Repository**: [`FFFishes7/balatrobot`](https://github.com/FFFishes7/balatrobot)
 
 ## Overview
 
-BalatroBot is a framework for Balatro bot development. It consists of two main parts:
+This repository is a personal Balatro play setup built on BalatroBot. It consists of two main parts:
 
 1. **Python Package** (`src/balatrobot/`): A CLI and library to manage the Balatro game process, inject the mod, and handle communication.
 2. **Lua API** (`src/lua/`): The mod code running inside Balatro (Love2D) that exposes a HTTP JSON-RPC 2.0 API.
@@ -123,6 +123,7 @@ Runs inside the game engine and exposes an API.
     - `sell.lua`: Sell a joker or consumable from player inventory.
     - `set.lua`: Set a in-game value (money, chips, ante, etc.).
     - `skip.lua`: Skip the current blind (Small or Big only).
+    - `sort.lua`: Sort hand cards using Balatro's native rank or suit sort.
     - `start.lua`: Start a new game run with specified deck and stake.
     - `use.lua`: Use a consumable card with optional target cards.
 

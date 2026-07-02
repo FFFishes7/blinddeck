@@ -678,7 +678,6 @@ def parse_api_section(text: str, prefix: str) -> dict[str, str]:
     return out
 
 
-
 def fact_only(entry: dict) -> dict:
     return {k: v for k, v in entry.items() if k not in FACT_ONLY_DROP_FIELDS}
 
@@ -731,8 +730,12 @@ def main() -> None:
     spectral_keys = {k: v for k, v in all_c.items() if k in SPECTRAL_LABELS}
     voucher_keys = parse_api_section(api_text, "v_")
 
-    jokers = merge_entries(build_cards(joker_keys, JOKER_LABELS, "joker"), JOKER_OVERRIDES)
-    planets = merge_entries(build_cards(planet_keys, PLANET_LABELS, "planet"), PLANET_OVERRIDES)
+    jokers = merge_entries(
+        build_cards(joker_keys, JOKER_LABELS, "joker"), JOKER_OVERRIDES
+    )
+    planets = merge_entries(
+        build_cards(planet_keys, PLANET_LABELS, "planet"), PLANET_OVERRIDES
+    )
 
     tags = fact_only_table(TAGS)
     for tag in tags.values():

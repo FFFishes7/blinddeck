@@ -9,37 +9,19 @@
 
 <div class="project-logos" style="display: flex; justify-content: center; align-items: flex-end; gap: 2rem; flex-wrap: wrap;">
   <figure style="text-align: center; margin: 0;">
-    <a href="https://coder.github.io/balatrobot/">
+    <a href="https://github.com/FFFishes7/balatrobot">
       <img src="assets/balatrobot.svg" alt="BalatroBot" width="120">
     </a>
     <figcaption>
-      <a href="https://coder.github.io/balatrobot/"><span style="text-decoration: underline; text-underline-offset: 8px;">BalatroBot</span></a><br>
-      <small>API for developing Balatro bots</small>
-    </figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <a href="https://coder.github.io/balatrollm/">
-      <img src="assets/balatrollm.svg" alt="BalatroLLM" width="120">
-    </a>
-    <figcaption>
-      <a href="https://coder.github.io/balatrollm/">BalatroLLM</a><br>
-      <small>Play Balatro with LLMs</small>
-    </figcaption>
-  </figure>
-  <figure style="text-align: center; margin: 0;">
-    <a href="https://balatrobench.com/">
-      <img src="assets/balatrobench.svg" alt="BalatroBench" width="120">
-    </a>
-    <figcaption>
-      <a href="https://balatrobench.com/">BalatroBench</a><br>
-      <small>Benchmark LLMs playing Balatro</small>
+      <a href="https://github.com/FFFishes7/balatrobot"><span style="text-decoration: underline; text-underline-offset: 8px;">BalatroBot</span></a><br>
+      <small>Personal Balatro play setup with API and helpers</small>
     </figcaption>
   </figure>
 </div>
 
 ---
 
-**BalatroBot** is a mod for Balatro that serves a JSON-RPC 2.0 HTTP API, exposing game state and controls for external program interaction. The API provides endpoints for complete game control, including card selection, shop transactions, blind selection, and state management. External clients connect via HTTP POST to execute game actions programmatically.
+This repository is a personal Balatro play setup built on BalatroBot. The mod serves a JSON-RPC 2.0 HTTP API for game state and controls, and this fork adds local play helpers plus a source-backed knowledge library for manual and LLM-assisted play.
 
 <div class="grid cards" markdown>
 
@@ -67,6 +49,14 @@
 
     [:octicons-arrow-right-24: CLI Reference](cli.md)
 
+- :material-gamepad-variant:{ .lg .middle } __Play Helpers__
+
+    ---
+
+    PowerShell wrappers, compact state display, and knowledge lookups for local play.
+
+    [:octicons-arrow-right-24: Play Helpers](../tools/play/README.md)
+
 - :material-file-document:{ .lg .middle } __BalatroBot API__
 
     ---
@@ -82,13 +72,5 @@
     Setup guide for developers, test suite, and contributing guidelines.
 
     [:octicons-arrow-right-24: Contributing](contributing.md)
-
-- :octicons-sparkle-fill-16:{ .lg .middle } __Documentation for LLM__
-
-    ---
-
-    Docs in [llms.txt](https://llmstxt.org/) format. Paste the following link (or its content) into the LLM.
-
-    [:octicons-arrow-right-24: llms-full.txt](llms-full.txt)
 
 </div>

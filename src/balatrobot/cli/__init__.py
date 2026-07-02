@@ -7,7 +7,7 @@ from balatrobot.cli.serve import serve
 
 app = typer.Typer(
     name="balatrobot",
-    help="BalatroBot - Balatro bot development framework",
+    help="BalatroBot - personal Balatro play setup with API and helpers",
     no_args_is_help=True,
 )
 

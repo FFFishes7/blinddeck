@@ -1,14 +1,10 @@
 [project]
 name = "balatrobot"
 version = "1.5.2"
-description = "API for developing Balatro bots"
+description = "Personal Balatro play setup with API and helpers"
 readme = "README.md"
 authors = [
-  { name = "S1M0N38", email = "bertolottosimone@gmail.com" },
-  { name = "stirby" },
-  { name = "giewev" },
-  { name = "besteon" },
-  { name = "phughesion" },
+  { name = "FFFishes7", email = "es_fish@outlook.com" },
 ]
 requires-python = ">=3.13"
 dependencies = ["httpx>=0.28.1", "typer>=0.15"]
@@ -23,10 +19,9 @@ classifiers = [
 balatrobot = "balatrobot.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/coder/balatrobot"
-Issues = "https://github.com/coder/balatrobot/issues"
-Repository = "https://github.com/coder/balatrobot"
-Changelog = "https://github.com/coder/balatrobot/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/FFFishes7/balatrobot"
+Issues = "https://github.com/FFFishes7/balatrobot/issues"
+Repository = "https://github.com/FFFishes7/balatrobot"
 
 [build-system]
 requires = ["hatchling"]
@@ -66,10 +61,6 @@ dev = [
   "mdformat-gfm-alerts>=2.0.0",
   "mdformat-mkdocs>=5.1.1",
   "mdformat-simple-breaks>=0.0.1",
-  "mike>=2.2.0",
-  "mkdocs>=1.6.1",
-  "mkdocs-llmstxt>=0.5.0",
-  "mkdocs-material>=9.7.1",
   "ruff>=0.14.10",
   "ty>=0.0.9",
 ]

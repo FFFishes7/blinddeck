@@ -1,6 +1,6 @@
 # BalatroBot API Reference
 
-JSON-RPC 2.0 API for controlling Balatro programmatically.
+JSON-RPC 2.0 API for controlling Balatro locally in this personal play setup.
 
 ## Overview
 
@@ -130,6 +130,7 @@ MENU ──► BLIND_SELECT ──► SELECTING_HAND ──► ROUND_EVAL ──
 - [`play`](#play) - Play cards from hand
 - [`discard`](#discard) - Discard cards from hand
 - [`rearrange`](#rearrange) - Rearrange cards in hand, jokers, or consumables
+- [`sort`](#sort) - Sort hand cards using Balatro's native rank or suit sort
 - [`use`](#use) - Use a consumable card
 - [`add`](#add) - Add a card to the game (debug/testing)
 - [`screenshot`](#screenshot) - Take a screenshot of the game
@@ -562,6 +563,38 @@ curl -X POST http://127.0.0.1:12346 \
 
 ---
 
+### `sort`
+
+Sort hand cards using Balatro's native hand sort logic. This uses the same `CardArea:sort` methods as the in-game Rank and Suit buttons.
+
+**Parameters:**
+
+| Name   | Type   | Required | Description                                                                                                                        |
+| ------ | ------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `mode` | string | No       | Sort mode: `rank`/`rank-desc`/`value`/`value-desc`, `rank-asc`/`value-asc`, `suit`/`suit-desc`, or `suit-asc`. Defaults to `rank`. |
+
+**Returns:** [GameState](#gamestate-schema)
+
+**Errors:** `BAD_REQUEST`, `NOT_ALLOWED`
+
+**Required State:** `SELECTING_HAND` or `SMODS_BOOSTER_OPENED`. In booster packs, hand sorting is only available for Arcana and Spectral packs.
+
+**Example:**
+
+```bash
+# Sort hand by rank descending (default)
+curl -X POST http://127.0.0.1:12346 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "sort", "id": 1}'
+
+# Sort hand by suit ascending
+curl -X POST http://127.0.0.1:12346 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "sort", "params": {"mode": "suit-asc"}, "id": 1}'
+```
+
+---
+
 ### `use`
 
 Use a consumable card.
@@ -727,6 +760,21 @@ Represents a card area (hand, jokers, consumables, shop, etc.).
 
 ### Card
 
+Represents a single card in any area (hand, deck, shop, pack, etc.).
+
+When a card is face down in-game (`state.hidden: true`), the API masks its identity so clients cannot read rank, suit, key, or modifiers before the card is revealed. This prevents cheating on boss blinds like The Wheel, The Mark, and The Psychic.
+
+For hidden cards, only these fields contain reliable information:
+
+- `id` — stable position identifier (`sort_id`)
+- `state.hidden` — always `true`
+- `state.highlight` — present when the card is highlighted
+- `cost` — sell/buy values (including booster `free` picks when applicable)
+
+All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, empty `value`, and empty `modifier`. Do not infer card identity from masked fields.
+
+**Visible card example:**
+
 ```json
 {
   "id": 1,
@@ -750,6 +798,28 @@ Represents a card area (hand, jokers, consumables, shop, etc.).
     "debuff": false,
     "hidden": false,
     "highlight": false
+  },
+  "cost": {
+    "sell": 1,
+    "buy": 0
+  }
+}
+```
+
+**Hidden (face-down) card example:**
+
+```json
+{
+  "id": 4,
+  "key": "",
+  "set": "DEFAULT",
+  "label": "",
+  "value": {
+    "effect": ""
+  },
+  "modifier": {},
+  "state": {
+    "hidden": true
   },
   "cost": {
     "sell": 1,

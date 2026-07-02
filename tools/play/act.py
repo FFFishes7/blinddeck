@@ -27,7 +27,12 @@ COMMANDS = [
     ("query", "state", "current gamestate summary", None),
     ("query", "hand", "alias for state", None),
     ("query", "rpc METHOD [json-stdin]", "send any JSON-RPC call", None),
-    ("query", "know preflight", "verify stake/jokers/boss/tags vs knowledge base", None),
+    (
+        "query",
+        "know preflight",
+        "verify stake/jokers/boss/tags vs knowledge base",
+        None,
+    ),
     (
         "query",
         'know check joker|boss|tag|stake|planet|tarot|voucher|spectral|rule "Name"',
@@ -43,7 +48,12 @@ COMMANDS = [
     ("run flow", "cash_out", "cash out round rewards", {"ROUND_EVAL"}),
     ("run flow", "next_round", "leave shop -> next blind select", {"SHOP"}),
     ("hand", "play i [j ...]", "play hand cards at given indices", {"SELECTING_HAND"}),
-    ("hand", "discard i [j ...]", "discard hand cards at given indices", {"SELECTING_HAND"}),
+    (
+        "hand",
+        "discard i [j ...]",
+        "discard hand cards at given indices",
+        {"SELECTING_HAND"},
+    ),
     (
         "hand",
         "sort rank|rank-desc|rank-asc|suit|suit-desc|suit-asc",
@@ -117,7 +127,9 @@ def print_help(filter_state: str | None = None) -> None:
         "notes: indices are 0-based; server is single-connection/serial; "
         "each action prints state after."
     )
-    print("tip: run `python act.py help` for state-aware help, `help all` for full list.")
+    print(
+        "tip: run `python act.py help` for state-aware help, `help all` for full list."
+    )
 
 
 def build_params(method: str, args: list[str]) -> dict:

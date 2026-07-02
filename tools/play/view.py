@@ -339,17 +339,23 @@ def print_summary(state: dict[str, Any]) -> None:
         shop_cards = state.get("shop", {}).get("cards", [])
         if shop_cards:
             print("shop:")
-            for i, desc in named_area(shop_cards, include_effect=True, include_type=True):
+            for i, desc in named_area(
+                shop_cards, include_effect=True, include_type=True
+            ):
                 print(f"  [{i}] {desc}")
         pack_cards = state.get("packs", {}).get("cards", [])
         if pack_cards:
             print("packs:")
-            for i, desc in named_area(pack_cards, include_effect=True, include_type=True):
+            for i, desc in named_area(
+                pack_cards, include_effect=True, include_type=True
+            ):
                 print(f"  [{i}] {desc}")
         voucher_cards = state.get("vouchers", {}).get("cards", [])
         if voucher_cards:
             print("vouchers:")
-            for i, desc in named_area(voucher_cards, include_effect=True, include_type=True):
+            for i, desc in named_area(
+                voucher_cards, include_effect=True, include_type=True
+            ):
                 print(f"  [{i}] {desc}")
         print(
             "blinds:",
@@ -387,9 +393,7 @@ def print_summary(state: dict[str, Any]) -> None:
     if pack:
         print(
             "pack_open (free pick):",
-            named_area(
-                pack, include_effect=True, show_cost=False, include_type=True
-            ),
+            named_area(pack, include_effect=True, show_cost=False, include_type=True),
         )
     if state_name in ("SELECTING_HAND", "ROUND_EVAL"):
         print_hand_levels(state)

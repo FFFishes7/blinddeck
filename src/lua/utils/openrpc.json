@@ -2,7 +2,7 @@
   "openrpc": "1.3.2",
   "info": {
     "title": "BalatroBot API",
-    "description": "JSON-RPC 2.0 API for Balatro bot development. This API allows external clients to control the Balatro game, query game state, and execute actions through an HTTP server.",
+    "description": "JSON-RPC 2.0 API for controlling Balatro locally. External clients can query game state and execute actions through an HTTP server.",
     "version": "1.5.2",
     "license": {
       "name": "MIT"
@@ -352,6 +352,65 @@
       "errors": [
         {
           "$ref": "#/components/errors/InvalidState"
+        }
+      ]
+    },
+    {
+      "name": "pack",
+      "summary": "Select or skip a card from an opened booster pack",
+      "description": "Select a card from an opened booster pack or skip the selection. Exactly one of card or skip must be provided. Some consumable packs require target cards.",
+      "tags": [
+        {
+          "$ref": "#/components/tags/cards"
+        }
+      ],
+      "params": [
+        {
+          "name": "card",
+          "description": "0-based index of card to select from pack",
+          "required": false,
+          "schema": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        {
+          "name": "targets",
+          "description": "0-based indices of hand cards to target (for consumables requiring targets)",
+          "required": false,
+          "schema": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "name": "skip",
+          "description": "Skip pack selection without choosing a card",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        }
+      ],
+      "result": {
+        "name": "gamestate",
+        "description": "Complete game state after pack selection or skip",
+        "schema": {
+          "$ref": "#/components/schemas/GameState"
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/BadRequest"
+        },
+        {
+          "$ref": "#/components/errors/InvalidState"
+        },
+        {
+          "$ref": "#/components/errors/NotAllowed"
         }
       ]
     },
@@ -731,6 +790,52 @@
       "errors": [
         {
           "$ref": "#/components/errors/InvalidState"
+        },
+        {
+          "$ref": "#/components/errors/NotAllowed"
+        }
+      ]
+    },
+    {
+      "name": "sort",
+      "summary": "Sort hand cards using Balatro's native hand sort logic",
+      "description": "Sort hand cards using the same CardArea:sort methods as Balatro's built-in Rank and Suit buttons. Defaults to rank descending when mode is omitted.",
+      "tags": [
+        {
+          "$ref": "#/components/tags/cards"
+        }
+      ],
+      "params": [
+        {
+          "name": "mode",
+          "description": "Sort mode: rank/rank-desc/value, rank-asc/value-asc, suit/suit-desc, or suit-asc",
+          "required": false,
+          "schema": {
+            "type": "string",
+            "enum": [
+              "rank",
+              "rank-desc",
+              "rank-asc",
+              "value",
+              "value-desc",
+              "value-asc",
+              "suit",
+              "suit-desc",
+              "suit-asc"
+            ]
+          }
+        }
+      ],
+      "result": {
+        "name": "gamestate",
+        "description": "Complete game state after sorting hand cards",
+        "schema": {
+          "$ref": "#/components/schemas/GameState"
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/BadRequest"
         },
         {
           "$ref": "#/components/errors/NotAllowed"
@@ -1124,7 +1229,7 @@
       },
       "Card": {
         "type": "object",
-        "description": "Card representation",
+        "description": "Card representation. When state.hidden is true, identity fields (key, label, value, modifier) are masked with placeholder values; only id, state, and cost are reliable.",
         "properties": {
           "id": {
             "type": "integer",
@@ -1226,7 +1331,7 @@
           },
           "hidden": {
             "type": "boolean",
-            "description": "If true, card is face down"
+            "description": "If true, the card is face down and its identity fields are masked in gamestate responses"
           },
           "highlight": {
             "type": "boolean",
