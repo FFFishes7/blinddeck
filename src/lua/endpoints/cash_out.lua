@@ -50,7 +50,9 @@ return {
       func = function()
         local has_shop_items = false
         if G.STATE == G.STATES.SHOP and G.STATE_COMPLETE then
-          has_shop_items = num_items(G.shop_booster) > 0 or num_items(G.shop_jokers) > 0 or num_items(G.shop_vouchers) > 0
+          has_shop_items = num_items(G.shop_booster) > 0
+            or num_items(G.shop_jokers) > 0
+            or num_items(G.shop_vouchers) > 0
         end
 
         if has_shop_items then

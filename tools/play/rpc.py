@@ -5,10 +5,12 @@ Usage:
     python rpc.py gamestate
 Reads JSON params from stdin (empty stdin => {}).
 """
+
 import json
 import sys
 
-from bot_client import APIError, rpc as bot_rpc
+from bot_client import APIError
+from bot_client import rpc as bot_rpc
 
 
 def main() -> int:

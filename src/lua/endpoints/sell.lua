@@ -144,7 +144,11 @@ return {
         local state_stable = G.STATE_COMPLETE == true
 
         -- 5. Still in valid state
-        local valid_state = (G.STATE == G.STATES.SHOP or G.STATE == G.STATES.SELECTING_HAND or G.STATE == G.STATES.SMODS_BOOSTER_OPENED)
+        local valid_state = (
+          G.STATE == G.STATES.SHOP
+          or G.STATE == G.STATES.SELECTING_HAND
+          or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
+        )
 
         -- All conditions must be met
         if count_decreased and money_increased and card_gone and state_stable and valid_state then
