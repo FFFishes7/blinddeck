@@ -3,7 +3,7 @@
 Usage (from repo root or knowledge/balatro/):
     python build_knowledge.py
 
-Reads overrides from balatro-*-overrides.json (hand-curated strategy/misconception).
+Reads overrides from balatro-*-overrides.json for factual corrections only.
 Writes balatro-*-verified.json used by know.py preflight.
 """
 from __future__ import annotations
@@ -16,6 +16,11 @@ ROOT = Path(__file__).resolve().parent
 API_MD = Path(__file__).resolve().parents[2] / "docs" / "api.md"
 
 TABLE_ROW = re.compile(r"^\|\s*`([^`]+)`\s*\|\s*(.+?)\s*\|\s*$")
+
+# The knowledge library is fact-only. Do not publish strategic recommendations
+# in generated lookup tables; keep those in play policy/code, not rule data.
+FACT_ONLY_DROP_FIELDS = {"strategy", "implication", "decision", "synergy", "anti", "misconception"}
+TAG_SKIP_TRIGGER = "跳过当前 Blind 时获得该 Tag；打过该 Blind 不会获得。"
 
 # Game display labels (API gamestate uses these, not raw keys).
 JOKER_LABELS: dict[str, str] = {
@@ -501,7 +506,6 @@ TAGS: dict[str, dict] = {
     },
     "Double Tag": {
         "effect": "复制「下一个」获得的 Tag（不能复制自身）。",
-        "strategy": "skip Small 拿 Double → skip Big 拿 Investment → 得两份 Investment。",
         "wiki": "https://balatrowiki.org/w/Double_Tag",
     },
     "Economy Tag": {
@@ -533,7 +537,6 @@ TAGS: dict[str, dict] = {
     },
     "Investment Tag": {
         "effect": "击败下一个 Boss 后 +$25；可叠加。",
-        "strategy": "早期极强；与 Double Tag 叠加价值高。",
         "wiki": "https://balatrowiki.org/w/Investment_Tag",
     },
     "Juggle Tag": {
@@ -579,7 +582,7 @@ TAGS: dict[str, dict] = {
         "wiki": "https://balatrowiki.org/w/Top-up_Tag",
     },
     "Uncommon Tag": {
-        "effect": "下一家店免费 Uncommon 小丑。",
+        "effect": "下一家店生成一张免费 Uncommon 小丑（占 shop 槽）。",
         "wiki": "https://balatrowiki.org/w/Uncommon_Tag",
     },
     "Voucher Tag": {
@@ -595,7 +598,6 @@ STAKES: dict[str, dict] = {
     },
     "RED": {
         "effect": "Small Blind 打赢不给钱（Big/Boss 仍给）。",
-        "implication": "值钱 Tag → skip 更重要；打小 Blind 只有练手/任务价值。",
         "wiki": "https://balatrowiki.org/w/Stakes#Red_Stake",
     },
     "GREEN": {
@@ -644,6 +646,14 @@ def load_overrides(name: str) -> dict:
     return {}
 
 
+def fact_only(entry: dict) -> dict:
+    return {k: v for k, v in entry.items() if k not in FACT_ONLY_DROP_FIELDS}
+
+
+def fact_only_table(table: dict[str, dict]) -> dict[str, dict]:
+    return {label: fact_only(entry) for label, entry in table.items()}
+
+
 def merge_entries(base: dict[str, dict], overrides: dict) -> dict[str, dict]:
     merged = dict(base)
     for label, extra in overrides.items():
@@ -651,7 +661,7 @@ def merge_entries(base: dict[str, dict], overrides: dict) -> dict[str, dict]:
             merged[label] = {**merged[label], **extra}
         else:
             merged[label] = extra
-    return merged
+    return fact_only_table(merged)
 
 
 def wiki_slug(label: str) -> str:
@@ -690,15 +700,19 @@ def main() -> None:
     planets = build_cards(planet_keys, PLANET_LABELS, "planet")
     planets = merge_entries(planets, load_overrides("planets"))
 
+    tags = merge_entries(TAGS, load_overrides("tags"))
+    for tag in tags.values():
+        tag["trigger"] = TAG_SKIP_TRIGGER
+
     outputs = {
-        "balatro-jokers-verified.json": jokers,
+        "balatro-jokers-verified.json": fact_only_table(jokers),
         "balatro-bosses-verified.json": merge_entries(BOSSES, load_overrides("bosses")),
-        "balatro-tags-verified.json": merge_entries(TAGS, load_overrides("tags")),
+        "balatro-tags-verified.json": tags,
         "balatro-stakes-verified.json": merge_entries(STAKES, load_overrides("stakes")),
-        "balatro-tarots-verified.json": build_cards(tarot_keys, TAROT_LABELS, "tarot"),
-        "balatro-planets-verified.json": planets,
-        "balatro-spectrals-verified.json": build_cards(spectral_keys, SPECTRAL_LABELS, "spectral"),
-        "balatro-vouchers-verified.json": build_cards(voucher_keys, VOUCHER_LABELS, "voucher"),
+        "balatro-tarots-verified.json": fact_only_table(build_cards(tarot_keys, TAROT_LABELS, "tarot")),
+        "balatro-planets-verified.json": fact_only_table(planets),
+        "balatro-spectrals-verified.json": fact_only_table(build_cards(spectral_keys, SPECTRAL_LABELS, "spectral")),
+        "balatro-vouchers-verified.json": fact_only_table(build_cards(voucher_keys, VOUCHER_LABELS, "voucher")),
     }
 
     for fname, data in outputs.items():

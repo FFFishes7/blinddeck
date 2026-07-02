@@ -3,7 +3,6 @@
     "title": "Only cards in the scoring poker hand score",
     "category": "scoring",
     "rule": "Balatro first identifies the best poker hand among the played cards, stores that subset as scoring_hand, and then evaluates card chips, enhancements, seals, edition effects, and many Joker checks against that scoring_hand. Extra played kickers outside the selected poker hand usually do not score and do not trigger their card scoring effects.",
-    "decision": "When playing a Pair, do not count a Bonus, Mult, Lucky, Glass, or similar kicker unless it is one of the paired scoring cards. If a specific card must trigger, make the resulting poker hand include it, or play High Card when that is the intended scoring line.",
     "source": [
       "Balatro.exe:functions/state_events.lua:542-555",
       "Balatro.exe:functions/state_events.lua:648-695",
@@ -14,7 +13,6 @@
     "title": "Held-in-hand effects come from cards left in hand",
     "category": "scoring",
     "rule": "After scoring played cards, the game separately evaluates cards still in G.hand for held-in-hand effects. This is why Steel Card style value is usually obtained by not playing the card.",
-    "decision": "Prefer leaving Steel and other held-in-hand value cards in hand unless playing them creates a stronger hand than the held value provides.",
     "source": [
       "Balatro.exe:functions/state_events.lua:798-823"
     ]
@@ -23,7 +21,6 @@
     "title": "Glass value and break risk are tied to scoring cards",
     "category": "enhancement",
     "rule": "Glass Card evaluation and the later shatter check both iterate the scoring_hand, not all played cards.",
-    "decision": "A Glass card outside the scoring hand should not be counted for XMult, and it normally is not at shatter risk from that play.",
     "source": [
       "Balatro.exe:functions/state_events.lua:692-695",
       "Balatro.exe:functions/state_events.lua:951-971"
@@ -33,7 +30,6 @@
     "title": "The Fool copies the last Tarot or Planet used",
     "category": "consumable",
     "rule": "The game records the most recently used Tarot or Planet in G.GAME.last_tarot_planet. The Fool is usable only when that stored card exists and is not The Fool, then creates that stored Tarot or Planet.",
-    "decision": "Before using or buying The Fool, inspect the visible copy target in the helper view. Do not treat The Fool as unknown if copy_key/copy_label is available.",
     "source": [
       "Balatro.exe:functions/misc_functions.lua:1219",
       "Balatro.exe:card.lua:1377",
@@ -44,7 +40,6 @@
     "title": "Death converts selected cards into the rightmost selected card",
     "category": "consumable",
     "rule": "Death finds the rightmost selected hand card by screen x-position, then copies that card onto every other selected card.",
-    "decision": "For Death, put the source card to the left of the target card before selecting. Use the helper that rearranges source immediately left of target, rather than relying on selection order.",
     "source": [
       "Balatro.exe:card.lua:1111-1118"
     ]
@@ -53,7 +48,6 @@
     "title": "Rank and suit sorting should use the game's native hand sort",
     "category": "operation",
     "rule": "Balatro's rank sort button calls G.hand:sort('desc'), and its suit sort button calls G.hand:sort('suit desc'). The CardArea sort implementation defines rank, suit, reverse, and order modes.",
-    "decision": "Use the bot sort endpoint for face-down inference and pre-Death ordering. Avoid replacing native sorting with a separate client-side guess when order matters.",
     "source": [
       "Balatro.exe:functions/button_callbacks.lua:36-47",
       "Balatro.exe:cardarea.lua:577-588"
@@ -63,7 +57,6 @@
     "title": "Selling can free slots before choosing a booster reward",
     "category": "operation",
     "rule": "A card can be sold when the card itself permits selling and the controller is not locked. Selling a Joker also sends a selling_card context to the other Jokers. In practice, freeing a Joker or consumable slot can be necessary before selecting a pack reward.",
-    "decision": "When a strong pack reward appears and slots are full, consider selling the weakest valid Joker or consumable before selecting or skipping the pack reward.",
     "source": [
       "Balatro.exe:card.lua:1640-1652",
       "Balatro.exe:functions/button_callbacks.lua:2122-2129",
@@ -74,7 +67,6 @@
     "title": "Cartomancer needs consumable capacity",
     "category": "joker",
     "rule": "Cartomancer creates a Tarot only when the consumable area plus the consumeable buffer is below the consumable card limit.",
-    "decision": "Before selecting a Blind with Cartomancer, keep at least one consumable slot open by using or selling low-value consumables.",
     "source": [
       "Balatro.exe:card.lua:2545-2555"
     ]
@@ -83,7 +75,6 @@
     "title": "Face cards are Jack, Queen, King unless modified",
     "category": "rank",
     "rule": "The game's face-card check returns true for ranks 11, 12, and 13, or when a modifier such as Pareidolia makes cards count as face cards. Ace is rank 14 but is not a face card by default.",
-    "decision": "Ride the Bus can safely score Aces, but scoring Jack, Queen, or King resets it unless the card is debuffed or a special effect changes face-card logic.",
     "source": [
       "Balatro.exe:card.lua:964-970",
       "Balatro.exe:card.lua:3093-3098"
@@ -93,7 +84,6 @@
     "title": "Jokers are limited shared build slots",
     "category": "economy",
     "rule": "Jokers are the main build-defining cards and occupy limited Joker slots; editions such as Negative can effectively add capacity, while Foil, Holographic, and Polychrome add score value.",
-    "decision": "Evaluate shop and pack Jokers by both raw score and slot pressure. A free or editioned Joker can be worth taking even when its base text is marginal, but only if it beats the opportunity cost of the slot.",
     "source": [
       "Balatro Wikipedia cards overview: https://en.wikipedia.org/wiki/Balatro"
     ]
@@ -102,10 +92,18 @@
     "title": "Booster pack contents are free picks after the pack is opened",
     "category": "pack",
     "rule": "After a booster pack is opened, the cards shown in the pack are choices from the already-paid pack reward, not shop offers that require paying their printed buy price again.",
-    "decision": "Do not reject a strong Buffoon/Arcana/Celestial/Spectral/Standard pack choice because its card object has a nominal cost. Treat opened pack choices as free picks; only slot capacity and pack pick count matter.",
     "source": [
       "Balatro game rules: booster pack selection flow",
       "BalatroBot pack endpoint semantics: src/lua/endpoints/pack.lua"
+    ]
+  },
+  "tags_are_skip_rewards": {
+    "title": "Tags are rewards for skipping the shown Blind",
+    "category": "tag",
+    "rule": "In blind selection, the tag UI is bound to the skip_blind action. When skip_blind runs, the game adds the displayed tag, marks the skipped blind as Skipped, and advances to the next blind. Playing and defeating that blind does not award the displayed tag.",
+    "source": [
+      "Balatro.exe:functions/button_callbacks.lua:2653-2657",
+      "Balatro.exe:functions/button_callbacks.lua:2740-2762"
     ]
   }
 }

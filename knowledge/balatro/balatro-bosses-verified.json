@@ -60,7 +60,6 @@
     "score_mult": "2x",
     "min_ante": 1,
     "matador": true,
-    "strategy": "Four Fingers 4 张成顺/花 + 1 废牌；减手牌构筑极危险。",
     "wiki": "https://balatrowiki.org/w/The_Psychic"
   },
   "The Goad": {
@@ -89,7 +88,6 @@
     "score_mult": "2x",
     "min_ante": 1,
     "matador": false,
-    "strategy": "Juggler/Troubadour/Turtle Bean/Juggle Tag 抵消。",
     "wiki": "https://balatrowiki.org/w/The_Manacle"
   },
   "The Eye": {
@@ -97,7 +95,6 @@
     "score_mult": "2x",
     "min_ante": 3,
     "matador": true,
-    "strategy": "最后一手留爆发；勿弱牌收尾。",
     "wiki": "https://balatrowiki.org/w/The_Eye"
   },
   "The Mouth": {
@@ -133,7 +130,6 @@
     "score_mult": "1x",
     "min_ante": 2,
     "matador": false,
-    "strategy": "Boss 前须 Planet/构筑到位；Dusk/Acrobat 仍吃「最后一手」。",
     "wiki": "https://balatrowiki.org/w/The_Needle"
   },
   "The Head": {
@@ -162,7 +158,6 @@
     "score_mult": "2x",
     "min_ante": 2,
     "matador": false,
-    "strategy": "1 张高牌 + 人头构筑。",
     "wiki": "https://balatrowiki.org/w/The_Mark"
   },
   "Amber Acorn": {

@@ -1,7 +1,7 @@
 """Look up wiki-verified Balatro facts before deciding.
 
 Usage:
-    python know.py preflight          # full gate: jokers + boss + stake + tags + core rules
+    python know.py preflight          # fact gate: jokers + boss + stake + tags + core rules
     python know.py run                # jokers only
     python know.py check joker "Name"
     python know.py check boss "The Psychic"
@@ -76,26 +76,20 @@ def resolve_name(kind: str, name: str, library: dict) -> str | None:
 def print_entry(label: str, entry: dict) -> None:
     print(f"VERIFIED: {label}")
     for key in (
-        "key", "effect", "limits", "notes", "strategy", "implication",
-        "misconception", "synergy", "anti", "score_mult", "min_ante",
-        "title", "category", "rule", "decision", "source",
+        "key", "trigger", "effect", "limits", "notes", "score_mult", "min_ante",
+        "title", "category", "rule", "source",
     ):
         if entry.get(key) is not None and entry.get(key) != "":
             title = {
                 "key": "API key",
                 "limits": "限制",
+                "trigger": "触发",
                 "notes": "备注",
-                "strategy": "策略",
-                "implication": "含义",
-                "misconception": "勿误解",
-                "synergy": "协同",
-                "anti": "反协同",
                 "score_mult": "分数倍率",
                 "min_ante": "最早 Ante",
                 "title": "标题",
                 "category": "类别",
                 "rule": "规则",
-                "decision": "决策提示",
                 "source": "来源",
             }.get(key, key)
             value = entry[key]
@@ -181,20 +175,6 @@ def upcoming_tags(state: dict) -> list[tuple[str, str]]:
     return out
 
 
-BOSS_REMINDERS: dict[str, list[str]] = {
-    "The Psychic": ["Psychic: 每手必须 5 张"],
-    "The Needle": ["Needle: 仅 1 hand — 单 hand 估分，discard 养牌"],
-    "The Eye": ["Eye: 每种牌型本盲注只能打一次"],
-    "The Mouth": ["Mouth: 本盲注只能打一种牌型"],
-    "The Water": ["Water: 0 discard"],
-    "The Manacle": ["Manacle: 手牌 -1"],
-    "The Hook": ["Hook: 每手后随机弃 2 张未打出牌"],
-    "The Flint": ["Flint: base chips/mult 减半"],
-    "The Wall": ["Wall: 4× base — 需构筑强度"],
-    "Violet Vessel": ["Violet Vessel: 6× base"],
-}
-
-
 def cmd_preflight() -> int:
     try:
         state = rpc("gamestate")
@@ -233,7 +213,7 @@ def cmd_preflight() -> int:
 
     tags = upcoming_tags(state)
     if tags:
-        print("--- tags (blind select) ---")
+        print("--- tags (available only if that blind is skipped) ---")
         tag_lib = load_library("tag")
         for slot, tag in tags:
             print(f"[{slot}] {tag}")
@@ -251,25 +231,11 @@ def cmd_preflight() -> int:
         "cartomancer_needs_consumable_space",
     ):
         if rule_key in rule_lib:
-            print(f"  {rule_key}: {rule_lib[rule_key].get('decision', rule_lib[rule_key].get('rule'))}")
+            print(f"  {rule_key}: {rule_lib[rule_key].get('rule', '')}")
         else:
             print(f"  missing rule: {rule_key}")
             failed = True
 
-    if state.get("state") == "SELECTING_HAND" and boss:
-        print("--- reminders ---")
-        for line in BOSS_REMINDERS.get(boss, []):
-            print(f"  {line}")
-        target = None
-        for blind in state.get("blinds", {}).values():
-            if blind.get("name") == boss:
-                target = blind.get("score")
-        if target:
-            print(f"  target={target} — 见 balatro-score-anchors.md，勿口算")
-
-    if state.get("state") == "SHOP":
-        print("--- shop reminder ---")
-        print("  进店先列购买计划；$25 利息地板不是囤钱理由；Coupon 不含券/reroll 后商品")
 
     if failed:
         print("\nPREFLIGHT FAIL")

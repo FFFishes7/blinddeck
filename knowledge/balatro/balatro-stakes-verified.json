@@ -5,7 +5,6 @@
   },
   "RED": {
     "effect": "Small Blind 打赢不给钱（Big/Boss 仍给）。",
-    "implication": "值钱 Tag → skip 更重要；打小 Blind 只有练手/任务价值。",
     "wiki": "https://balatrowiki.org/w/Stakes#Red_Stake"
   },
   "GREEN": {
