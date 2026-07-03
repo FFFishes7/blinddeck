@@ -198,7 +198,7 @@ effect as unknown and fall back to the in-game `effect`/`tag_effect` text.
 ## 6. Useful Queries
 
 - `bot.ps1 glance` — compact state summary (state, blinds, round, hand with modifier tags, jokers w/ slot count, `actions:` line). Use this constantly.
-- `bot.ps1 estimate` — top playable hands + score estimate (chips/mult/score, beats target?, dusk-if-win). Use this instead of manual scoring math.
+- `bot.ps1 estimate` — top playable hands + score estimate (chips/mult/score, beats target?). Use this instead of manual scoring math.
 - `bot.ps1 state` — full JSON envelope (gamestate + actions + queries).
 - `bot.ps1 query hands` — poker hand level table with real `chips`/`mult` per hand type (table by default; `--json` for raw).
 - `bot.ps1 query deck` / `query blinds` / `query used_vouchers` / `query seed` — other Layer-2 queries.

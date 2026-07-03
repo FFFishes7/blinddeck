@@ -74,10 +74,11 @@ hand, and scores it with the verified formula: current hand level (base
 chips/mult from `query hands`) + scoring-card chips + on-score
 enhancement/edition/seal + retriggers + modeled jokers (left-to-right, +Mult
 before XMult) + boss debuff (The Flint halves base) + Plasma balancing. Prints
-the top-3 playable hands with indices, card labels, chips/mult/score, whether
-each beats the current blind target, and — if Dusk is owned — a `dusk if win`
-column (the score if that hand is the winning/final hand, since Dusk retriggers
-cards twice on the final hand).
+the top-3 playable hands with indices, card labels, chips/mult/score, and whether
+each beats the current blind target. When Dusk is owned, Dusk's +1 retrigger is
+silently included in the score **only when `hands_left == 1`** (your final allotted
+hand of the round, win or lose) — Dusk does *not* trigger on a winning hand played
+earlier.
 
 Modeled jokers: `j_joker`, the suit-mult family (`j_greedy_joker` /
 `j_lusty_joker` / `j_wrathful_joker` / `j_gluttenous_joker`), `j_walkie_talkie`,

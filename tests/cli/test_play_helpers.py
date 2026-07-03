@@ -699,11 +699,12 @@ def _est_state(
     blind_name: str = "Small Blind",
     blind_score: int = 300,
     discards_left: int = 3,
+    hands_left: int = 4,
 ) -> dict:
     return {
         "state": "SELECTING_HAND",
         "deck": deck,
-        "round": {"hands_left": 4, "discards_left": discards_left, "chips": 0},
+        "round": {"hands_left": hands_left, "discards_left": discards_left, "chips": 0},
         "blinds": {
             "small": {
                 "status": "CURRENT",
@@ -824,3 +825,46 @@ def test_estimate_flint_halves_base() -> None:
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["score"] == 15
     assert est["estimate"]["boss"]["flint_modeled"] is True
+
+
+def test_estimate_dusk_inactive_when_not_last_hand() -> None:
+    # Pair of 4s, one Mult card (+4 mult/trigger), Dusk owned but hands_left=4
+    # => NOT the last hand => Dusk does not trigger.
+    # base 10/2, chips 4+4=8, +4 mult/trigger, 1 trigger => chips 18, mult 6 => 108.
+    hand = _hand_cards(
+        ("4", "D", {"enhancement": "MULT"}),
+        ("4", "C", {}),
+        ("7", "H", {}),
+        ("9", "S", {}),
+        ("2", "D", {}),
+    )
+    jokers = [
+        {"label": "Dusk", "key": "j_dusk", "value": {"effect": "retrigger final hand"}}
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, hands_left=4))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["score"] == 108  # no Dusk
+    assert top[0]["dusk_now"] is False
+    assert est["estimate"]["dusk_now"] is False
+
+
+def test_estimate_dusk_active_on_last_hand() -> None:
+    # Same hand, but hands_left=1 => Dusk triggers (+1 retrigger).
+    # 2 triggers: chips 8*2=16, mult add 4*2=8 => chips 26, mult 10 => 260.
+    hand = _hand_cards(
+        ("4", "D", {"enhancement": "MULT"}),
+        ("4", "C", {}),
+        ("7", "H", {}),
+        ("9", "S", {}),
+        ("2", "D", {}),
+    )
+    jokers = [
+        {"label": "Dusk", "key": "j_dusk", "value": {"effect": "retrigger final hand"}}
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, hands_left=1))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["score"] == 260  # Dusk active
+    assert top[0]["dusk_now"] is True
+    assert est["estimate"]["dusk_now"] is True

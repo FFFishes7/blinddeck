@@ -365,7 +365,8 @@ def _score_combo(
     retrigger_all = cfg.get("retrigger_all", 0)
     retrigger_leftmost = cfg.get("retrigger_leftmost", 0)
     if dusk_active and cfg.get("dusk_owned"):
-        retrigger_all += 2
+        # Dusk: "triggers all played cards in the final hand twice" => +1 retrigger.
+        retrigger_all += 1
 
     # Splash: every played card scores (scoring_idx becomes all 5).
     eff_scoring = list(range(5)) if cfg.get("splash") else scoring_idx
@@ -438,6 +439,7 @@ def _ctx(state: dict) -> dict:
         "flint": flint,
         "plasma": plasma,
         "discards_left": r.get("discards_left", 0),
+        "hands_left": r.get("hands_left", 0),
         "target": blind.get("score"),
         "boss_name": blind.get("name") or "",
         "boss_effect": blind.get("effect") or "",
@@ -467,19 +469,16 @@ def estimate(state: dict) -> dict:
         combos = [tuple(range(len(parsed)))]
 
     results: list[dict] = []
+    # Dusk triggers on the final allotted hand of the round (hands_left == 1),
+    # NOT on the winning hand. This is deterministic before playing.
+    dusk_now = cfg.get("dusk_owned", False) and ctx.get("hands_left") == 1
     for combo in combos:
         cards = [parsed[i] for i in combo]
         hand_type, scoring_idx = _classify(cards)
         level = levels.get(hand_type, {"chips": 0, "mult": 0, "level": 1})
         chips, mult, score = _score_combo(
-            cards, scoring_idx, hand_type, level, jokers, cfg, ctx, dusk_active=False
+            cards, scoring_idx, hand_type, level, jokers, cfg, ctx, dusk_active=dusk_now
         )
-        # Dusk variant: if Dusk owned, compute the winning-hand version too.
-        dusk_score = None
-        if cfg.get("dusk_owned"):
-            _, _, dusk_score = _score_combo(
-                cards, scoring_idx, hand_type, level, jokers, cfg, ctx, dusk_active=True
-            )
         results.append(
             {
                 "hand_type": hand_type,
@@ -489,14 +488,12 @@ def estimate(state: dict) -> dict:
                 "chips": chips,
                 "mult": mult,
                 "score": score,
-                "dusk_score": dusk_score,
+                "dusk_now": dusk_now,
                 "level": level.get("level", 1),
             }
         )
 
-    results.sort(
-        key=lambda r: (r["dusk_score"] if r["dusk_score"] else r["score"]), reverse=True
-    )
+    results.sort(key=lambda r: r["score"], reverse=True)
     top = results[:3]
 
     return {
@@ -514,12 +511,9 @@ def estimate(state: dict) -> dict:
             },
             "plasma": ctx["plasma"],
             "hand_size": len(parsed),
-            "note": (
-                "Estimate models common jokers/card mods; unmodeled jokers listed. "
-                "Dusk column = score IF this is the winning (final) hand."
-            )
-            if cfg.get("dusk_owned")
-            else "Estimate models common jokers/card mods; unmodeled jokers listed.",
+            "hands_left": ctx.get("hands_left"),
+            "dusk_owned": bool(cfg.get("dusk_owned")),
+            "dusk_now": dusk_now,
         },
     }
 
@@ -528,19 +522,12 @@ def _format(est: dict) -> str:
     e = est["estimate"]
     lines: list[str] = []
     target = e["target"]
-    lines.append(
-        f"estimate  target={target}  hand_size={e['hand_size']}"
-        f"  boss={e['boss']['name'] or 'none'}"
-        + ("  [Flint: base halved]" if e["boss"]["flint_modeled"] else "")
-        + ("  [Plasma balanced]" if e["plasma"] else "")
-    )
     for k, r in enumerate(e["top"]):
         beat = "BEATS" if r["score"] >= (target or 0) else "short"
-        dusk = f"  (dusk if win: {r['dusk_score']})" if r["dusk_score"] else ""
         lines.append(
             f"  #{k + 1} {r['hand_type']} (lvl {r['level']}) "
             f"idx={r['indices']} {r['cards']}  "
-            f"chips={r['chips']} mult={r['mult']} score={r['score']} [{beat}]{dusk}"
+            f"chips={r['chips']} mult={r['mult']} score={r['score']} [{beat}]"
         )
     if e["unmodeled_jokers"]:
         lines.append(
@@ -548,7 +535,6 @@ def _format(est: dict) -> str:
             + ", ".join(e["unmodeled_jokers"])
             + " (base-only; treat effects as unknown)"
         )
-    lines.append("  " + e["note"])
     return "\n".join(lines)
 
 
