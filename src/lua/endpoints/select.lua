@@ -25,6 +25,7 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(_, send_response)
     sendDebugMessage("Init select()", "BB.ENDPOINTS")
+    BB_GAMESTATE.ensure_bosses_used()
     -- Get current blind and its UI element
     local current_blind = G.GAME.blind_on_deck
     assert(current_blind ~= nil, "select() called with no blind on deck")

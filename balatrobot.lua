@@ -70,8 +70,24 @@ if not dispatcher_ok then
 end
 
 -- Hook into love.update to run server update loop and detect GAME_OVER
+local get_new_boss_hooked = false
+
+local function hook_get_new_boss()
+  if get_new_boss_hooked or type(get_new_boss) ~= "function" then
+    return
+  end
+  local original_get_new_boss = get_new_boss
+  get_new_boss = function(...)
+    BB_GAMESTATE.ensure_bosses_used()
+    return original_get_new_boss(...)
+  end
+  get_new_boss_hooked = true
+  sendDebugMessage("Hooked get_new_boss() for bosses_used save compatibility", "BB.BALATROBOT")
+end
+
 local love_update = love.update
 love.update = function(dt) ---@diagnostic disable-line: duplicate-set-field
+  hook_get_new_boss()
   -- Check for GAME_OVER before game logic runs
   BB_GAMESTATE.check_game_over()
   love_update(dt)

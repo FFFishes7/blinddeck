@@ -32,7 +32,13 @@ return {
     },
   },
 
-  requires_state = { G.STATES.SELECTING_HAND, G.STATES.SHOP, G.STATES.SMODS_BOOSTER_OPENED },
+  requires_state = {
+    G.STATES.BLIND_SELECT,
+    G.STATES.SELECTING_HAND,
+    G.STATES.ROUND_EVAL,
+    G.STATES.SHOP,
+    G.STATES.SMODS_BOOSTER_OPENED,
+  },
 
   ---@param args Request.Endpoint.Sell.Params
   ---@param send_response fun(response: Response.Endpoint)
@@ -95,6 +101,14 @@ return {
 
     local card = source_array[pos]
 
+    if sell_type == "joker" and card.ability and card.ability.eternal then
+      send_response({
+        message = "Cannot sell eternal joker",
+        name = BB_ERROR_NAMES.NOT_ALLOWED,
+      })
+      return
+    end
+
     -- Track initial state for completion verification
     local area = sell_type == "joker" and G.jokers or G.consumeables
     local initial_count = area.config.card_count
@@ -148,6 +162,8 @@ return {
           G.STATE == G.STATES.SHOP
           or G.STATE == G.STATES.SELECTING_HAND
           or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
+          or G.STATE == G.STATES.BLIND_SELECT
+          or G.STATE == G.STATES.ROUND_EVAL
         )
 
         -- All conditions must be met

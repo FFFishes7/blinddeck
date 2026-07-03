@@ -25,6 +25,7 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(_, send_response)
     sendDebugMessage("Init skip()", "BB.ENDPOINTS")
+    BB_GAMESTATE.ensure_bosses_used()
 
     -- Get the current blind on deck (similar to select endpoint)
     local current_blind = G.GAME.blind_on_deck

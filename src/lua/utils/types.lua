@@ -29,6 +29,17 @@
 ---@field vouchers Area? Vouchers area (available during shop phase)
 ---@field packs Area? Booster packs area (available during shop phase)
 ---@field won boolean? Whether the game has been won
+---@field run_summary RunSummary? Run statistics (GAME_OVER only)
+
+---@class RunSummary
+---@field best_hand number? Highest single-hand score this run
+---@field most_played_hand table? { name: string, count: integer }
+---@field cards_played integer?
+---@field cards_discarded integer?
+---@field cards_purchased integer?
+---@field reroll_count integer?
+---@field new_discoveries integer?
+---@field result string Human-readable win/loss line from game UI
 
 ---@class Hand
 ---@field order integer The importance/ordering of the hand
@@ -76,6 +87,9 @@
 ---@field suit Card.Value.Suit? Suit (Hearts, Diamonds, Clubs, Spades) - only for playing cards
 ---@field rank Card.Value.Rank? Rank - only for playing cards
 ---@field effect string Description of the card's effect (from UI)
+---@field copy_key string? For The Fool: key of the last Tarot/Planet used
+---@field copy_set string? For The Fool: set of the last Tarot/Planet used
+---@field copy_label string? For The Fool: display label of the last Tarot/Planet used
 
 ---@class Card.Modifier
 ---@field seal Card.Modifier.Seal? Seal type (playing cards)
@@ -143,7 +157,7 @@
 ---@alias Request.Endpoint.Method
 ---| "add" | "buy" | "cash_out" | "discard" | "gamestate" | "health" | "load"
 ---| "menu" | "next_round" | "play" | "rearrange" | "reroll" | "save"
----| "screenshot" | "select" | "sell" | "set" | "skip" | "start" | "use"
+---| "screenshot" | "select" | "sell" | "set" | "skip" | "sort" | "start" | "use"
 
 ---@alias Request.Endpoint.Test.Method
 ---| "echo" | "endpoint" | "error" | "state" | "validation"
@@ -168,6 +182,7 @@
 ---| Request.Endpoint.Sell.Params
 ---| Request.Endpoint.Set.Params
 ---| Request.Endpoint.Skip.Params
+---| Request.Endpoint.Sort.Params
 ---| Request.Endpoint.Start.Params
 ---| Request.Endpoint.Use.Params
 
@@ -274,6 +289,7 @@
 ---@field render_on_api boolean Whether to render frames only on API calls (mutually exclusive with headless)
 ---@field audio boolean Whether to play audio (enables sound thread and sets volume levels)
 ---@field debug boolean Whether debug mode is enabled (requires DebugPlus mod)
+---@field force_english boolean Whether to force en-us UI (integration tests only)
 ---@field no_shaders boolean Whether to disable all shaders for better performance (causes visual glitches)
 ---@field fps_cap integer Maximum FPS cap for the game (default: 60)
 ---@field gamespeed integer Game speed multiplier (default: 4)

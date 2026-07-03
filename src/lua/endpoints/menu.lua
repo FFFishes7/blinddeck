@@ -25,15 +25,22 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(_, send_response)
     sendDebugMessage("Init menu()", "BB.ENDPOINTS")
+
+    -- Leaving GAME_OVER requires unpausing so menu transition events can run.
+    if G.SETTINGS and G.SETTINGS.paused then
+      G.SETTINGS.paused = false
+    end
+
     if G.STATE ~= G.STATES.MENU then
       G.FUNCS.go_to_menu({})
     end
 
-    -- Wait for menu state using Balatro's Event Manager
+    -- Title-screen MENU: G.MAIN_MENU_UI is set.
     G.E_MANAGER:add_event(Event({
       no_delete = true,
       trigger = "condition",
       blocking = true,
+      created_on_pause = true,
       func = function()
         local done = G.STATE == G.STATES.MENU and G.MAIN_MENU_UI
 

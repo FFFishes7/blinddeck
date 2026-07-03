@@ -1074,6 +1074,10 @@
           "packs": {
             "$ref": "#/components/schemas/Area",
             "description": "Booster packs area (available during shop phase)"
+          },
+          "run_summary": {
+            "$ref": "#/components/schemas/RunSummary",
+            "description": "Run statistics (GAME_OVER only)"
           }
         },
         "required": [
@@ -1081,6 +1085,59 @@
           "round_num",
           "ante_num",
           "money"
+        ]
+      },
+      "RunSummary": {
+        "type": "object",
+        "description": "Run statistics shown on the game-over modal",
+        "properties": {
+          "best_hand": {
+            "type": "integer",
+            "description": "Highest single-hand score this run"
+          },
+          "most_played_hand": {
+            "type": "object",
+            "description": "Most frequently played poker hand",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "name",
+              "count"
+            ]
+          },
+          "cards_played": {
+            "type": "integer",
+            "description": "Total cards played this run"
+          },
+          "cards_discarded": {
+            "type": "integer",
+            "description": "Total cards discarded this run"
+          },
+          "cards_purchased": {
+            "type": "integer",
+            "description": "Total cards purchased this run"
+          },
+          "reroll_count": {
+            "type": "integer",
+            "description": "Total shop rerolls this run"
+          },
+          "new_discoveries": {
+            "type": "integer",
+            "description": "New discoveries this run"
+          },
+          "result": {
+            "type": "string",
+            "description": "Human-readable win/loss line from game UI"
+          }
+        },
+        "required": [
+          "result"
         ]
       },
       "Hand": {
@@ -1285,6 +1342,18 @@
           "effect": {
             "type": "string",
             "description": "Description of the card's effect (from UI)"
+          },
+          "copy_key": {
+            "type": "string",
+            "description": "For The Fool: key of the last Tarot/Planet used"
+          },
+          "copy_set": {
+            "type": "string",
+            "description": "For The Fool: set of the last Tarot/Planet used"
+          },
+          "copy_label": {
+            "type": "string",
+            "description": "For The Fool: display label of the last Tarot/Planet used"
           }
         },
         "required": [

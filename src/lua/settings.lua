@@ -19,8 +19,8 @@ BalatroBot configure settings in Balatro using the following environment variabl
   - BALATROBOT_AUDIO: whether to play audio.
       1 for actiavate the audio mode, 0 for no audio (default: 0)
 
-  - BALATROBOT_DEBUG: whether enable debug mode. It requires DebugPlus mod to be running.
-      1 for actiavate the debug mode, 0 for no debug (default: 0)
+  - BALATROBOT_FORCE_ENGLISH: force game UI language to en-us (for stable test strings).
+      1 to force English, 0 to keep the player's language (default: 0)
 
   - BALATROBOT_NO_SHADERS: whether to disable all shaders for better performance.
       1 for disable shaders, 0 for enable shaders (default: 0)
@@ -52,6 +52,7 @@ BB_SETTINGS = {
   render_on_api = os.getenv("BALATROBOT_RENDER_ON_API") == "1" or false,
   audio = os.getenv("BALATROBOT_AUDIO") == "1" or false,
   debug = os.getenv("BALATROBOT_DEBUG") == "1" or false,
+  force_english = os.getenv("BALATROBOT_FORCE_ENGLISH") == "1" or false,
   no_shaders = os.getenv("BALATROBOT_NO_SHADERS") == "1" or false,
   fps_cap = tonumber(os.getenv("BALATROBOT_FPS_CAP")) or 60,
   gamespeed = tonumber(os.getenv("BALATROBOT_GAMESPEED")) or 4,
@@ -96,6 +97,14 @@ local function configure_settings()
   G.VIBRATION = 0
   G.F_VERBOSE = true
   G.F_RUMBLE = nil
+
+  -- Force English only when requested (integration tests). Normal play keeps UI language.
+  if BB_SETTINGS.force_english then
+    G.SETTINGS.language = "en-us"
+    if G.set_language then
+      G:set_language()
+    end
+  end
 
   -- graphics
   G.SETTINGS.GRAPHICS = G.SETTINGS.GRAPHICS or {}

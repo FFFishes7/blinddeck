@@ -7,6 +7,7 @@
 ---@field check_game_over fun()
 ---@field get_blinds_info fun(): table<string, Blind>
 ---@field get_gamestate fun(): GameState
+---@field ensure_bosses_used fun()
 local gamestate = {}
 
 -- ==========================================================================
@@ -408,16 +409,23 @@ local function extract_card(card, opts)
     }
   end
 
-  return {
+  local card_data = {
     id = card.sort_id or 0,
     key = key,
     set = set,
     label = card.label or "",
     value = extract_card_value(card),
     modifier = extract_card_modifier(card),
-    state = extract_card_state(card),
     cost = cost,
   }
+
+  -- Omit empty state: Lua {} encodes as JSON [] and breaks dict-style clients
+  local card_state = extract_card_state(card)
+  if next(card_state) then
+    card_data.state = card_state
+  end
+
+  return card_data
 end
 
 -- ==========================================================================
@@ -864,7 +872,168 @@ function gamestate.get_gamestate()
     state_data.pack = extract_area(G.pack_cards, { free_pick = true })
   end
 
+  if G.GAME and (G.STATE == G.STATES.GAME_OVER or G.GAME.won) then
+    state_data.run_summary = gamestate.extract_run_summary()
+  end
+
   return state_data
+end
+
+-- ==========================================================================
+-- Game Over Run Summary
+-- ==========================================================================
+
+---@param entry table|number|nil
+---@return number|nil
+local function round_score_amt(entry)
+  if entry == nil then
+    return nil
+  end
+  if type(entry) == "number" then
+    return entry
+  end
+  if type(entry) == "table" then
+    return entry.amt or entry.amount or entry.count
+  end
+  return nil
+end
+
+---Extract most-played poker hand from run statistics
+---@return table|nil
+local function extract_most_played_hand()
+  local best_name, best_count = nil, 0
+
+  if G.GAME.hand_usage then
+    for name, data in pairs(G.GAME.hand_usage) do
+      local count = round_score_amt(data) or 0
+      if count > best_count then
+        best_count = count
+        best_name = name
+      end
+    end
+  end
+
+  if not best_name and G.GAME.hands then
+    for name, hand in pairs(G.GAME.hands) do
+      local count = hand.played or 0
+      if count > best_count then
+        best_count = count
+        best_name = name
+      end
+    end
+  end
+
+  if best_name then
+    return { name = best_name, count = best_count }
+  end
+  return nil
+end
+
+---Build human-readable game-over result line
+---@return string
+local function extract_run_result()
+  if G.GAME.won then
+    return "Victory"
+  end
+
+  local blind_name = G.GAME.blind and G.GAME.blind.name
+  if not blind_name and G.GAME.round_resets then
+    blind_name = G.GAME.round_resets.blind
+  end
+  if blind_name and blind_name ~= "" then
+    return "Lost to " .. blind_name
+  end
+  return "Lost"
+end
+
+---Extract run summary statistics shown on the game-over modal
+---@return table|nil
+function gamestate.extract_run_summary()
+  if not G.GAME or (G.STATE ~= G.STATES.GAME_OVER and not G.GAME.won) then
+    return nil
+  end
+
+  local rs = G.GAME.round_scores or {}
+  local summary = {
+    best_hand = round_score_amt(rs.hand),
+    cards_played = round_score_amt(rs.cards_played) or round_score_amt(rs.card),
+    cards_discarded = round_score_amt(rs.cards_discarded) or round_score_amt(rs.discards),
+    cards_purchased = round_score_amt(rs.cards_purchased) or round_score_amt(rs.purchases),
+    reroll_count = round_score_amt(rs.times_rerolled)
+      or round_score_amt(rs.reroll)
+      or (G.GAME.current_round and G.GAME.current_round.reroll_cost and round_score_amt(rs.shop_reroll)),
+    new_discoveries = round_score_amt(rs.new_collection) or round_score_amt(rs.collection),
+    result = extract_run_result(),
+  }
+
+  local most_played = extract_most_played_hand()
+  if most_played then
+    summary.most_played_hand = most_played
+  end
+
+  return summary
+end
+
+-- ==========================================================================
+-- Save Compatibility
+-- ==========================================================================
+
+---Ensure G.GAME.bosses_used matches SMODS structure after loading saves.
+---Saved runs keep nested tables but lose the metatable, so bosses_used[key] is nil.
+function gamestate.ensure_bosses_used()
+  if not G or not G.GAME or not G.P_BLINDS then
+    return
+  end
+
+  local bu = G.GAME.bosses_used
+  if type(bu) ~= "table" then
+    bu = {}
+    G.GAME.bosses_used = bu
+  end
+
+  local function with_metatable(boss, small, big)
+    return setmetatable({ boss = boss, small = small, big = big }, {
+      __index = function(t, key)
+        return t.boss[key] or t.big[key] or t.small[key]
+      end,
+      __newindex = function(t, key, value)
+        rawset(t.boss, key, value)
+      end,
+    })
+  end
+
+  if type(bu.boss) ~= "table" then
+    local legacy = bu
+    local boss, small, big = {}, {}, {}
+    for k, v in pairs(G.P_BLINDS) do
+      if v.boss then
+        boss[k] = legacy[k] or 0
+      end
+      if v.small then
+        small[k] = legacy[k] or 0
+      end
+      if v.big then
+        big[k] = legacy[k] or 0
+      end
+    end
+    bu = with_metatable(boss, small, big)
+    G.GAME.bosses_used = bu
+  elseif getmetatable(bu) == nil then
+    bu = with_metatable(bu.boss or {}, bu.small or {}, bu.big or {})
+    G.GAME.bosses_used = bu
+  end
+
+  for k, v in pairs(G.P_BLINDS) do
+    if v.boss and bu.boss[k] == nil then
+      bu.boss[k] = 0
+    end
+    if v.small and bu.small[k] == nil then
+      bu.small[k] = 0
+    end
+    if v.big and bu.big[k] == nil then
+      bu.big[k] = 0
+    end
+  end
 end
 
 -- ==========================================================================

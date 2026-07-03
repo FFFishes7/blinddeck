@@ -100,6 +100,8 @@ return {
     -- Restore original print
     print = original_print
 
+    BB_GAMESTATE.ensure_bosses_used()
+
     -- Clean up
     love.filesystem.remove(temp_filename)
 
@@ -119,6 +121,7 @@ return {
       no_delete = true,
       trigger = "condition",
       blocking = false,
+      created_on_pause = true,
       func = function()
         local done = false
 
@@ -126,10 +129,26 @@ return {
           return false
         end
 
+        if G.STATE == G.STATES.GAME_OVER then
+          done = G.GAME ~= nil
+          if G.OVERLAY_MENU and G.OVERLAY_MENU.get_UIE_by_ID then
+            done = done
+              and (
+                G.OVERLAY_MENU:get_UIE_by_ID("from_game_over")
+                or G.OVERLAY_MENU:get_UIE_by_ID("from_game_won")
+                or G.OVERLAY_MENU:get_UIE_by_ID("restart_button")
+              )
+          end
+        end
+
         if G.STATE == G.STATES.BLIND_SELECT then
-          done = G.GAME.blind_on_deck ~= nil
-            and G.blind_select_opts ~= nil
-            and G.blind_select_opts["small"]:get_UIE_by_ID("tag_Small") ~= nil
+          local deck_key = G.GAME.blind_on_deck and string.lower(G.GAME.blind_on_deck)
+          local pane = deck_key and G.blind_select_opts and G.blind_select_opts[deck_key]
+          done = pane ~= nil
+            and (
+              pane:get_UIE_by_ID("select_blind_button") ~= nil
+              or pane:get_UIE_by_ID("tag_" .. G.GAME.blind_on_deck) ~= nil
+            )
         end
 
         if G.STATE == G.STATES.SELECTING_HAND then
