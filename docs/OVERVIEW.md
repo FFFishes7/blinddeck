@@ -73,7 +73,7 @@ balatrobot/
 |---|---|
 | **Playing a run** (loop, state→endpoint table, trace, pitfalls, strategy) | [`PLAY.md`](../PLAY.md) |
 | **Installing / launching** (one-time setup, `serve.ps1`) | [`README.md`](../README.md) |
-| **AI dev guidance** (make rules, architecture summary, play quick-start inline) | [`CLAUDE.md`](../CLAUDE.md) / [`AGENTS.md`](../AGENTS.md) |
+| **AI dev guidance** (make rules, architecture summary, play quick-start inline) | [`AGENTS.md`](../AGENTS.md) |
 | **API reference** (every method, params, schemas, enums, errors) | [`api.md`](api.md) |
 | **CLI reference** (all `serve` flags, env vars, platform paths, troubleshooting) | [`cli.md`](cli.md) |
 | **Contributing / dev setup** (direnv, Lua LSP, adding an endpoint, tests, CI, PR rules) | [`contributing.md`](contributing.md) |
@@ -121,4 +121,4 @@ make quality           # lint + typecheck + format
 make all               # quality + test
 ```
 
-Full dev setup (direnv, Lua LSP, adding endpoints, CI, PR rules) is in [`contributing.md`](contributing.md). AI dev rules (make-only, never bare ruff/ty) are in [`CLAUDE.md`](../CLAUDE.md) / [`AGENTS.md`](../AGENTS.md).
+Full dev setup (direnv, Lua LSP, adding endpoints, CI, PR rules) is in [`contributing.md`](contributing.md). AI dev rules (make-only, never bare ruff/ty) are in [`AGENTS.md`](../AGENTS.md).

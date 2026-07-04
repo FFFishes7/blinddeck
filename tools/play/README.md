@@ -69,22 +69,23 @@ No JSON, no quoting — `bot.ps1` forwards these to `act.py`, which parses posit
 
 ### `estimate` — score estimator
 
-`bot.ps1 estimate` enumerates 5-card combos from the hand, classifies each poker
+`bot.ps1 estimate` is only available in `SELECTING_HAND`; other states return `INVALID_STATE`. It enumerates playable hands from the current hand, classifies each poker
 hand, and scores it with the verified formula: current hand level (base
 chips/mult from `query hands`) + scoring-card chips + on-score
 enhancement/edition/seal + retriggers + modeled jokers (left-to-right, +Mult
 before XMult) + boss debuff (The Flint halves base) + Plasma balancing. Prints
-the top-3 playable hands with indices, card labels, chips/mult/score, and whether
-each beats the current blind target (`[BEATS]` / `[short]`). Retriggers (Seltzer,
-Dusk on `hands_left == 1`, Red Seal, etc.) are folded into the score silently.
+the top-3 playable actions (`idx` = cards to play; usually scoring cards, but may include non-scoring kickers for modeled effects such as held-card jokers) with
+card labels, chips/mult/score, and whether each beats the current blind target
+(`[BEATS]` / `[short]`). Retriggers (Seltzer, Dusk on `hands_left == 1`, Red
+Seal, etc.) are folded into the score silently.
 
 Modeled jokers: `j_joker`, the suit-mult family (`j_greedy_joker` /
 `j_lusty_joker` / `j_wrathful_joker` / `j_gluttenous_joker`), `j_walkie_talkie`,
-`j_fibonacci`, `j_even_steven`, `j_odd_todd`, `j_onyx_agate`, `j_mystic_summit`,
-`j_flower_pot`, `j_family`, `j_seltzer`, `j_dusk`, `j_hanging_chad`, `j_splash`,
+`j_fibonacci`, `j_even_steven`, `j_odd_todd`, `j_onyx_agate`, `j_abstract`,
+`j_mystic_summit`, `j_blackboard`, `j_swashbuckler`, `j_flower_pot`, `j_family`, `j_seltzer`, `j_dusk`, `j_hanging_chad`, `j_splash`, `j_blue_joker`,
 plus economy/utility jokers treated as no-ops. **Any other joker is listed as
 `unmodeled`** — treat its effect as unknown and don't trust the base-only
-number for that case. `--json` prints the raw envelope.
+number for that case. `--json` prints a compact envelope with `target`, `top`, `beats_target`, and `unmodeled_jokers`; it omits debug-only fields such as boss/plasma flags and hand-size counters.
 
 ### JSON / advanced
 
@@ -127,3 +128,4 @@ payloads for each.
 - `actions.py` — state-aware action list builder
 - `layers.py`, `envelope.py`, `start_options.py`, `bot_client.py` — core logic
 - `serve.example.ps1` — copy to `serve.ps1` and set your Balatro Steam path (`serve.ps1` is gitignored)
+

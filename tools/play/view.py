@@ -367,7 +367,7 @@ def _pack_block(state: dict[str, Any]) -> str:
     cards = (state.get("pack") or {}).get("cards") or []
     parts: list[str] = []
     for i, c in enumerate(cards):
-        label = c.get("label", "?")
+        label = card_label(c)
         effect = (c.get("value") or {}).get("effect", "")
         hint = " (needs hand targets)" if _consumable_needs_hand(c) else ""
         parts.append(f"  pack[{i}] {label} — {effect}{hint}")

@@ -30,6 +30,13 @@ from view import card_label
 ESTIMATE_FORMAT = "balatrobot-estimate-v1"
 JSON_FLAG = "--json"
 
+class InvalidEstimateState(Exception):
+    """Raised when estimate is requested outside SELECTING_HAND."""
+
+    def __init__(self, state: str):
+        super().__init__(f"estimate is only available in SELECTING_HAND, current state is {state}")
+        self.state = state
+
 # --- card value tables ------------------------------------------------------
 
 RANK_CHIPS = {
@@ -102,6 +109,7 @@ NO_SCORE_JOKERS = {
     "j_ripple",
     "j_hologram",
     "j_trading",
+    "j_riff_raff",
 }
 
 # Per-card joker bonus for ONE trigger of a scoring card.
@@ -128,8 +136,19 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     key = joker.get("key") or ""
     if key == "j_joker":
         return (0, 4, 1)
+    if key == "j_abstract":
+        return (0, 3 * ctx.get("joker_count", 0), 1)
     if key == "j_mystic_summit":
         return (0, 15 if ctx["discards_left"] == 0 else 0, 1)
+    if key == "j_swashbuckler":
+        effect = (joker.get("value") or {}).get("effect") or ""
+        m = re.search(r"当前为\+(\d+)倍率", effect)
+        return (0, int(m.group(1)) if m else 0, 1)
+    if key == "j_blackboard":
+        held_cards = ctx.get("held_cards") or []
+        if held_cards and all(c.get("suit") in {"S", "C"} for c in held_cards):
+            return (0, 0, 3)
+        return (0, 0, 1)
     if key == "j_flower_pot":
         suits = {c["suit"] for c in ctx["scoring_cards"] if c["suit"]}
         return (0, 0, 3) if {"D", "C", "H", "S"} <= suits else (0, 0, 1)
@@ -137,6 +156,8 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         return (0, 0, 4) if ctx["hand_type"] == "Four of a Kind" else (0, 0, 1)
     if key == "j_steel_joker":  # +chips scaling — needs run state; approximate 0
         return (0, 0, 1)
+    if key == "j_blue_joker":
+        return (ctx.get("deck_remaining", 0) * 2, 0, 1)
     return (0, 0, 1)
 
 
@@ -173,7 +194,10 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
         | set(PER_CARD_JOKERS)
         | {
             "j_joker",
+            "j_abstract",
             "j_mystic_summit",
+            "j_blackboard",
+            "j_swashbuckler",
             "j_flower_pot",
             "j_family",
             "j_selzer",
@@ -181,6 +205,7 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_dusk",
             "j_splash",
             "j_steel_joker",
+            "j_blue_joker",
         }
     )
     unmodeled: list[str] = []
@@ -219,7 +244,7 @@ def _parse_card(card: dict) -> dict | None:
 
 
 def _classify(cards: list[dict]) -> tuple[str, list[int]]:
-    """Classify 5 cards. Returns (hand_type, scoring_indices_into_5)."""
+    """Classify 1-5 played cards. Returns (hand_type, scoring_indices_into_played)."""
     # Separate stones (no rank/suit) — they never help form a hand but score.
     idx_with_rank = [i for i, c in enumerate(cards) if c["rank"]]
     ranks = [cards[i]["rank"] for i in idx_with_rank]
@@ -271,7 +296,7 @@ def _classify(cards: list[dict]) -> tuple[str, list[int]]:
     if is_flush and is_straight:
         return "Straight Flush", list(range(5))
     # Four of a Kind
-    if counts == [4, 1]:
+    if counts in ([4, 1], [4]):
         return "Four of a Kind", idx_of_group(4, 1)
     # Full House
     if counts == [3, 2]:
@@ -283,13 +308,13 @@ def _classify(cards: list[dict]) -> tuple[str, list[int]]:
     if is_straight:
         return "Straight", list(range(5))
     # Three of a Kind
-    if counts == [3, 1, 1]:
+    if counts in ([3, 1, 1], [3, 1], [3]):
         return "Three of a Kind", idx_of_group(3, 1)
     # Two Pair
-    if counts == [2, 2, 1]:
+    if counts in ([2, 2, 1], [2, 2]):
         return "Two Pair", idx_of_group(2, 2)
     # Pair
-    if counts == [2, 1, 1, 1]:
+    if counts in ([2, 1, 1, 1], [2, 1, 1], [2, 1], [2]):
         return "Pair", idx_of_group(2, 1)
     # High Card: single highest-rank card
     best = max(idx_with_rank, key=lambda i: RANK_ORDER.get(cards[i]["rank"], 0))
@@ -391,6 +416,8 @@ def _score_combo(
         **ctx,
         "hand_type": hand_type,
         "scoring_cards": [cards[i] for i in eff_scoring],
+        "held_cards": ctx.get("held_cards", []),
+        "joker_count": len(jokers),
     }
     for j in jokers:
         key = j.get("key") or ""
@@ -435,11 +462,13 @@ def _ctx(state: dict) -> dict:
     flint = blind.get("name") == "The Flint"
     plasma = state.get("deck") == "PLASMA"
     r = state.get("round") or {}
+    cards = state.get("cards") or {}
     return {
         "flint": flint,
         "plasma": plasma,
         "discards_left": r.get("discards_left", 0),
         "hands_left": r.get("hands_left", 0),
+        "deck_remaining": cards.get("count", 0),
         "target": blind.get("score"),
         "boss_name": blind.get("name") or "",
         "boss_effect": blind.get("effect") or "",
@@ -451,11 +480,14 @@ def _ctx(state: dict) -> dict:
 
 def estimate(state: dict) -> dict:
     """Compute the estimate envelope from a raw gamestate dict."""
+    if state.get("state") != "SELECTING_HAND":
+        raise InvalidEstimateState(state.get("state") or "UNKNOWN")
     hand_cards = (state.get("hand") or {}).get("cards") or []
     parsed = []
-    for c in hand_cards:
+    for i, c in enumerate(hand_cards):
         p = _parse_card(c)
         if p is not None:
+            p["hand_index"] = i
             parsed.append(p)
     jokers = (state.get("jokers") or {}).get("cards") or []
     cfg = _retrigger_config(jokers)
@@ -463,10 +495,12 @@ def estimate(state: dict) -> dict:
     levels = _hand_levels(state)
     _, unmodeled = _modeled(jokers)
 
-    combos = list(combinations(range(len(parsed)), 5)) if len(parsed) >= 5 else []
-    if len(parsed) < 5 and len(parsed) > 0:
-        # Fewer than 5 cards: evaluate the whole hand as one combo.
-        combos = [tuple(range(len(parsed)))]
+    max_play = min(5, len(parsed))
+    combos = [
+        combo
+        for n in range(1, max_play + 1)
+        for combo in combinations(range(len(parsed)), n)
+    ]
 
     results: list[dict] = []
     # Dusk triggers on the final allotted hand of the round (hands_left == 1),
@@ -476,24 +510,51 @@ def estimate(state: dict) -> dict:
         cards = [parsed[i] for i in combo]
         hand_type, scoring_idx = _classify(cards)
         level = levels.get(hand_type, {"chips": 0, "mult": 0, "level": 1})
+        combo_set = set(combo)
+        combo_ctx = {
+            **ctx,
+            "held_cards": [parsed[i] for i in range(len(parsed)) if i not in combo_set],
+        }
         chips, mult, score = _score_combo(
-            cards, scoring_idx, hand_type, level, jokers, cfg, ctx, dusk_active=dusk_now
+            cards,
+            scoring_idx,
+            hand_type,
+            level,
+            jokers,
+            cfg,
+            combo_ctx,
+            dusk_active=dusk_now,
         )
+        scoring_play_indices = [parsed[combo[i]]["hand_index"] for i in scoring_idx]
+        scoring_labels = [parsed[combo[i]]["label"] for i in scoring_idx]
         results.append(
             {
                 "hand_type": hand_type,
-                "indices": list(combo),
-                "cards": [parsed[i]["label"] for i in combo],
-                "scoring_indices": scoring_idx,
+                "indices": scoring_play_indices,
+                "cards": scoring_labels,
+                "scoring_indices": scoring_play_indices,
                 "chips": chips,
                 "mult": mult,
                 "score": score,
-                "dusk_now": dusk_now,
                 "level": level.get("level", 1),
             }
         )
 
-    results.sort(key=lambda r: r["score"], reverse=True)
+    # Drop duplicate scoring sets from different kicker choices. Prefer the
+    # higher-scoring play; on ties, prefer playing fewer cards.
+    deduped: dict[tuple[str, tuple[int, ...]], dict] = {}
+    for r in results:
+        key = (r["hand_type"], tuple(sorted(r["scoring_indices"])))
+        prev = deduped.get(key)
+        if (
+            prev is None
+            or r["score"] > prev["score"]
+            or (r["score"] == prev["score"] and len(r["indices"]) < len(prev["indices"]))
+        ):
+            deduped[key] = r
+    results = list(deduped.values())
+
+    results.sort(key=lambda r: (r["score"], -len(r["indices"])), reverse=True)
     top = results[:3]
 
     return {
@@ -504,16 +565,6 @@ def estimate(state: dict) -> dict:
             "beats_target": [r for r in top if r["score"] >= (ctx["target"] or 0)],
             "top": top,
             "unmodeled_jokers": unmodeled,
-            "boss": {
-                "name": ctx["boss_name"],
-                "effect": ctx["boss_effect"],
-                "flint_modeled": ctx["flint"],
-            },
-            "plasma": ctx["plasma"],
-            "hand_size": len(parsed),
-            "hands_left": ctx.get("hands_left"),
-            "dusk_owned": bool(cfg.get("dusk_owned")),
-            "dusk_now": dusk_now,
         },
     }
 
@@ -556,6 +607,9 @@ def main() -> int:
         est = estimate(raw)
         print(json.dumps(est, ensure_ascii=False) if json_out else _format(est))
         return 0
+    except InvalidEstimateState as e:
+        print(json.dumps(build_error_envelope("INVALID_STATE", str(e), fmt=ESTIMATE_FORMAT), ensure_ascii=False))
+        return 1
     except APIError as e:
         print(json.dumps(build_error_envelope(e.name, e.message), ensure_ascii=False))
         return 1
@@ -566,3 +620,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

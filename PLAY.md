@@ -2,7 +2,7 @@
 
 You are the player. The game runs on `127.0.0.1:12346` and exposes a JSON-RPC 2.0 API. You call endpoints; the game responds with the new state. This file tells you everything you need to run a full game without reading any source.
 
-For the repo overview and development workflow, see `CLAUDE.md` / `AGENTS.md` and `docs/OVERVIEW.md`.
+For the repo overview and development workflow, see `AGENTS.md` and `docs/OVERVIEW.md`.
 
 ---
 
@@ -68,7 +68,7 @@ When you don't know what to do, read `actions:`.
 
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and skip-reward tag; the selectable blind is marked `(current, select)`.
-- **Hand cards carry modifier tags:** `4♦[e:Mult,s:Red]` = Mult enhancement + Red
+- **Hand cards and eligible pack candidates carry modifier tags:** `4♦[e:Mult,s:Red]` = Mult enhancement + Red
     seal. Legend: enhancement `e:Mult/Bonus/Glass/Stone/Wild/Lucky/Gold/Steel`,
     edition `d:Foil/Holo/Poly/Neg`, seal `s:Red/Blue/Gold/Purple`. Debuffed cards
     are wrapped `(7♣)`. So you can see buffs without a separate query.
@@ -158,7 +158,8 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 ## 5. Decision Principles
 
 - **Always `glance` (and ideally `know preflight`) before deciding.** Never assume the state.
-- **Run `bot.ps1 estimate` before doing scoring math by hand.** It enumerates 5-card combos, scores them with the current hand levels + card buffs + retriggers + modeled jokers, and prints the top-3 plays and whether each beats the blind target. This replaces manual chip/mult arithmetic. Card buffs (enhancement/edition/seal) are now visible in `glance` too (e.g. `4♦[e:Mult,s:Red]`), so `estimate` accounts for them automatically. If a joker is `unmodeled`, the estimate is base-only for that effect — treat it as unknown and fall back to the formula below.
+- **Only run `bot.ps1 estimate` in `SELECTING_HAND`.** It returns `INVALID_STATE` in menu, blind select, shop, pack, and round-eval states.
+- **Run `bot.ps1 estimate` before doing scoring math by hand.** It searches playable hands from your current hand, scores them with the current hand levels + card buffs + retriggers + modeled jokers, and prints the top-3 plays and whether each beats the blind target. **`idx` lists the cards to play** — usually only scoring cards, but it may include non-scoring kickers when playing them improves modeled effects such as held-card jokers; use it directly with `bot.ps1 play`. This replaces manual chip/mult arithmetic. Card buffs (enhancement/edition/seal) are now visible in `glance` too (e.g. `4♦[e:Mult,s:Red]`), so `estimate` accounts for them automatically. If a joker is `unmodeled`, the estimate is base-only for that effect — treat it as unknown and fall back to the formula below.
 - **Verify the scoring formula only when `estimate` can't.** Poker hand base chips/mult differ from what you might remember. If you must compute by hand (e.g. an unmodeled joker is in play), run `bot.ps1 query hands` and read the real `level`/`chips`/`mult` for the hand you plan to play. Then apply the formula from `bot.ps1 know check rule scoring_formula`: score = Chips × Mult, built in phases (hand base → scoring-card chips → jokers left-to-right, +Mult before ×Mult). **Only the cards forming the poker hand type score — kickers add no chips** (`know check rule kickers_do_not_score`); card chips are A=11, 2-10=face, J/Q/K=10 (`know check rule card_chip_values`). (Example: I once estimated Three of a Kind at 390 and it scored 180 — base 30/3 + 3×King(10) = 60×3 = 180; I had wrongly counted all 5 cards.) `know list rule` lists all rules; relevant ones: `scoring_formula`, `kickers_do_not_score`, `card_chip_values`, `hand_base_values_level_1`, `additive_before_multiplicative_mult`, `edition_values`, `enhancement_scoring`, `seal_effects`, `plasma_deck_balances_chips_and_mult`.
 - **Beat the blind target, not maximize score.** `round.chips` is your current score; the current blind's `score` is the target. Once you've passed it, you can stop playing hands to bank unused hands ($1 each) and discards.
 - **Don't burn discards for no reason.** Each unused hand pays $1 interest at round end (interest capped at $5). Discard only to improve a hand you intend to play.
@@ -205,3 +206,4 @@ effect as unknown and fall back to the in-game `effect`/`tag_effect` text.
 - `bot.ps1 know preflight` — verified effects of all active jokers + current boss + pending tags (table by default; `--json` for raw).
 - `bot.ps1 know check joker "Name"` / `check boss "Name"` / `check tag "Name"` — look up one entry.
 - `screenshot PATH` / `save PATH` / `load PATH` — visual debug and run checkpoints (`bot.ps1 screenshot C:\tmp\ss.png`).
+

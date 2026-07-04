@@ -361,6 +361,7 @@ saves/
 .claude/
 .agents/
 .mux/
+.cursor/
 
 # Legacy local knowledge dir after migration
 游戏/
@@ -372,7 +373,7 @@ saves/
 !knowledge/balatro/**
 
 # Keep local agent instructions private unless intentionally authored for the repo
-/AGENTS.md
+/CLAUDE.md
 
 # Re-ignore generated Python caches inside the explicitly unignored knowledge tree
 knowledge/balatro/__pycache__/

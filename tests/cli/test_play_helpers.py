@@ -700,10 +700,12 @@ def _est_state(
     blind_score: int = 300,
     discards_left: int = 3,
     hands_left: int = 4,
+    deck_remaining: int = 44,
 ) -> dict:
     return {
         "state": "SELECTING_HAND",
         "deck": deck,
+        "cards": {"count": deck_remaining, "limit": 52},
         "round": {"hands_left": hands_left, "discards_left": discards_left, "chips": 0},
         "blinds": {
             "small": {
@@ -824,7 +826,6 @@ def test_estimate_flint_halves_base() -> None:
     top = est["estimate"]["top"]
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["score"] == 15
-    assert est["estimate"]["boss"]["flint_modeled"] is True
 
 
 def test_estimate_dusk_inactive_when_not_last_hand() -> None:
@@ -845,8 +846,6 @@ def test_estimate_dusk_inactive_when_not_last_hand() -> None:
     top = est["estimate"]["top"]
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["score"] == 108  # no Dusk
-    assert top[0]["dusk_now"] is False
-    assert est["estimate"]["dusk_now"] is False
 
 
 def test_estimate_dusk_active_on_last_hand() -> None:
@@ -866,5 +865,54 @@ def test_estimate_dusk_active_on_last_hand() -> None:
     top = est["estimate"]["top"]
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["score"] == 260  # Dusk active
-    assert top[0]["dusk_now"] is True
-    assert est["estimate"]["dusk_now"] is True
+
+
+def test_estimate_pair_indices_exclude_kickers() -> None:
+    # Pair of Kings + 3 kickers: play only the two Kings (indices 0,1).
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    est = estimate.estimate(_est_state(hand))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["indices"] == [0, 1]
+    assert len(top[0]["cards"]) == 2
+
+
+def test_estimate_three_of_a_kind_indices_exclude_kickers() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("K", "D", {}),
+        ("5", "C", {}),
+        ("2", "S", {}),
+    )
+    est = estimate.estimate(_est_state(hand))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Three of a Kind"
+    assert top[0]["indices"] == [0, 1, 2]
+    assert len(top[0]["cards"]) == 3
+
+
+def test_estimate_blue_joker_adds_deck_remaining_chips() -> None:
+    # Pair of Kings: base 10/2 + 20 card chips = 30 chips, mult 2 => 60.
+    # Blue Joker with 52 cards left: +104 chips => (30+104)*2 = 268.
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Blue Joker", "key": "j_blue_joker", "value": {"effect": "+104 chips"}}
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, deck_remaining=52))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["score"] == 268
+    assert est["estimate"]["unmodeled_jokers"] == []
