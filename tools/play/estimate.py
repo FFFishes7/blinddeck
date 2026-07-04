@@ -16,6 +16,9 @@ Mechanics should be verified against Balatro source when adding jokers:
 
 Registry (modeled / no-op / never-RNG / TODO): ``tools/play/estimate_registry.md``
 
+**Modeling new jokers:** follow the required checklist in that file (gate →
+source → implement → test → document). See also ``AGENTS.md`` § Estimate modeling.
+
 Output
 ------
 - ``indices`` — pass directly to ``bot.ps1 play`` (includes kickers when they change
@@ -104,6 +107,8 @@ HAND_ORDER = {
 
 
 # --- joker registry ---------------------------------------------------------
+# New joker? Mandatory checklist: tools/play/estimate_registry.md
+# (gate → source in card.lua → implement → test → update registry tables).
 
 # Jokers with no direct score impact (economy / utility) — modeled as no-op so
 # they do NOT trigger an unmodeled warning.

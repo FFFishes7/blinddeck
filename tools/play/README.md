@@ -91,9 +91,9 @@ Typical estimate lab: `select` → `add`/`set` → `estimate` → `play` → com
 ### `estimate` — score estimator
 
 **Deterministic only:** models effects fixed by current state + your card choice.
-RNG jokers (Misprint, 8 Ball, Bloodstone, …) stay `unmodeled`. Full registry:
-[`estimate_registry.md`](estimate_registry.md). Verify new jokers in
-`%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua` before porting.
+RNG jokers (Misprint, 8 Ball, Bloodstone, …) stay `unmodeled`. Full registry +
+**mandatory modeling checklist**: [`estimate_registry.md`](estimate_registry.md).
+Verify new jokers in `%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua` before porting.
 
 `bot.ps1 estimate` is only available in `SELECTING_HAND`. It enumerates 1–5 card
 plays, classifies each poker hand, and scores: hand level + scoring-card chips +

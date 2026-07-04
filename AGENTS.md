@@ -157,6 +157,18 @@ Runs inside the game engine and exposes an API.
     - `state.lua`: Test endpoint that requires specific game states.
     - `validation.lua`: Comprehensive validation test endpoint.
 
+## Estimate modeling (required workflow)
+
+`bot.ps1 estimate` models **deterministic** scoring only. Before changing `tools/play/estimate.py`:
+
+1. **Gate** — read the joker in Balatro source (`%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua`). If it uses RNG or unread state → **Never model**; leave `unmodeled`.
+2. **Trace** — find context (`joker_main` / per-card / `repetition`) via `state_events.lua` → `evaluate_play` and `smods/src/utils.lua` (`SMODS.calculate_main_scoring`, `trigger_effects`).
+3. **Implement** — port to `estimate.py`; register in `_modeled()`; `indices` = full `bot.ps1 play` args (kickers included when they change held-card effects).
+4. **Test** — `pytest tests/cli/test_play_helpers.py -k estimate`; live: `estimate` then `play` same `idx` (use `BALATROBOT_ALLOW_CHEATS=1` for lab setups).
+5. **Document** — update [`tools/play/estimate_registry.md`](tools/play/estimate_registry.md) (checklist + Verified/Never tables + live log).
+
+Full checklist and scoring pipeline map: **`tools/play/estimate_registry.md`**. Do not use wiki guesses when source is available.
+
 ## Key Files
 
 - **Python**:

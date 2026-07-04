@@ -11,6 +11,46 @@ RNG, hidden future state, or unread dynamic values stays **`unmodeled`**.
 When adding a joker, read its `eval_card` branch in `card.lua` first, then port only if
 the condition uses state we already expose in `gamestate`.
 
+**Agents:** follow [Modeling checklist (required)](#modeling-checklist-required) below —
+no ad-hoc ports. Cursor rule: `.cursor/rules/estimate-maintenance.mdc` (local).
+
+---
+
+## Modeling checklist (required)
+
+Use this checklist for **every** new or changed joker in `estimate.py`. Do not skip steps.
+
+### 0. Gate — deterministic only?
+
+- [ ] Read the joker in `%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua` (`eval_card`).
+- [ ] Confirm **no** `pseudorandom`, `pseudorandom_probability`, or hidden proc.
+- [ ] Confirm all inputs exist in our `gamestate` (or derived from visible hand + round counters).
+
+If any check fails → add to **Never model** below; leave `unmodeled`; **stop** (no estimate code).
+
+### 1. Source — where does it fire?
+
+- [ ] Note **context**: `main_scoring` (per scoring card), `joker_main` (global phase), or `repetition` (Dusk/Seltzer/…).
+- [ ] Trace call path: `state_events.lua` `evaluate_play` → `SMODS.calculate_main_scoring` / joker loop (`smods/src/utils.lua`).
+- [ ] Note **phase**: +Mult vs ×Mult; held-card jokers use **`G.hand.cards`** (unplayed cards only).
+
+### 2. Implement
+
+- [ ] Add logic in `tools/play/estimate.py` (`PER_CARD_JOKERS`, `_global_joker_bonus`, `_retrigger_config`, or `NO_SCORE_JOKERS`).
+- [ ] Register key in `_modeled()` or it stays `unmodeled`.
+- [ ] If kicker choice matters (Blackboard): enumerate play sizes; **`indices`** = full `bot.ps1 play` list.
+
+### 3. Test
+
+- [ ] Unit test in `tests/cli/test_play_helpers.py` (`pytest tests/cli/test_play_helpers.py -k estimate`).
+- [ ] Live check when possible: `$env:BALATROBOT_ALLOW_CHEATS=1` → `estimate` → `play` **same `idx`** → score must match.
+
+### 4. Document (same change set)
+
+- [ ] Move joker to **Verified & modeled** (or **Never model**) in this file.
+- [ ] Append row to **Live validation log** if live-tested.
+- [ ] Update `tools/play/README.md` / `PLAY.md` only if CLI output or user workflow changed.
+
 ---
 
 ## Scoring architecture (where the algorithm lives)
