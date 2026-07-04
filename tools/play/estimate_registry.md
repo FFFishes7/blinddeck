@@ -121,6 +121,17 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_onyx_agate` | +7 Mult per club scored | Per-card |
 | `j_flower_pot` | ×3 Mult if scoring hand has all four suits | Global |
 | `j_family` | ×4 Mult on Four of a Kind | Global |
+| `j_jolly` / `j_zany` / `j_mad` / `j_crazy` / `j_droll` | +Mult when hand type matches (`t_mult`) | Global |
+| `j_sly` / `j_wily` / `j_clever` / `j_devious` / `j_crafty` | +chips when hand type matches (`t_chips`) | Global |
+| `j_half` | +20 Mult when ≤3 cards played | Global |
+| `j_banner` | +30 chips × `discards_left` (if > 0) | Global |
+| `j_gros_michel` | +15 Mult | Global (destruction is RNG — mult while alive is fixed) |
+| `j_acrobat` | ×3 Mult on last hand (`hands_left == 1` API) | Global |
+| `j_card_sharp` | ×3 Mult when hand type already played this round | Uses `hands.*.played_this_round` |
+| `j_hack` | +1 retrigger per scoring 2–5 | Per scoring card |
+| `j_scary_face` | +30 chips per face card scored | Per-card |
+| `j_smiley` | +5 Mult per face card scored | Per-card |
+| `j_scholar` | +20 chips, +4 Mult per Ace scored | Per-card |
 
 **Output fields**
 
@@ -135,7 +146,7 @@ Modeled as zero score impact so they do **not** appear in `unmodeled_jokers`:
 
 `j_midas_mask`, `j_delayed_grat`, `j_egg`, `j_gift`, `j_golden`, `j_flash`, `j_faceless`,
 `j_cartomancer`, `j_certificate`, `j_mail`, `j_ramen`, `j_ripple`, `j_hologram`,
-`j_trading`, `j_riff_raff`, …
+`j_trading`, `j_riff_raff`, `j_drunkard` (+discard slot only), …
 
 ---
 
@@ -196,3 +207,4 @@ game code; Dusk condition is `hands_left == 0` at evaluation time (= last hand f
 | 2026-07-04 | Two Pair, play `[4,5,6,7]` only | 4950 (wrong idx) | 2178 | Fixed: need `[2,4,5,6,7]` for Blackboard kicker |
 | 2026-07-04 | Two Pair, correct idx | 2442 | +2442 incremental | ✓ |
 | 2026-07-04 | Needle, High Card `[0,5,7]` | 1863 `[short]` | Lost | Estimate correct; target 2000, need better line |
+| 2026-07-04 | Jolly + Pair of Jacks | 300 | 300 | ✓ live (ante 1 small blind) |

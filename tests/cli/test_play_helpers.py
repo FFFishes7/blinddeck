@@ -1001,3 +1001,108 @@ def test_build_params_set_round_fields(cheats_on: None) -> None:
 def test_build_params_set_rejects_money(cheats_on: None) -> None:
     with pytest.raises(ValueError, match="not allowed"):
         build_params("set", ["money", "100"])
+
+
+def test_estimate_wily_joker_three_of_a_kind_chips() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("K", "D", {}),
+        ("5", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Wily Joker", "key": "j_wily", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Three of a Kind"
+    # base 60 chips + 100 wily = 160, mult 3 => 480
+    assert top[0]["chips"] == 160
+    assert top[0]["score"] == 480
+
+
+def test_estimate_jolly_joker_pair_mult() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Jolly Joker", "key": "j_jolly", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    # chips 30, mult 2+8=10 => 300
+    assert top[0]["mult"] == 10
+    assert top[0]["score"] == 300
+
+
+def test_estimate_banner_adds_discards_times_thirty() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Banner", "key": "j_banner", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, discards_left=3))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    # chips 30 + 90 banner = 120, mult 2 => 240
+    assert top[0]["chips"] == 120
+    assert top[0]["score"] == 240
+
+
+def test_estimate_card_sharp_on_second_pair_of_round() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Card Sharp", "key": "j_card_sharp", "value": {}}]
+    hands = {
+        "Pair": {"order": 11, "chips": 10, "mult": 2, "level": 1, "played_this_round": 1},
+        "High Card": {"order": 12, "chips": 5, "mult": 1, "level": 1, "played_this_round": 0},
+    }
+    est = estimate.estimate(_est_state(hand, jokers=jokers, hands_levels=hands))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    # chips 30, mult 2*3=6 => 180
+    assert top[0]["mult"] == 6
+    assert top[0]["score"] == 180
+
+
+def test_estimate_half_joker_small_play() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+    )
+    jokers = [{"label": "Half Joker", "key": "j_half", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["indices"] == [0, 1]
+    assert top[0]["mult"] == 22
+    assert top[0]["score"] == 660
+
+
+def test_estimate_hack_retriggers_low_ranks() -> None:
+    # Pair of 5s: each 5 scores 5 chips; hack doubles triggers => 5+5 twice = 20 card chips.
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("K", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Hack", "key": "j_hack", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    # base 10 + 20 card = 30 chips, mult 2 => 60
+    assert top[0]["chips"] == 30
+    assert top[0]["score"] == 60

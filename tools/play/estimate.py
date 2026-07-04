@@ -88,6 +88,24 @@ RANK_ORDER = {
 EVEN_RANKS = {"2", "4", "6", "8", "10", "T"}
 ODD_RANKS = {"A", "3", "5", "7", "9"}
 FIBONACCI_RANKS = {"A", "2", "3", "5", "8"}
+FACE_RANKS = {"J", "Q", "K"}
+LOW_RANKS = {"2", "3", "4", "5"}
+
+# Type jokers: bonus when played hand matches poker type (card.lua joker_main).
+TYPE_MULT_JOKERS: dict[str, tuple[str, int]] = {
+    "j_jolly": ("Pair", 8),
+    "j_zany": ("Three of a Kind", 12),
+    "j_mad": ("Two Pair", 10),
+    "j_crazy": ("Straight", 12),
+    "j_droll": ("Flush", 10),
+}
+TYPE_CHIPS_JOKERS: dict[str, tuple[str, int]] = {
+    "j_sly": ("Pair", 50),
+    "j_wily": ("Three of a Kind", 100),
+    "j_clever": ("Two Pair", 80),
+    "j_devious": ("Straight", 100),
+    "j_crafty": ("Flush", 80),
+}
 
 # Poker hand type -> Balatro order (lower = better). Matches `query hands`.
 HAND_ORDER = {
@@ -128,6 +146,7 @@ NO_SCORE_JOKERS = {
     "j_hologram",
     "j_trading",
     "j_riff_raff",
+    "j_drunkard",
 }
 
 # Per-card joker bonus for ONE trigger of a scoring card.
@@ -146,12 +165,26 @@ PER_CARD_JOKERS = {
     "j_even_steven": lambda c: (0, 4 if c["rank"] in EVEN_RANKS else 0, 1),
     "j_odd_todd": lambda c: (31 if c["rank"] in ODD_RANKS else 0, 0, 1),
     "j_onyx_agate": lambda c: (0, 7 if c["suit"] == "C" else 0, 1),  # +7 M per club
+    "j_scary_face": lambda c: (30 if c["rank"] in FACE_RANKS else 0, 0, 1),
+    "j_smiley": lambda c: (0, 5 if c["rank"] in FACE_RANKS else 0, 1),
+    "j_scholar": lambda c: (
+        (20 if c["rank"] == "A" else 0),
+        (4 if c["rank"] == "A" else 0),
+        1,
+    ),
 }
 
 
 def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     """Global (hand-level) joker contribution: (add_chips, add_mult, xmult)."""
     key = joker.get("key") or ""
+    hand_type = ctx.get("hand_type") or ""
+    if key in TYPE_MULT_JOKERS:
+        need, bonus = TYPE_MULT_JOKERS[key]
+        return (0, bonus, 1) if hand_type == need else (0, 0, 1)
+    if key in TYPE_CHIPS_JOKERS:
+        need, bonus = TYPE_CHIPS_JOKERS[key]
+        return (bonus, 0, 1) if hand_type == need else (0, 0, 1)
     if key == "j_joker":
         return (0, 4, 1)
     if key == "j_abstract":
@@ -176,6 +209,19 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         return (0, 0, 1)
     if key == "j_blue_joker":
         return (ctx.get("deck_remaining", 0) * 2, 0, 1)
+    if key == "j_half":
+        return (0, 20, 1) if ctx.get("cards_played", 5) <= 3 else (0, 0, 1)
+    if key == "j_banner":
+        dl = ctx.get("discards_left", 0)
+        return (30 * dl, 0, 1) if dl > 0 else (0, 0, 1)
+    if key == "j_gros_michel":
+        return (0, 15, 1)
+    if key == "j_acrobat":
+        return (0, 0, 3) if ctx.get("hands_left") == 1 else (0, 0, 1)
+    if key == "j_card_sharp":
+        ptr = (ctx.get("hands_meta") or {}).get(hand_type, {}).get("played_this_round", 0)
+        # Game increments played_this_round before scoring; estimate from pre-play state.
+        return (0, 0, 3) if ptr >= 1 else (0, 0, 1)
     return (0, 0, 1)
 
 
@@ -191,7 +237,7 @@ def _seltzer_active(joker: dict) -> int:
 
 def _retrigger_config(jokers: list[dict]) -> dict:
     """Build retrigger config from owned jokers."""
-    cfg = {"retrigger_all": 0, "retrigger_leftmost": 0, "dusk_owned": False}
+    cfg = {"retrigger_all": 0, "retrigger_leftmost": 0, "dusk_owned": False, "hack_owned": False}
     for j in jokers:
         key = j.get("key") or ""
         if key == "j_selzer":
@@ -202,6 +248,8 @@ def _retrigger_config(jokers: list[dict]) -> dict:
             cfg["dusk_owned"] = True
         elif key == "j_splash":
             cfg["splash"] = True
+        elif key == "j_hack":
+            cfg["hack_owned"] = True
     return cfg
 
 
@@ -210,6 +258,8 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
     modeled_keys = (
         set(NO_SCORE_JOKERS)
         | set(PER_CARD_JOKERS)
+        | set(TYPE_MULT_JOKERS)
+        | set(TYPE_CHIPS_JOKERS)
         | {
             "j_joker",
             "j_abstract",
@@ -222,8 +272,14 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_hanging_chad",
             "j_dusk",
             "j_splash",
+            "j_hack",
             "j_steel_joker",
             "j_blue_joker",
+            "j_half",
+            "j_banner",
+            "j_gros_michel",
+            "j_acrobat",
+            "j_card_sharp",
         }
     )
     unmodeled: list[str] = []
@@ -421,6 +477,8 @@ def _score_combo(
         triggers = 1 + retrigger_all
         if card["seal"] == "RED":
             triggers += 1
+        if cfg.get("hack_owned") and card["rank"] in LOW_RANKS:
+            triggers += 1
         if i == leftmost:
             triggers += retrigger_leftmost
         for _ in range(triggers):
@@ -436,12 +494,13 @@ def _score_combo(
         "scoring_cards": [cards[i] for i in eff_scoring],
         "held_cards": ctx.get("held_cards", []),
         "joker_count": len(jokers),
+        "cards_played": len(cards),
     }
     for j in jokers:
         key = j.get("key") or ""
         if key in NO_SCORE_JOKERS or key in PER_CARD_JOKERS:
             continue
-        if key in {"j_selzer", "j_hanging_chad", "j_dusk", "j_splash"}:
+        if key in {"j_selzer", "j_hanging_chad", "j_dusk", "j_splash", "j_hack"}:
             continue
         add_c, add_m, xm = _global_joker_bonus(j, ctx2)
         chips += add_c
@@ -475,6 +534,14 @@ def _current_blind(state: dict) -> dict | None:
     return None
 
 
+def _hands_meta(state: dict) -> dict[str, dict]:
+    """Per hand-type counters from gamestate (e.g. Card Sharp)."""
+    out: dict[str, dict] = {}
+    for name, info in (state.get("hands") or {}).items():
+        out[name] = {"played_this_round": info.get("played_this_round", 0)}
+    return out
+
+
 def _ctx(state: dict) -> dict:
     blind = _current_blind(state) or {}
     flint = blind.get("name") == "The Flint"
@@ -490,6 +557,7 @@ def _ctx(state: dict) -> dict:
         "target": blind.get("score"),
         "boss_name": blind.get("name") or "",
         "boss_effect": blind.get("effect") or "",
+        "hands_meta": _hands_meta(state),
     }
 
 
