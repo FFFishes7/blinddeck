@@ -106,6 +106,13 @@ TYPE_CHIPS_JOKERS: dict[str, tuple[str, int]] = {
     "j_devious": ("Straight", 100),
     "j_crafty": ("Flush", 80),
 }
+# Planets: ×Mult when played hand matches poker type (card.lua joker_main x_mult).
+TYPE_XMULT_JOKERS: dict[str, tuple[str, float]] = {
+    "j_duo": ("Pair", 2),
+    "j_trio": ("Three of a Kind", 3),
+    "j_order": ("Straight", 3),
+    "j_tribe": ("Flush", 2),
+}
 
 # Poker hand type -> Balatro order (lower = better). Matches `query hands`.
 HAND_ORDER = {
@@ -147,6 +154,7 @@ NO_SCORE_JOKERS = {
     "j_trading",
     "j_riff_raff",
     "j_drunkard",
+    "j_matador",
 }
 
 # Per-card joker bonus for ONE trigger of a scoring card.
@@ -172,7 +180,141 @@ PER_CARD_JOKERS = {
         (4 if c["rank"] == "A" else 0),
         1,
     ),
+    "j_arrowhead": lambda c: (50 if c["suit"] == "S" else 0, 0, 1),
+    "j_triboulet": lambda c: (0, 0, 2 if c["rank"] in ("K", "Q") else 1),
 }
+
+
+def _parse_effect_bonus(joker: dict, stat: str) -> int:
+    """Parse current +Mult or +Chips from localized joker `value.effect` UI text.
+
+    Effect strings come from the game's locale (en-us, zh_CN, de, …). We match
+    numeric patterns tied to stat type markers, not a single language prefix.
+    """
+    effect = (joker.get("value") or {}).get("effect") or ""
+    if not effect:
+        return 0
+
+    if stat == "mult":
+        type_markers = r"(?:Mult|倍率|Extra[-\s]*Mult|extra\s*Mult)\b"
+        zh_compact = r"当前为\+(\d+)(?:倍率)?"
+    else:
+        type_markers = r"(?:Chips|筹码|Extra[-\s]*Chips|extra\s*chips)\b"
+        zh_compact = r"当前为\+(\d+)(?:筹码)?"
+
+    m = re.search(rf"\+(\d+(?:\.\d+)?)\s*{type_markers}", effect, re.I)
+    if m:
+        return int(float(m.group(1)))
+
+    m = re.search(zh_compact, effect)
+    if m:
+        return int(m.group(1))
+
+    # Parenthetical runtime value, e.g. "(Currently +21 Mult )" or "(Currently +0 )".
+    m = re.search(
+        rf"\([^)]*?\+(\d+(?:\.\d+)?)\s*(?:{type_markers}|\))",
+        effect,
+        re.I,
+    )
+    if m:
+        return int(float(m.group(1)))
+
+    return 0
+
+
+def _parse_effect_mult(joker: dict) -> int:
+    return _parse_effect_bonus(joker, "mult")
+
+
+def _parse_effect_chips(joker: dict) -> int:
+    return _parse_effect_bonus(joker, "chips")
+
+
+def _parse_effect_xmult(joker: dict) -> float:
+    """Parse current XMult from localized joker `value.effect` UI text (fallback)."""
+    effect = (joker.get("value") or {}).get("effect") or ""
+    if not effect:
+        return 1.0
+    type_markers = r"(?:Mult|倍率)\b"
+    for pat in (
+        rf"X(\d+(?:\.\d+)?)\s*{type_markers}",
+        r"当前为X(\d+(?:\.\d+)?)倍率",
+        rf"\([^)]*?X(\d+(?:\.\d+)?)\s*(?:{type_markers}|\))",
+    ):
+        m = re.search(pat, effect, re.I)
+        if m:
+            return float(m.group(1))
+    return 1.0
+
+
+def _joker_stats(joker: dict) -> dict:
+    """Structured scoring snapshot from gamestate (`value.stats`), if present."""
+    raw = (joker.get("value") or {}).get("stats")
+    return raw if isinstance(raw, dict) else {}
+
+
+def _stat_mult(joker: dict) -> int:
+    stats = _joker_stats(joker)
+    if "mult" in stats:
+        return int(stats["mult"])
+    return _parse_effect_mult(joker)
+
+
+def _stat_chips(joker: dict) -> int:
+    stats = _joker_stats(joker)
+    if "chips" in stats:
+        return int(stats["chips"])
+    return _parse_effect_chips(joker)
+
+
+def _stat_xmult(joker: dict) -> float:
+    stats = _joker_stats(joker)
+    if "x_mult" in stats:
+        return float(stats["x_mult"])
+    return _parse_effect_xmult(joker)
+
+
+# Jokers whose +Mult is read from effect text (dynamic run state, deterministic at glance time).
+EFFECT_MULT_JOKERS = frozenset(
+    {
+        "j_swashbuckler",
+        "j_ceremonial",
+        "j_flash",
+        "j_popcorn",
+        "j_green_joker",
+        "j_red_card",
+        "j_fortune_teller",
+        "j_ride_the_bus",
+        "j_trousers",
+    }
+)
+
+# Jokers whose +chips is read from effect text (Ice Cream, Castle, Runner, …).
+EFFECT_CHIPS_JOKERS = frozenset(
+    {
+        "j_ice_cream",
+        "j_castle",
+        "j_square",
+        "j_runner",
+        "j_wee",
+        "j_stone",
+    }
+)
+
+# Jokers whose ×Mult is read from effect text (Steel Joker, Throwback, …).
+EFFECT_XMULT_JOKERS = frozenset(
+    {
+        "j_steel_joker",
+        "j_throwback",
+        "j_constellation",
+        "j_obelisk",
+        "j_campfire",
+        "j_glass",
+        "j_lucky_cat",
+        "j_hologram",
+        "j_ramen",
+    }
+)
 
 
 def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
@@ -185,16 +327,17 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     if key in TYPE_CHIPS_JOKERS:
         need, bonus = TYPE_CHIPS_JOKERS[key]
         return (bonus, 0, 1) if hand_type == need else (0, 0, 1)
+    if key in TYPE_XMULT_JOKERS:
+        need, bonus = TYPE_XMULT_JOKERS[key]
+        return (0, 0, bonus) if hand_type == need else (0, 0, 1)
     if key == "j_joker":
         return (0, 4, 1)
     if key == "j_abstract":
         return (0, 3 * ctx.get("joker_count", 0), 1)
     if key == "j_mystic_summit":
         return (0, 15 if ctx["discards_left"] == 0 else 0, 1)
-    if key == "j_swashbuckler":
-        effect = (joker.get("value") or {}).get("effect") or ""
-        m = re.search(r"当前为\+(\d+)倍率", effect)
-        return (0, int(m.group(1)) if m else 0, 1)
+    if key == "j_swashbuckler" or key in EFFECT_MULT_JOKERS:
+        return (0, _stat_mult(joker), 1)
     if key == "j_blackboard":
         held_cards = ctx.get("held_cards") or []
         if held_cards and all(c.get("suit") in {"S", "C"} for c in held_cards):
@@ -205,8 +348,15 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         return (0, 0, 3) if {"D", "C", "H", "S"} <= suits else (0, 0, 1)
     if key == "j_family":  # The Family: X4 if hand contains a 4oak
         return (0, 0, 4) if ctx["hand_type"] == "Four of a Kind" else (0, 0, 1)
-    if key == "j_steel_joker":  # +chips scaling — needs run state; approximate 0
-        return (0, 0, 1)
+    if key in EFFECT_XMULT_JOKERS:
+        xm = _stat_xmult(joker)
+        if key == "j_steel_joker" and xm <= 1.0:
+            return (0, 0, 1)
+        if key == "j_throwback" and xm <= 1.0:
+            skips = (ctx.get("run") or {}).get("skips", 0)
+            if skips > 0:
+                xm = 1.0 + 0.25 * skips
+        return (0, 0, xm) if xm > 1.0 else (0, 0, 1)
     if key == "j_blue_joker":
         return (ctx.get("deck_remaining", 0) * 2, 0, 1)
     if key == "j_half":
@@ -222,11 +372,67 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         ptr = (ctx.get("hands_meta") or {}).get(hand_type, {}).get("played_this_round", 0)
         # Game increments played_this_round before scoring; estimate from pre-play state.
         return (0, 0, 3) if ptr >= 1 else (0, 0, 1)
+    if key == "j_stuntman":
+        return (250, 0, 1)
+    if key == "j_bootstraps":
+        tiers = ctx.get("money", 0) // 5
+        return (0, 2 * tiers, 1) if tiers >= 1 else (0, 0, 1)
+    if key == "j_supernova":
+        played = (ctx.get("hands_meta") or {}).get(hand_type, {}).get("played", 0)
+        return (0, played, 1)
+    if key == "j_seeing_double":
+        suits = {c["suit"] for c in ctx.get("scoring_cards") or [] if c.get("suit")}
+        if "C" in suits and len(suits - {"C"}) > 0:
+            return (0, 0, 2)
+        return (0, 0, 1)
+    if key == "j_cavendish":
+        return (0, 0, 3)
+    if key == "j_bull":
+        return (max(0, ctx.get("money", 0)) * 2, 0, 1)
+    if key in EFFECT_CHIPS_JOKERS:
+        return (_stat_chips(joker), 0, 1)
+    if key == "j_stencil":
+        limit = ctx.get("joker_limit", 0)
+        count = ctx.get("joker_count", 0)
+        stencils = ctx.get("stencil_count", 0)
+        empty = limit - count
+        if empty > 0:
+            return (0, 0, empty + stencils)
+        return (0, 0, 1)
+    if key == "j_erosion":
+        run = ctx.get("run") or {}
+        missing = max(
+            0,
+            int(run.get("starting_deck_size", 52)) - int(run.get("deck_size", 52)),
+        )
+        return (0, 4 * missing, 1) if missing > 0 else (0, 0, 1)
     return (0, 0, 1)
+
+
+def _held_joker_bonus(held_cards: list[dict], jokers: list[dict]) -> tuple[int, float]:
+    """Held-in-hand joker phase: (add_mult, xmult)."""
+    keys = {j.get("key") for j in jokers}
+    add_mult = 0
+    xmult = 1.0
+    if "j_shoot_the_moon" in keys:
+        add_mult += 13 * sum(1 for c in held_cards if c.get("rank") == "Q")
+    if "j_baron" in keys:
+        kings = sum(1 for c in held_cards if c.get("rank") == "K")
+        if kings:
+            xmult *= 1.5**kings
+    if "j_raised_fist" in keys and held_cards:
+        ranked = [c for c in held_cards if c.get("rank")]
+        if ranked:
+            lowest = min(ranked, key=lambda c: RANK_ORDER.get(c["rank"], 99))
+            add_mult += 2 * RANK_CHIPS.get(lowest["rank"], 0)
+    return add_mult, xmult
 
 
 def _seltzer_active(joker: dict) -> int:
     """Return extra all-card retriggers if Seltzer countdown > 0."""
+    stats = _joker_stats(joker)
+    if "seltzer_remaining" in stats:
+        return 1 if int(stats["seltzer_remaining"]) > 0 else 0
     effect = (joker.get("value") or {}).get("effect") or ""
     m = re.search(r"(\d+)", effect)
     if not m:
@@ -237,7 +443,7 @@ def _seltzer_active(joker: dict) -> int:
 
 def _retrigger_config(jokers: list[dict]) -> dict:
     """Build retrigger config from owned jokers."""
-    cfg = {"retrigger_all": 0, "retrigger_leftmost": 0, "dusk_owned": False, "hack_owned": False}
+    cfg = {"retrigger_all": 0, "retrigger_leftmost": 0, "retrigger_face": 0, "dusk_owned": False, "hack_owned": False}
     for j in jokers:
         key = j.get("key") or ""
         if key == "j_selzer":
@@ -250,6 +456,8 @@ def _retrigger_config(jokers: list[dict]) -> dict:
             cfg["splash"] = True
         elif key == "j_hack":
             cfg["hack_owned"] = True
+        elif key == "j_sock_and_buskin":
+            cfg["retrigger_face"] += 1
     return cfg
 
 
@@ -260,6 +468,7 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
         | set(PER_CARD_JOKERS)
         | set(TYPE_MULT_JOKERS)
         | set(TYPE_CHIPS_JOKERS)
+        | set(TYPE_XMULT_JOKERS)
         | {
             "j_joker",
             "j_abstract",
@@ -273,14 +482,29 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_dusk",
             "j_splash",
             "j_hack",
-            "j_steel_joker",
+            "j_sock_and_buskin",
             "j_blue_joker",
             "j_half",
             "j_banner",
             "j_gros_michel",
             "j_acrobat",
             "j_card_sharp",
+            "j_stuntman",
+            "j_bootstraps",
+            "j_supernova",
+            "j_seeing_double",
+            "j_cavendish",
+            "j_bull",
+            "j_photograph",
+            "j_shoot_the_moon",
+            "j_baron",
+            "j_raised_fist",
+            "j_stencil",
+            "j_erosion",
         }
+        | EFFECT_MULT_JOKERS
+        | EFFECT_CHIPS_JOKERS
+        | EFFECT_XMULT_JOKERS
     )
     unmodeled: list[str] = []
     for j in jokers:
@@ -399,7 +623,11 @@ def _classify(cards: list[dict]) -> tuple[str, list[int]]:
 
 
 def _card_trigger_chips_mult(
-    card: dict, per_card_jokers: list, ctx: dict
+    card: dict,
+    per_card_jokers: list,
+    ctx: dict,
+    *,
+    photograph_x2: bool = False,
 ) -> tuple[int, int, float]:
     """One trigger of a scoring card: (add_chips, add_mult, xmult)."""
     chips = 0
@@ -432,6 +660,8 @@ def _card_trigger_chips_mult(
         chips += c_add
         mult += m_add
         xmult *= x
+    if photograph_x2:
+        xmult *= 2
     if card["debuff"]:
         # Debuffed cards score 0 chips/mult and don't trigger effects.
         return 0, 0, 1
@@ -471,6 +701,13 @@ def _score_combo(
     eff_scoring = list(range(5)) if cfg.get("splash") else scoring_idx
     # Leftmost scoring card index (for Hanging Chad).
     leftmost = min(eff_scoring) if eff_scoring else -1
+    photograph_owned = any(j.get("key") == "j_photograph" for j in jokers)
+    first_face_scoring_idx = -1
+    if photograph_owned:
+        for i in eff_scoring:
+            if cards[i]["rank"] in FACE_RANKS:
+                first_face_scoring_idx = i
+                break
 
     for pos, i in enumerate(eff_scoring):
         card = cards[i]
@@ -479,10 +716,17 @@ def _score_combo(
             triggers += 1
         if cfg.get("hack_owned") and card["rank"] in LOW_RANKS:
             triggers += 1
+        if cfg.get("retrigger_face") and card["rank"] in FACE_RANKS:
+            triggers += cfg["retrigger_face"]
         if i == leftmost:
             triggers += retrigger_leftmost
         for _ in range(triggers):
-            c_add, m_add, x = _card_trigger_chips_mult(card, per_card_fns, ctx)
+            c_add, m_add, x = _card_trigger_chips_mult(
+                card,
+                per_card_fns,
+                ctx,
+                photograph_x2=photograph_owned and i == first_face_scoring_idx,
+            )
             chips += c_add
             mult += m_add
             mult *= x
@@ -493,19 +737,25 @@ def _score_combo(
         "hand_type": hand_type,
         "scoring_cards": [cards[i] for i in eff_scoring],
         "held_cards": ctx.get("held_cards", []),
-        "joker_count": len(jokers),
+        "joker_count": ctx.get("joker_count", len(jokers)),
+        "joker_limit": ctx.get("joker_limit", 0),
+        "stencil_count": ctx.get("stencil_count", 0),
         "cards_played": len(cards),
     }
     for j in jokers:
         key = j.get("key") or ""
         if key in NO_SCORE_JOKERS or key in PER_CARD_JOKERS:
             continue
-        if key in {"j_selzer", "j_hanging_chad", "j_dusk", "j_splash", "j_hack"}:
+        if key in {"j_selzer", "j_hanging_chad", "j_dusk", "j_splash", "j_hack", "j_sock_and_buskin"}:
             continue
         add_c, add_m, xm = _global_joker_bonus(j, ctx2)
         chips += add_c
         mult += add_m
         mult *= xm
+
+    h_add_m, h_xm = _held_joker_bonus(ctx.get("held_cards") or [], jokers)
+    mult += h_add_m
+    mult *= h_xm
 
     if ctx.get("plasma"):
         balanced = (chips + mult) // 2
@@ -538,7 +788,10 @@ def _hands_meta(state: dict) -> dict[str, dict]:
     """Per hand-type counters from gamestate (e.g. Card Sharp)."""
     out: dict[str, dict] = {}
     for name, info in (state.get("hands") or {}).items():
-        out[name] = {"played_this_round": info.get("played_this_round", 0)}
+        out[name] = {
+            "played_this_round": info.get("played_this_round", 0),
+            "played": info.get("played", 0),
+        }
     return out
 
 
@@ -554,10 +807,13 @@ def _ctx(state: dict) -> dict:
         "discards_left": r.get("discards_left", 0),
         "hands_left": r.get("hands_left", 0),
         "deck_remaining": cards.get("count", 0),
+        "money": state.get("money", 0),
+        "joker_limit": (state.get("jokers") or {}).get("limit", 0),
         "target": blind.get("score"),
         "boss_name": blind.get("name") or "",
         "boss_effect": blind.get("effect") or "",
         "hands_meta": _hands_meta(state),
+        "run": state.get("run") or {},
     }
 
 
@@ -577,7 +833,11 @@ def estimate(state: dict) -> dict:
             parsed.append(p)
     jokers = (state.get("jokers") or {}).get("cards") or []
     cfg = _retrigger_config(jokers)
-    ctx = _ctx(state)
+    ctx = {
+        **_ctx(state),
+        "joker_count": len(jokers),
+        "stencil_count": sum(1 for j in jokers if j.get("key") == "j_stencil"),
+    }
     levels = _hand_levels(state)
     _, unmodeled = _modeled(jokers)
 

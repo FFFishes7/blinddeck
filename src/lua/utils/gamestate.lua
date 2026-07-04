@@ -261,6 +261,101 @@ local function extract_card_modifier(card)
   return modifier
 end
 
+---Numeric scoring snapshot for jokers (locale-independent; mirrors card.lua joker_main inputs).
+---@param card table
+---@return Card.Value.Stats?
+local function extract_joker_stats(card)
+  if not card or not card.ability or card.ability.set ~= "Joker" then
+    return nil
+  end
+
+  local a = card.ability
+  local name = a.name
+  local stats = {}
+
+  if type(a.mult) == "number" and a.mult ~= 0 then
+    stats.mult = a.mult
+  end
+  if type(a.x_mult) == "number" and a.x_mult > 1 then
+    stats.x_mult = a.x_mult
+  end
+
+  if type(a.extra) == "table" then
+    if type(a.extra.chips) == "number" and a.extra.chips ~= 0 then
+      stats.chips = a.extra.chips
+    end
+    if type(a.extra.mult) == "number" and a.extra.mult ~= 0 and not stats.mult then
+      stats.mult = a.extra.mult
+    end
+    if type(a.extra.Xmult) == "number" and a.extra.Xmult > 1 and not stats.x_mult then
+      stats.x_mult = a.extra.Xmult
+    end
+  end
+
+  if name == "Fortune Teller" and G and G.GAME and G.GAME.consumeable_usage_total then
+    local tarot = G.GAME.consumeable_usage_total.tarot or 0
+    if tarot > 0 then
+      stats.mult = tarot
+    end
+  elseif name == "Steel Joker" then
+    local tally = a.steel_tally or 0
+    if tally > 0 and type(a.extra) == "number" then
+      stats.steel_tally = tally
+      stats.x_mult = 1 + a.extra * tally
+    end
+  elseif name == "Stone Joker" then
+    local tally = a.stone_tally or 0
+    if tally > 0 and type(a.extra) == "number" then
+      stats.stone_tally = tally
+      stats.chips = a.extra * tally
+    end
+  elseif name == "Seltzer" then
+    if type(a.extra) == "number" and a.extra > 0 then
+      stats.seltzer_remaining = a.extra
+    end
+  elseif name == "Driver's License" then
+    local tally = a.driver_tally or 0
+    if tally > 0 then
+      stats.driver_tally = tally
+    end
+    if tally >= 16 and type(a.extra) == "number" then
+      stats.x_mult = a.extra
+    end
+  end
+
+  if next(stats) == nil then
+    return nil
+  end
+  return stats
+end
+
+---Run-level counters useful for deterministic scoring (Erosion, Throwback, …).
+---@return RunCounters?
+local function extract_run_counters()
+  if not G or not G.GAME then
+    return nil
+  end
+
+  local deck_size = 0
+  if G.playing_cards then
+    for _ in pairs(G.playing_cards) do
+      deck_size = deck_size + 1
+    end
+  end
+
+  local tarot_used = 0
+  if G.GAME.consumeable_usage_total and G.GAME.consumeable_usage_total.tarot then
+    tarot_used = G.GAME.consumeable_usage_total.tarot
+  end
+
+  return {
+    skips = G.GAME.skips or 0,
+    deck_size = deck_size,
+    starting_deck_size = G.GAME.starting_deck_size or 52,
+    tarot_used = tarot_used,
+  }
+end
+
 ---Extracts value information from a card
 ---@param card table The card object
 ---@return Card.Value value The Card.Value object
@@ -295,6 +390,13 @@ local function extract_card_value(card)
           value.copy_label = localized
         end
       end
+    end
+  end
+
+  if card.ability and card.ability.set == "Joker" then
+    local stats = extract_joker_stats(card)
+    if stats then
+      value.stats = stats
     end
   end
 
@@ -835,6 +937,11 @@ function gamestate.get_gamestate()
 
     -- Round info
     state_data.round = extract_round_info()
+
+    local run = extract_run_counters()
+    if run then
+      state_data.run = run
+    end
 
     -- Blinds info
     state_data.blinds = gamestate.get_blinds_info()

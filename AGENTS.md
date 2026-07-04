@@ -9,7 +9,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md`](./PLAY.md) for the full guide. The essentials:
 
 - The game serves JSON-RPC 2.0 on `http://127.0.0.1:12346`. Health-check first.
-- **Loop:** `bot.ps1 glance` → `bot.ps1 estimate` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start RED WHITE`.
+- **Loop:** `bot.ps1 glance` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start RED WHITE`. **`estimate` is optional / not recommended** — see `PLAY.md`.
 - **All indices are 0-based.** One request at a time (server is single-client).
 - **Use friendly subcommands, never `exec '{...}'`** — PowerShell strips unescaped double quotes from JSON args.
 - State → command:
@@ -18,13 +18,13 @@ If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md
 |---|---|
 | `MENU` | `bot.ps1 start RED WHITE [SEED]` |
 | `BLIND_SELECT` | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) |
-| `SELECTING_HAND` | `bot.ps1 estimate` · `bot.ps1 play 0 1 2 3 4` · `discard 0 1` · `use 0 [1 2]` · `sort rank` |
+| `SELECTING_HAND` | `bot.ps1 play 0 1 2 3 4` · `discard 0 1` · `use 0 [1 2]` · `sort rank` · *(optional)* `estimate` |
 | `ROUND_EVAL` | `bot.ps1 cash_out` |
 | `SHOP` | `bot.ps1 buy card 0` · `buy pack 0` · `reroll` · `sell joker 0` · `next_round` |
 | `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` · `pack skip` |
 | `GAME_OVER` | `bot.ps1 menu` then `start` |
 
-Each `glance`/action output ends with an `actions:` line listing valid next commands. `bot.ps1 estimate` scores top playable hands (use instead of manual chip/mult math); `bot.ps1 query hands` is the fallback when a joker is unmodeled. Common pitfalls (full list in `PLAY.md`): boss blinds hide card faces (`??`), `pack` targets only for Tarot/Spectral, `buy` checks `dollars - bankrupt_at`, tags are skip rewards not defeat rewards, zombie `balatrobot serve` processes need `Stop-Process` before restarting `serve.ps1`.
+Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). Common pitfalls (full list in `PLAY.md`): boss blinds hide card faces (`??`), `pack` targets only for Tarot/Spectral, `buy` checks `dollars - bankrupt_at`, tags are skip rewards not defeat rewards, zombie `balatrobot serve` processes need `Stop-Process` before restarting `serve.ps1`.
 
 ## Overview
 

@@ -88,7 +88,12 @@ Restrictions:
 
 Typical estimate lab: `select` → `add`/`set` → `estimate` → `play` → compare score.
 
-### `estimate` — score estimator
+### `estimate` — score estimator *(optional, not recommended for play)*
+
+**Do not rely on this for normal AI play.** It models only a subset of deterministic
+jokers, parses dynamic values from localized UI effect text, and can encourage
+over-trusting `[BEATS]`. Prefer `query hands` + `know check rule scoring_formula`.
+Use `estimate` for dev/regression and joker modeling (`estimate_registry.md`).
 
 **Deterministic only:** models effects fixed by current state + your card choice.
 RNG jokers (Misprint, 8 Ball, Bloodstone, …) stay `unmodeled`. Full registry +
@@ -125,11 +130,12 @@ Anything else → `unmodeled` (treat score as lower bound only).
 ## AI loop
 
 1. `glance` → compact state + `actions:` line (valid next commands)
-2. `estimate` → top playable hands + score estimate (before doing scoring math by hand)
-3. `know preflight` → verified joker/boss/stake/tag effects (before non-trivial decisions)
-4. (optional) `query hands` / `query deck` / …
-5. friendly action subcommand → prints the new compact state automatically
-6. Repeat until `state == GAME_OVER`, then `menu` + `start`
+2. `know preflight` → verified joker/boss/stake/tag effects (before non-trivial decisions)
+3. (optional) `query hands` / `query deck` / … — **use `query hands` for scoring math**
+4. friendly action subcommand → prints the new compact state automatically
+5. Repeat until `state == GAME_OVER`, then `menu` + `start`
+
+*(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
 
 Every `glance` / action output ends with an `actions:` line listing the
 commands valid in the current state. The full envelope (from `state` /

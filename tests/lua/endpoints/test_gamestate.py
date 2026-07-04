@@ -884,6 +884,33 @@ class TestGamestateCards:
             assert joker["cost"]["sell"] > 0
 
 
+class TestGamestateJokerStats:
+    """Structured joker scoring stats (value.stats)."""
+
+    def test_gros_michel_exposes_stats_mult(self, client: httpx.Client) -> None:
+        load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        response = api(client, "add", {"key": "j_gros_michel"})
+        joker = response["result"]["jokers"]["cards"][-1]
+        assert joker["key"] == "j_gros_michel"
+        stats = joker["value"]["stats"]
+        assert stats["mult"] == 15
+
+    def test_selzer_exposes_seltzer_remaining(self, client: httpx.Client) -> None:
+        load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        response = api(client, "add", {"key": "j_selzer"})
+        joker = response["result"]["jokers"]["cards"][-1]
+        assert joker["key"] == "j_selzer"
+        assert joker["value"]["stats"]["seltzer_remaining"] == 10
+
+    def test_run_counters_on_active_run(self, client: httpx.Client) -> None:
+        gamestate = load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        run = gamestate["run"]
+        assert "skips" in run
+        assert "deck_size" in run
+        assert "starting_deck_size" in run
+        assert run["starting_deck_size"] >= run["deck_size"]
+
+
 class TestGamestateCardModifiers:
     """Test gamestate card modifiers."""
 

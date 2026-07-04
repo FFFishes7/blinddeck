@@ -1078,6 +1078,10 @@
           "run_summary": {
             "$ref": "#/components/schemas/RunSummary",
             "description": "Run statistics (GAME_OVER only)"
+          },
+          "run": {
+            "$ref": "#/components/schemas/RunCounters",
+            "description": "Run-level counters for scoring (skips, deck size, …)"
           }
         },
         "required": [
@@ -1086,6 +1090,28 @@
           "ante_num",
           "money"
         ]
+      },
+      "RunCounters": {
+        "type": "object",
+        "description": "Run-level counters useful for deterministic scoring",
+        "properties": {
+          "skips": {
+            "type": "integer",
+            "description": "Blinds skipped this run"
+          },
+          "deck_size": {
+            "type": "integer",
+            "description": "Cards currently in the full deck"
+          },
+          "starting_deck_size": {
+            "type": "integer",
+            "description": "Deck size at run start"
+          },
+          "tarot_used": {
+            "type": "integer",
+            "description": "Tarot cards used this run"
+          }
+        }
       },
       "RunSummary": {
         "type": "object",
@@ -1354,11 +1380,49 @@
           "copy_label": {
             "type": "string",
             "description": "For The Fool: display label of the last Tarot/Planet used"
+          },
+          "stats": {
+            "$ref": "#/components/schemas/JokerStats",
+            "description": "Numeric scoring snapshot (jokers only; locale-independent)"
           }
         },
         "required": [
           "effect"
         ]
+      },
+      "JokerStats": {
+        "type": "object",
+        "description": "Joker scoring snapshot for estimate/tools (from ability, not UI text)",
+        "properties": {
+          "mult": {
+            "type": "integer",
+            "description": "Additive Mult in joker_main phase"
+          },
+          "chips": {
+            "type": "integer",
+            "description": "Additive chips in joker_main phase"
+          },
+          "x_mult": {
+            "type": "number",
+            "description": "Multiplicative Mult in joker_main phase"
+          },
+          "seltzer_remaining": {
+            "type": "integer",
+            "description": "Seltzer retrigger hands remaining"
+          },
+          "steel_tally": {
+            "type": "integer",
+            "description": "Steel cards in full deck (Steel Joker)"
+          },
+          "stone_tally": {
+            "type": "integer",
+            "description": "Stone cards in full deck (Stone Joker)"
+          },
+          "driver_tally": {
+            "type": "integer",
+            "description": "Modified cards in deck (Driver's License)"
+          }
+        }
       },
       "CardModifier": {
         "type": "object",

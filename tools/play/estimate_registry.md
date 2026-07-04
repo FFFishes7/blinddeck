@@ -1,8 +1,8 @@
 # Estimate joker registry
 
-`bot.ps1 estimate` only models **deterministic** scoring: given the cards you choose to
-play, the result must be uniquely fixed by the current gamestate. Anything involving
-RNG, hidden future state, or unread dynamic values stays **`unmodeled`**.
+`bot.ps1 estimate` is an **optional, not recommended** play helper — incomplete joker
+coverage; normal agents should use `query hands` + `know check rule scoring_formula`.
+This file documents the **dev/regression** scoring model only.
 
 **Source of truth for mechanics:** Balatro decompiled Lua under  
 `%APPDATA%\Balatro\Mods\lovely\game-dump\` (vanilla + lovely patches) and SMODS under  
@@ -45,11 +45,13 @@ If any check fails → add to **Never model** below; leave `unmodeled`; **stop**
 - [ ] Unit test in `tests/cli/test_play_helpers.py` (`pytest tests/cli/test_play_helpers.py -k estimate`).
 - [ ] Live check when possible: `$env:BALATROBOT_ALLOW_CHEATS=1` → `estimate` → `play` **same `idx`** → score must match.
 
-### 4. Document (same change set)
+### 4. Document (working tree)
 
 - [ ] Move joker to **Verified & modeled** (or **Never model**) in this file.
 - [ ] Append row to **Live validation log** if live-tested.
-- [ ] Update `tools/play/README.md` / `PLAY.md` only if CLI output or user workflow changed.
+- [ ] Update `tools/play/README.md` / `PLAY.md` if CLI output or workflow changed.
+
+Do **not** `git commit` / `git push` unless the user explicitly asks.
 
 ---
 
@@ -93,8 +95,27 @@ Our `estimate.py` mirrors steps 1–5 in simplified closed form; step 6 is the p
 | Boss debuffs when blind name is known (e.g. The Flint) | Jokers whose runtime value is missing from API |
 | Kickers that change **held** cards (e.g. Blackboard) — search all play sizes | “Expected value” of random outcomes |
 
-If a modeled joker is present but its dynamic value cannot be read (e.g. Swashbuckler
-without `当前为+Nm` in effect text), treat as **unmodeled** for that run.
+If a modeled joker is present but its dynamic value cannot be read from
+`value.stats` (preferred) or parseable `value.effect`, treat as **unmodeled** for
+that run.
+
+### API: `value.stats` on jokers (preferred)
+
+`gamestate` jokers may include structured scoring fields under `value.stats`
+(locale-independent, from `card.ability`):
+
+| Field | Meaning |
+| --- | --- |
+| `mult` | Additive Mult in joker_main |
+| `chips` | Additive chips in joker_main |
+| `x_mult` | Multiplicative Mult in joker_main |
+| `seltzer_remaining` | Seltzer countdown |
+| `steel_tally` / `stone_tally` / `driver_tally` | Deck tallies |
+
+Run-level counters live on `gamestate.run`: `skips`, `deck_size`,
+`starting_deck_size`, `tarot_used`.
+
+`estimate.py` reads `stats` first; `value.effect` text parsing is fallback only.
 
 ---
 
@@ -132,6 +153,24 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_scary_face` | +30 chips per face card scored | Per-card |
 | `j_smiley` | +5 Mult per face card scored | Per-card |
 | `j_scholar` | +20 chips, +4 Mult per Ace scored | Per-card |
+| `j_stuntman` | +250 chips | Global |
+| `j_bootstraps` | +2 Mult per $5 (`state.money // 5`) | Global |
+| `j_supernova` | +Mult = lifetime `hands.*.played` for scoring hand type | Global |
+| `j_seeing_double` | ×2 Mult if scoring cards include ♣ + another suit | Global |
+| `j_ceremonial` / `j_flash` / `j_popcorn` / `j_green_joker` / `j_red_card` / `j_fortune_teller` / `j_ride_the_bus` / `j_trousers` | +Mult from `value.stats.mult` (fallback: effect text) | Global |
+| `j_duo` / `j_trio` / `j_order` / `j_tribe` | ×Mult when hand type matches (Pair / 3oak / Straight / Flush) | Global |
+| `j_cavendish` | ×3 Mult while alive | Global (destruction is RNG) |
+| `j_bull` | +2 chips × `state.money` | Global |
+| `j_photograph` | ×2 Mult on first face card scored | Per scoring card |
+| `j_baron` | ×1.5 Mult per King **held** | Held-in-hand |
+| `j_shoot_the_moon` | +13 Mult per Queen **held** | Held-in-hand |
+| `j_raised_fist` | +2× nominal chips of lowest **held** rank | Held-in-hand |
+| `j_stencil` | ×Mult = empty joker slots + stencil count | Global |
+| `j_steel_joker` / `j_throwback` / `j_constellation` / `j_obelisk` / `j_campfire` / `j_glass` / `j_lucky_cat` / `j_hologram` / `j_ramen` | ×Mult from `value.stats.x_mult` (Throwback also uses `run.skips`) | Global |
+| `j_erosion` | +4 Mult per card below starting deck size (`run.deck_size`) | Global |
+| `j_arrowhead` | +50 chips per Spade scored | Per-card |
+| `j_triboulet` | ×2 Mult per King or Queen scored | Per-card |
+| `j_sock_and_buskin` | +1 retrigger per face card scored | Retrigger |
 
 **Output fields**
 
@@ -146,7 +185,7 @@ Modeled as zero score impact so they do **not** appear in `unmodeled_jokers`:
 
 `j_midas_mask`, `j_delayed_grat`, `j_egg`, `j_gift`, `j_golden`, `j_flash`, `j_faceless`,
 `j_cartomancer`, `j_certificate`, `j_mail`, `j_ramen`, `j_ripple`, `j_hologram`,
-`j_trading`, `j_riff_raff`, `j_drunkard` (+discard slot only), …
+`j_trading`, `j_riff_raff`, `j_drunkard` (+discard slot only), `j_matador`, …
 
 ---
 
@@ -162,8 +201,8 @@ Do not add closed-form estimates — keep **`unmodeled`**:
 | `j_lucky_cat`, Lucky Card enhancements | Probability money / Mult |
 | `j_wheel_of_fortune` | Random edition on joker |
 | `j_space` | Chance to level up hand |
-| `j_hack` | Retrigger 2–5 (deterministic per card rank — *could* be modeled later) |
-| `j_cavendish`, `j_gros_michel` | Destruction RNG |
+| `j_hack` | Retrigger 2–5 — modeled in `estimate.py` |
+| `j_cavendish`, `j_gros_michel` | Destruction RNG (mult while alive is modeled) |
 | Most “1 in N chance” jokers | Any `SMODS.pseudorandom_probability` path |
 
 ---
@@ -174,12 +213,10 @@ Candidates worth adding when needed — all are deterministic once conditions ar
 
 | Key | Blocker / notes |
 | --- | --- |
-| `j_steel_joker` | Needs steel-card tally from gamestate |
-| `j_ceremonial` | Depends on blind-select sacrifice (past state) |
 | `j_blackboard` wild cards | `is_suit(..., true)` — Wild counts as both; need wild flag in API |
-| `j_driver's_license` | Needs modified-card count ≥ 16 |
-| `j_campfire` | Scales on sold cards this run |
-| `j_fortune_teller` | +Mult per Tarot used (`G.GAME.consumeable_usage`) |
+| `j_driver's_license` | Modeled when `value.stats.x_mult` set (tally ≥ 16) |
+| `j_ancient` | Needs `current_round.ancient_card.suit` in gamestate |
+| `j_idol` | Needs round idol card id+suit in gamestate |
 
 ---
 

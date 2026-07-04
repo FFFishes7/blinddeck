@@ -701,10 +701,12 @@ def _est_state(
     discards_left: int = 3,
     hands_left: int = 4,
     deck_remaining: int = 44,
+    money: int = 0,
 ) -> dict:
     return {
         "state": "SELECTING_HAND",
         "deck": deck,
+        "money": money,
         "cards": {"count": deck_remaining, "limit": 52},
         "round": {"hands_left": hands_left, "discards_left": discards_left, "chips": 0},
         "blinds": {
@@ -1106,3 +1108,406 @@ def test_estimate_hack_retriggers_low_ranks() -> None:
     # base 10 + 20 card = 30 chips, mult 2 => 60
     assert top[0]["chips"] == 30
     assert top[0]["score"] == 60
+
+
+def test_estimate_stuntman_adds_two_fifty_chips() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Stuntman", "key": "j_stuntman", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["chips"] == 280
+    assert top[0]["score"] == 560
+
+
+def test_estimate_bootstraps_mult_from_money() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Bootstraps", "key": "j_bootstraps", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, money=14))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    # floor(14/5)=2 tiers, +4 mult => mult 6, chips 30 => 180
+    assert top[0]["mult"] == 6
+    assert top[0]["score"] == 180
+
+
+def test_estimate_supernova_uses_lifetime_hand_count() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Supernova", "key": "j_supernova", "value": {}}]
+    hands = {
+        "Pair": {"order": 11, "chips": 10, "mult": 2, "level": 1, "played": 7},
+        "High Card": {"order": 12, "chips": 5, "mult": 1, "level": 1, "played": 0},
+    }
+    est = estimate.estimate(_est_state(hand, jokers=jokers, hands_levels=hands))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 9
+    assert top[0]["score"] == 270
+
+
+def test_estimate_seeing_double_x2_with_club_and_other_suit() -> None:
+    hand = _hand_cards(
+        ("K", "C", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "S", {}),
+        ("2", "C", {}),
+    )
+    jokers = [{"label": "Seeing Double", "key": "j_seeing_double", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 4
+    assert top[0]["score"] == 120
+
+
+def test_estimate_ceremonial_parses_effect_mult() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Ceremonial Dagger",
+            "key": "j_ceremonial",
+            "value": {"effect": "当前为+21倍率"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 23
+    assert top[0]["score"] == 690
+
+
+def test_estimate_ceremonial_parses_effect_mult_english() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Ceremonial Dagger",
+            "key": "j_ceremonial",
+            "value": {"effect": "(Currently +21 Mult )"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 23
+    assert top[0]["score"] == 690
+
+
+def test_estimate_ice_cream_parses_effect_chips_english() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Ice Cream",
+            "key": "j_ice_cream",
+            "value": {"effect": "(Currently +85 Chips )"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["chips"] == 115
+    assert top[0]["score"] == 230
+
+
+def test_estimate_duo_x2_on_pair() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "The Duo", "key": "j_duo", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 4
+    assert top[0]["score"] == 120
+
+
+def test_estimate_cavendish_x3_on_pair() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Cavendish", "key": "j_cavendish", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 6
+    assert top[0]["score"] == 180
+
+
+def test_estimate_bull_chips_from_money() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Bull", "key": "j_bull", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers, money=10))
+    top = est["estimate"]["top"]
+    assert top[0]["chips"] == 50
+    assert top[0]["score"] == 100
+
+
+def test_estimate_baron_x15_per_held_king() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("K", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Baron", "key": "j_baron", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 3
+    assert top[0]["score"] == 60
+
+
+def test_estimate_shoot_the_moon_held_queen() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("Q", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Shoot the Moon", "key": "j_shoot_the_moon", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 15
+    assert top[0]["score"] == 300
+
+
+def test_estimate_photograph_first_face_x2() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Photograph", "key": "j_photograph", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 4
+    assert top[0]["score"] == 120
+
+
+def test_estimate_stencil_xmult_from_empty_slots() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Joker Stencil", "key": "j_stencil", "value": {}}]
+    state = _est_state(hand, jokers=jokers)
+    state["jokers"]["limit"] = 5
+    est = estimate.estimate(state)
+    top = est["estimate"]["top"]
+    # empty=5-1=4, +1 stencil => x5 on pair mult 2 => 10
+    assert top[0]["mult"] == 10
+    assert top[0]["score"] == 300
+
+
+def test_estimate_arrowhead_adds_fifty_per_spade() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Arrowhead", "key": "j_arrowhead", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["chips"] == 80
+    assert top[0]["score"] == 160
+
+
+def test_estimate_sock_and_buskin_retriggers_face_cards() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Sock and Buskin", "key": "j_sock_and_buskin", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["chips"] == 50
+    assert top[0]["score"] == 100
+
+
+def test_estimate_triboulet_x2_on_kings_and_queens() -> None:
+    hand = _hand_cards(
+        ("Q", "S", {}),
+        ("Q", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Triboulet", "key": "j_triboulet", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 8
+    assert top[0]["score"] == 240
+
+
+def test_estimate_ride_the_bus_parses_effect_mult() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Ride the Bus",
+            "key": "j_ride_the_bus",
+            "value": {"effect": "(Currently +5 Mult )"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 7
+    assert top[0]["score"] == 210
+
+
+def test_estimate_throwback_parses_effect_xmult() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Throwback",
+            "key": "j_throwback",
+            "value": {"effect": "(Currently X1.5 Mult )"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 3
+    assert top[0]["score"] == 90
+
+
+def test_estimate_steel_joker_parses_effect_xmult() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Steel Joker",
+            "key": "j_steel_joker",
+            "value": {"effect": "(Currently X1.4 Mult )"},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 2.8
+    assert top[0]["score"] == 84
+
+
+def test_estimate_raised_fist_lowest_held_rank() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("2", "D", {}),
+    )
+    jokers = [{"label": "Raised Fist", "key": "j_raised_fist", "value": {}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["indices"] == [0, 1]
+    assert top[0]["mult"] == 6
+    assert top[0]["score"] == 120
+
+
+def test_estimate_uses_joker_stats_without_effect_text() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Ride the Bus",
+            "key": "j_ride_the_bus",
+            "value": {"stats": {"mult": 5}},
+        }
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 7
+    assert top[0]["score"] == 210
+
+
+def test_estimate_erosion_from_run_counters() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Erosion", "key": "j_erosion", "value": {}}]
+    state = _est_state(hand, jokers=jokers)
+    state["run"] = {"starting_deck_size": 52, "deck_size": 42, "skips": 0}
+    est = estimate.estimate(state)
+    top = est["estimate"]["top"]
+    assert top[0]["mult"] == 42
+    assert top[0]["score"] == 1260

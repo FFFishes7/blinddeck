@@ -29,6 +29,7 @@
 ---@field vouchers Area? Vouchers area (available during shop phase)
 ---@field packs Area? Booster packs area (available during shop phase)
 ---@field won boolean? Whether the game has been won
+---@field run RunCounters? Run-level counters for scoring (skips, deck size, …)
 ---@field run_summary RunSummary? Run statistics (GAME_OVER only)
 
 ---@class RunSummary
@@ -90,6 +91,22 @@
 ---@field copy_key string? For The Fool: key of the last Tarot/Planet used
 ---@field copy_set string? For The Fool: set of the last Tarot/Planet used
 ---@field copy_label string? For The Fool: display label of the last Tarot/Planet used
+---@field stats Card.Value.Stats? Joker scoring snapshot (jokers only; locale-independent)
+
+---@class Card.Value.Stats
+---@field mult integer? Additive Mult for joker_main
+---@field chips integer? Additive chips for joker_main
+---@field x_mult number? Multiplicative Mult for joker_main
+---@field seltzer_remaining integer? Seltzer hands remaining
+---@field steel_tally integer? Steel cards in full deck (Steel Joker)
+---@field stone_tally integer? Stone cards in full deck (Stone Joker)
+---@field driver_tally integer? Modified cards in deck (Driver's License)
+
+---@class RunCounters
+---@field skips integer Blinds skipped this run
+---@field deck_size integer Cards currently in the full deck
+---@field starting_deck_size integer Deck size at run start
+---@field tarot_used integer Tarot cards used this run
 
 ---@class Card.Modifier
 ---@field seal Card.Modifier.Seal? Seal type (playing cards)

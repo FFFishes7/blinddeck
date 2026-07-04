@@ -47,7 +47,7 @@ Do not try to "fix" the running game state — only restart the server process.
 ```
 repeat:
   1. bot.ps1 glance                    ← compact state summary (state, blinds, hand, jokers, actions)
-  2. bot.ps1 estimate                  ← top playable hands + score estimate (skip manual scoring math)
+  2. (optional, not recommended) bot.ps1 estimate  ← score helper; incomplete joker model — prefer reasoning + query hands
   3. (optional) bot.ps1 know preflight ← verify joker/boss/tag effects before deciding
   4. bot.ps1 <action> [args]           ← see §2 friendly-command table
   5. read the printed compact summary  ← the action prints the new state automatically
@@ -82,7 +82,7 @@ When you don't know what to do, read `actions:`.
 | ---------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `MENU`                 | Start a run                                | `bot.ps1 start RED WHITE` (optional seed: `start RED WHITE SEED`)                                                   |
 | `BLIND_SELECT`         | Play or skip the blind                     | `bot.ps1 select` · or `bot.ps1 skip` (Small/Big only)                                                               |
-| `SELECTING_HAND`       | Estimate, then play / discard / use / sort | `bot.ps1 estimate` · `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` |
+| `SELECTING_HAND`       | Play / discard / use / sort (estimate optional) | `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` · *(optional)* `bot.ps1 estimate` |
 | `HAND_PLAYED`          | Transient — just poll                      | `bot.ps1 glance`                                                                                                    |
 | `ROUND_EVAL`           | Collect rewards                            | `bot.ps1 cash_out`                                                                                                  |
 | `SHOP`                 | Buy / reroll / sell / leave                | `bot.ps1 buy card 0` · `bot.ps1 buy pack 0` · `bot.ps1 reroll` · `bot.ps1 sell joker 0` · `bot.ps1 next_round`      |
@@ -119,7 +119,7 @@ lists pending tags with verified effects.
 .\tools\play\bot.ps1 glance              # see current state
 .\tools\play\bot.ps1 start RED WHITE     # start a run (deck, stake, optional seed)
 .\tools\play\bot.ps1 select              # select current blind
-.\tools\play\bot.ps1 estimate            # top playable hands + score estimate
+# optional: .\tools\play\bot.ps1 estimate   # score helper (incomplete; not recommended for normal play)
 .\tools\play\bot.ps1 sort rank           # sort hand for easier reading
 .\tools\play\bot.ps1 play 0 1 2 3 4      # play cards at hand indices 0-4
 .\tools\play\bot.ps1 discard 0 1         # or discard to draw replacements
@@ -164,9 +164,9 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 ## 5. Decision Principles
 
 - **Always `glance` (and ideally `know preflight`) before deciding.** Never assume the state.
-- **Only run `bot.ps1 estimate` in `SELECTING_HAND`.** It returns `INVALID_STATE` in menu, blind select, shop, pack, and round-eval states.
-- **Run `bot.ps1 estimate` before doing scoring math by hand.** It searches playable hands from your current hand, scores them with the current hand levels + card buffs + retriggers + modeled jokers, and prints the top-3 plays and whether each beats the blind target. **`idx` is the full `bot.ps1 play` argument** (includes non-scoring kickers when they change modeled held-card effects, e.g. Blackboard); **`scoring=`** in the line (when present) lists poker scorers only. Only **deterministic** jokers are modeled — RNG effects stay `unmodeled` (see `tools/play/estimate_registry.md`). If a joker is `unmodeled`, treat the number as a lower bound and fall back to the formula below.
-- **Verify the scoring formula only when `estimate` can't.** Poker hand base chips/mult differ from what you might remember. If you must compute by hand (e.g. an unmodeled joker is in play), run `bot.ps1 query hands` and read the real `level`/`chips`/`mult` for the hand you plan to play. Then apply the formula from `bot.ps1 know check rule scoring_formula`: score = Chips × Mult, built in phases (hand base → scoring-card chips → jokers left-to-right, +Mult before ×Mult). **Only the cards forming the poker hand type score — kickers add no chips** (`know check rule kickers_do_not_score`); card chips are A=11, 2-10=face, J/Q/K=10 (`know check rule card_chip_values`). (Example: I once estimated Three of a Kind at 390 and it scored 180 — base 30/3 + 3×King(10) = 60×3 = 180; I had wrongly counted all 5 cards.) `know list rule` lists all rules; relevant ones: `scoring_formula`, `kickers_do_not_score`, `card_chip_values`, `hand_base_values_level_1`, `additive_before_multiplicative_mult`, `edition_values`, `enhancement_scoring`, `seal_effects`, `plasma_deck_balances_chips_and_mult`.
+- **`bot.ps1 estimate` is optional and not recommended for normal play.** It only models a subset of jokers, may miss locale-specific effect text, and can make agents over-trust a number. Prefer reading the hand + `query hands` + `know check rule scoring_formula` when you need score math. Use `estimate` mainly for dev/regression (`tools/play/estimate_registry.md`), not as the default decision loop.
+- **If you do run `estimate`, only in `SELECTING_HAND`.** It returns `INVALID_STATE` elsewhere. Output is a hint only: **`idx`** = full `bot.ps1 play` list when kickers matter (e.g. Blackboard); **`scoring=`** = poker scorers only. **`unmodeled`** jokers mean the true score can be higher — never treat `[BEATS]` as guaranteed.
+- **Scoring math (default path):** Run `bot.ps1 query hands` for real base `chips`/`mult`. Apply `bot.ps1 know check rule scoring_formula`: score = Chips × Mult, built in phases (hand base → scoring-card chips → jokers left-to-right, +Mult before ×Mult). **Only the cards forming the poker hand type score — kickers add no chips** (`know check rule kickers_do_not_score`); card chips are A=11, 2-10=face, J/Q/K=10 (`know check rule card_chip_values`). (Example: Three of a Kind is base 30/3 + 3×scoring rank chips, not all five cards.) `know list rule` lists all rules; relevant ones: `scoring_formula`, `kickers_do_not_score`, `card_chip_values`, `hand_base_values_level_1`, `additive_before_multiplicative_mult`, `edition_values`, `enhancement_scoring`, `seal_effects`, `plasma_deck_balances_chips_and_mult`.
 - **Beat the blind target, not maximize score.** `round.chips` is your current score; the current blind's `score` is the target. Once you've passed it, you can stop playing hands to bank unused hands ($1 each) and discards.
 - **Don't burn discards for no reason.** Each unused hand pays $1 interest at round end (interest capped at $5). Discard only to improve a hand you intend to play.
 - **Economy early, scaling late.** In early antes, money compounds. Don't reroll aggressively. Buy jokers that scale (Mult+) or generate economy.
@@ -205,9 +205,9 @@ effect as unknown and fall back to the in-game `effect`/`tag_effect` text.
 ## 6. Useful Queries
 
 - `bot.ps1 glance` — compact state summary (state, blinds, round, hand with modifier tags, jokers w/ slot count, `actions:` line). Use this constantly.
-- `bot.ps1 estimate` — top playable hands + score estimate (chips/mult/score, beats target?). Use this instead of manual scoring math.
+- `bot.ps1 query hands` — poker hand level table with real `chips`/`mult` per hand type (table by default; `--json` for raw). **Primary tool for scoring math.**
+- `bot.ps1 estimate` — *(optional, not recommended)* top playable hands + partial score model. Dev/regression helper only; see `tools/play/estimate_registry.md`.
 - `bot.ps1 state` — full JSON envelope (gamestate + actions + queries).
-- `bot.ps1 query hands` — poker hand level table with real `chips`/`mult` per hand type (table by default; `--json` for raw).
 - `bot.ps1 query deck` / `query blinds` / `query used_vouchers` / `query seed` — other Layer-2 queries.
 - `bot.ps1 know preflight` — verified effects of all active jokers + current boss + pending tags (table by default; `--json` for raw).
 - `bot.ps1 know check joker "Name"` / `check boss "Name"` / `check tag "Name"` — look up one entry.

@@ -83,14 +83,15 @@ In a **second terminal**, with the game still running:
 
 ```powershell
 .\tools\play\bot.ps1 glance              # compact state summary (use constantly)
-.\tools\play\bot.ps1 estimate            # top playable hands + score estimate
+.\tools\play\bot.ps1 query hands         # real base chips/mult per hand type
+# optional: .\tools\play\bot.ps1 estimate   # partial score model (not recommended for play)
 .\tools\play\bot.ps1 select              # friendly action subcommands (no JSON quoting)
 .\tools\play\bot.ps1 play 0 1 2 3 4
 .\tools\play\bot.ps1 save saves\myrun.jkr   # checkpoint the current run
 .\tools\play\bot.ps1 help                # state-aware command list
 ```
 
-`bot.ps1` calls the running API through `.venv\Scripts\python.exe`. Prefer the **friendly subcommands** (`glance`, `estimate`, `play`, `select`, `buy`, …) — they avoid PowerShell JSON quoting issues. Use `state` / `exec` only for advanced or scripted use.
+`bot.ps1` calls the running API through `.venv\Scripts\python.exe`. Prefer the **friendly subcommands** (`glance`, `play`, `select`, `buy`, …) — they avoid PowerShell JSON quoting issues. `estimate` exists but is **optional and not recommended** for normal play (see `PLAY.md`). Use `state` / `exec` only for advanced or scripted use.
 
 **For AI agents playing a full run:** read [`PLAY.md`](PLAY.md) — loop, state→command table, pitfalls, and strategy. Helper details: [`tools/play/README.md`](tools/play/README.md).
 
