@@ -1404,6 +1404,11 @@
           "stats": {
             "$ref": "#/components/schemas/JokerStats",
             "description": "Numeric scoring snapshot (jokers only; locale-independent)"
+          },
+          "rarity": {
+            "type": "string",
+            "enum": ["COMMON", "UNCOMMON", "RARE", "LEGENDARY"],
+            "description": "Joker rarity (jokers only)"
           }
         },
         "required": [
@@ -1461,6 +1466,10 @@
           "ride_the_bus_step": {
             "type": "number",
             "description": "Ride the Bus +Mult increment per hand without scoring face cards"
+          },
+          "green_hand_add": {
+            "type": "integer",
+            "description": "Green Joker +Mult increment per hand played"
           }
         }
       },

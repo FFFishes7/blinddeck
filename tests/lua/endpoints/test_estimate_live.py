@@ -120,7 +120,20 @@ class TestEstimateLiveScoring:
             f"estimate={est_line['score']} actual={delta} idx={indices}"
         )
 
-    def test_brainstorm_jolly_pair_matches_play(self, client: httpx.Client) -> None:
+    def test_baseball_mime_pair_matches_play(self, client: httpx.Client) -> None:
+        gs = load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        gs = api(client, "add", {"key": "j_mime"})["result"]
+        gs = api(client, "add", {"key": "j_baseball"})["result"]
+        gs = api(client, "add", {"key": "S_5"})["result"]
+        gs = api(client, "add", {"key": "D_5"})["result"]
+        fives = [i for i in range((gs.get("hand") or {}).get("count", 0)) if _hand_rank(gs, i) == "5"]
+        assert len(fives) >= 2, "hand needs two 5s for baseball+mime live test"
+        indices = fives[:2]
+        est_line = estimate.score_hand_indices(gs, indices)
+        delta = _play_delta(client, gs, indices)
+        assert delta == est_line["score"], (
+            f"estimate={est_line['score']} actual={delta} idx={indices}"
+        )
         gs = load_fixture(client, "gamestate", "state-SELECTING_HAND")
         gs = api(client, "add", {"key": "j_jolly"})["result"]
         gs = api(client, "add", {"key": "j_brainstorm"})["result"]

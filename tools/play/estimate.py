@@ -341,11 +341,7 @@ def _joker_stats(joker: dict) -> dict:
 def _stat_mult(joker: dict) -> int:
     stats = _joker_stats(joker)
     key = joker.get("key") or ""
-    if key == "j_ride_the_bus":
-        if "mult" in stats:
-            return int(stats["mult"])
-        return 0
-    if key == "j_green_joker":
+    if key in STAT_ONLY_MULT_JOKERS:
         if "mult" in stats:
             return int(stats["mult"])
         return 0
@@ -386,6 +382,20 @@ EFFECT_MULT_JOKERS = frozenset(
         "j_trousers",
     }
 )
+
+# Growth jokers: never parse static +N from localized effect text; use stats only.
+STAT_ONLY_MULT_JOKERS = frozenset(
+    {
+        "j_ride_the_bus",
+        "j_green_joker",
+        "j_ceremonial",
+        "j_red_card",
+        "j_popcorn",
+        "j_flash",
+    }
+)
+
+BASEBALL_UNCOMMON_XMULT = 1.5
 
 # Jokers whose +chips is read from effect text (Ice Cream, Castle, Runner, …).
 EFFECT_CHIPS_JOKERS = frozenset(
@@ -662,8 +672,29 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     return (0, 0, 1)
 
 
-def _held_joker_bonus(held_cards: list[dict], jokers: list[dict]) -> tuple[int, float]:
-    """Held-in-hand joker phase: (add_mult, xmult)."""
+def _joker_rarity(joker: dict) -> str | None:
+    raw = (joker.get("value") or {}).get("rarity")
+    return raw if isinstance(raw, str) else None
+
+
+def _mime_owned(jokers: list[dict]) -> bool:
+    for i in range(len(jokers)):
+        _eff, key = _effective_joker_at(i, jokers)
+        if key == "j_mime":
+            return True
+    return False
+
+
+def _baseball_react_xmult(jokers: list[dict], triggered_joker: dict) -> float:
+    """×Mult from Baseball Card when an Uncommon joker fires joker_main."""
+    if _joker_rarity(triggered_joker) != "UNCOMMON":
+        return 1.0
+    count = sum(1 for j in jokers if j.get("key") == "j_baseball")
+    return BASEBALL_UNCOMMON_XMULT**count if count else 1.0
+
+
+def _held_joker_bonus_once(held_cards: list[dict], jokers: list[dict]) -> tuple[int, float]:
+    """One pass of held-in-hand joker effects (Baron, Shoot the Moon, Raised Fist)."""
     add_mult = 0
     xmult = 1.0
     for i in range(len(jokers)):
@@ -679,6 +710,31 @@ def _held_joker_bonus(held_cards: list[dict], jokers: list[dict]) -> tuple[int, 
             if ranked:
                 lowest = min(ranked, key=lambda c: RANK_ORDER.get(c["rank"], 99))
                 add_mult += 2 * RANK_CHIPS.get(lowest["rank"], 0)
+    return add_mult, xmult
+
+
+def _held_playing_card_bonus(held_cards: list[dict], mime: bool) -> float:
+    """×Mult from held Steel cards (Mime retriggers once)."""
+    xmult = 1.0
+    triggers = 2 if mime else 1
+    for card in held_cards:
+        if card.get("debuff"):
+            continue
+        if card.get("enhancement") != "STEEL":
+            continue
+        for _ in range(triggers):
+            xmult *= 1.5
+    return xmult
+
+
+def _held_joker_bonus(held_cards: list[dict], jokers: list[dict]) -> tuple[int, float]:
+    """Held-in-hand joker phase: (add_mult, xmult). Mime retriggers once."""
+    mime = _mime_owned(jokers)
+    add_mult, xmult = _held_joker_bonus_once(held_cards, jokers)
+    if mime:
+        add_m2, x_m2 = _held_joker_bonus_once(held_cards, jokers)
+        add_mult += add_m2
+        xmult *= x_m2
     return add_mult, xmult
 
 
@@ -768,6 +824,8 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_brainstorm",
             "j_four_fingers",
             "j_shortcut",
+            "j_mime",
+            "j_baseball",
         }
         | EFFECT_MULT_JOKERS
         | EFFECT_CHIPS_JOKERS
@@ -1112,10 +1170,14 @@ def _score_combo(
         chips += add_c
         mult += add_m
         mult *= xm
+        mult *= _baseball_react_xmult(jokers, j)
 
-    h_add_m, h_xm = _held_joker_bonus(ctx.get("held_cards") or [], jokers)
+    held = ctx.get("held_cards") or []
+    mime = _mime_owned(jokers)
+    h_add_m, h_xm = _held_joker_bonus(held, jokers)
     mult += h_add_m
     mult *= h_xm
+    mult *= _held_playing_card_bonus(held, mime)
 
     if ctx.get("plasma"):
         balanced = (chips + mult) // 2

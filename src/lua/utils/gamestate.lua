@@ -431,6 +431,10 @@ local function extract_card_value(card)
     if stats then
       value.stats = stats
     end
+    if card.config and card.config.center and type(card.config.center.rarity) == "number" then
+      local rarity_names = { [1] = "COMMON", [2] = "UNCOMMON", [3] = "RARE", [4] = "LEGENDARY" }
+      value.rarity = rarity_names[card.config.center.rarity]
+    end
   end
 
   return value

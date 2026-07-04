@@ -197,6 +197,8 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_green_joker` | +Mult from `stats` + `green_hand_add` per hand (context.before) | Global |
 | `j_four_fingers` | Straights/flushes need 4 cards (not 5) | Hand classifier |
 | `j_shortcut` | Straights may contain one rank gap | Hand classifier |
+| `j_mime` | Retriggers held card/joker effects once (Steel ×1.5, Baron, …) | Held phase |
+| `j_baseball` | ×1.5 Mult per Baseball when an Uncommon joker fires joker_main | Global; needs `value.rarity` |
 
 **Output fields**
 

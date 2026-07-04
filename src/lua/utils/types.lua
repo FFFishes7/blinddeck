@@ -97,6 +97,9 @@
 ---@field copy_set string? For The Fool: set of the last Tarot/Planet used
 ---@field copy_label string? For The Fool: display label of the last Tarot/Planet used
 ---@field stats Card.Value.Stats? Joker scoring snapshot (jokers only; locale-independent)
+---@field rarity Card.Value.Rarity? Joker rarity (jokers only)
+
+---@alias Card.Value.Rarity "COMMON" | "UNCOMMON" | "RARE" | "LEGENDARY"
 
 ---@class Card.Value.Stats
 ---@field mult integer? Additive Mult for joker_main
@@ -106,6 +109,12 @@
 ---@field steel_tally integer? Steel cards in full deck (Steel Joker)
 ---@field stone_tally integer? Stone cards in full deck (Stone Joker)
 ---@field driver_tally integer? Modified cards in deck (Driver's License)
+---@field loyalty_every integer? Loyalty Card hands between ×Mult procs
+---@field loyalty_remaining integer? Loyalty Card countdown
+---@field loyalty_x_mult number? Loyalty Card ×Mult proc value
+---@field obelisk_step number? Obelisk increment per non-dominant hand
+---@field ride_the_bus_step integer? Ride the Bus increment per no-face hand
+---@field green_hand_add integer? Green Joker +Mult per hand played
 
 ---@class RunCounters
 ---@field skips integer Blinds skipped this run

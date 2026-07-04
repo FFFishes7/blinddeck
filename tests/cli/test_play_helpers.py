@@ -1232,7 +1232,10 @@ def test_estimate_ice_cream_parses_effect_chips_english() -> None:
         {
             "label": "Ice Cream",
             "key": "j_ice_cream",
-            "value": {"effect": "(Currently +85 Chips )"},
+            "value": {
+                "effect": "(Currently +85 Chips )",
+                "stats": {"chips": 85},
+            },
         }
     ]
     est = estimate.estimate(_est_state(hand, jokers=jokers))
@@ -1911,3 +1914,54 @@ def test_estimate_green_joker_first_hand() -> None:
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["mult"] == 3
     assert top[0]["score"] == 60
+
+
+def test_estimate_mime_doubles_held_steel() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("K", "D", {"enhancement": "STEEL"}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Mime", "key": "j_mime", "value": {"rarity": "UNCOMMON"}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 4.5
+    assert top[0]["score"] == 90
+
+
+def test_estimate_baseball_reacts_to_uncommon_joker() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Mime", "key": "j_mime", "value": {"rarity": "UNCOMMON"}},
+        {"label": "Baseball Card", "key": "j_baseball", "value": {}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 3
+    assert top[0]["score"] == 60
+
+
+def test_estimate_ice_cream_uses_stats_chips() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [{"label": "Ice Cream", "key": "j_ice_cream", "value": {"stats": {"chips": 100}}}]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["chips"] == 120
+    assert top[0]["score"] == 240
