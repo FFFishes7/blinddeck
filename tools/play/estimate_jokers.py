@@ -104,6 +104,60 @@ def _effective_joker_at(index: int, jokers: list[dict]) -> tuple[dict | None, st
     return j, key
 
 
+# Jokers whose score effect lives outside joker_main (retriggers / held / splash).
+RETRIGGER_ONLY_JOKERS = frozenset(
+    {
+        "j_selzer",
+        "j_hanging_chad",
+        "j_dusk",
+        "j_splash",
+        "j_hack",
+        "j_sock_and_buskin",
+        "j_mime",
+    }
+)
+
+# Jokers whose score effect runs in the held-in-hand phase (not joker_main).
+HELD_PHASE_JOKERS = frozenset(
+    {
+        "j_baron",
+        "j_shoot_the_moon",
+        "j_raised_fist",
+    }
+)
+
+# Physical jokers whose edition bonus applies after the held stack (add-only),
+# not during joker_main where it would be multiplied by held ×Mult.
+EDITION_AFTER_HELD_PHYSICAL = RETRIGGER_ONLY_JOKERS | HELD_PHASE_JOKERS
+
+
+def _joker_edition_from(card: dict) -> str:
+    """Edition on the physical joker at this slot (Blueprint uses its own edition)."""
+    mod = card.get("modifier") or {}
+    if not isinstance(mod, dict):
+        return ""
+    ed = mod.get("edition")
+    return ed if isinstance(ed, str) else ""
+
+
+def _apply_joker_edition_before(
+    edition: str, chips: float, mult: float
+) -> tuple[float, float]:
+    """Foil/Holo apply before the joker's own effect during joker_main."""
+    if edition == "FOIL":
+        chips += 50
+    elif edition in ("HOLO", "HOLOGRAPHIC"):
+        mult += 10
+    return chips, mult
+
+
+def _apply_joker_edition_after(edition: str, mult: float) -> float:
+    """Polychrome applies after the joker's own effect during joker_main."""
+    if edition == "POLYCHROME":
+        mult *= 1.5
+    return mult
+
+
 # --- joker registry ---------------------------------------------------------
 # New joker? Mandatory checklist: tools/play/estimate_registry.md
 # (gate → source in card.lua → implement → test → update registry tables).

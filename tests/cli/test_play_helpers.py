@@ -30,6 +30,7 @@ from start_options import (  # noqa: E402  # type: ignore[unresolved-import]
     build_stakes,
 )
 from view import (  # noqa: E402  # type: ignore[unresolved-import]
+    _joker_line,
     card_label,
     print_summary,
 )
@@ -310,6 +311,27 @@ def test_card_label_hidden_still_returns_qq() -> None:
     )
 
 
+def test_joker_line_perishable_rental() -> None:
+    line = _joker_line(
+        1,
+        {
+            "label": "Jolly Joker",
+            "value": {"effect": "+8 Mult if played hand contains a Pair"},
+            "modifier": {
+                "edition": "HOLO",
+                "perishable": 3,
+                "rental": True,
+                "eternal": True,
+            },
+        },
+    )
+    assert "(perishable 3r)" in line
+    assert "(rental -$1/round)" in line
+    assert "(+10 mult)" in line
+    assert "(eternal)" in line
+    assert "Jolly Joker" in line
+
+
 # --- view.print_summary (one per state) -------------------------------------
 
 
@@ -541,6 +563,42 @@ def test_print_summary_shop(capsys: pytest.CaptureFixture[str]) -> None:
     assert "shop[0] Joker" in out
     assert "pack[0] Arcana Pack" in out
     assert "actions:" in out
+
+
+def test_print_summary_shop_shows_joker_edition(capsys: pytest.CaptureFixture[str]) -> None:
+    raw = {
+        "state": "SHOP",
+        "money": 10,
+        "round_num": 1,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {"reroll_cost": 5},
+        "cards": {"count": 44, "limit": 52},
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "shop": {
+            "count": 1,
+            "limit": 2,
+            "cards": [
+                {
+                    "label": "Jolly Joker",
+                    "key": "j_jolly",
+                    "cost": {"buy": 6},
+                    "value": {"effect": "+8 Mult if played hand contains a Pair"},
+                    "modifier": {"edition": "FOIL", "perishable": 5, "rental": True},
+                }
+            ],
+        },
+        "vouchers": {"count": 0, "limit": 1, "cards": []},
+        "packs": {"count": 0, "limit": 2, "cards": []},
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "(+50 chips)" in out
+    assert "(perishable 5r)" in out
+    assert "(rental -$1/round)" in out
+    assert "Jolly Joker" in out
 
 
 def test_print_summary_pack_opened(capsys: pytest.CaptureFixture[str]) -> None:
@@ -1336,6 +1394,98 @@ def test_estimate_photograph_first_face_x2() -> None:
     assert top[0]["score"] == 120
 
 
+def test_estimate_photochad_glass_red_leftmost() -> None:
+    hand = _hand_cards(
+        ("J", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("J", "S", {}),
+        ("5", "H", {}),
+        ("3", "C", {}),
+        ("2", "D", {}),
+    )
+    jokers = [
+        {"label": "Photograph", "key": "j_photograph", "value": {}},
+        {"label": "Hanging Chad", "key": "j_hanging_chad", "value": {}},
+    ]
+    est = estimate.score_hand_indices(_est_state(hand, jokers=jokers), [0, 1])
+    assert est["hand_type"] == "Pair"
+    assert est["chips"] == 60
+    assert est["mult"] == 512
+    assert est["score"] == 30720
+
+
+def test_estimate_photochad_glass_red_no_red_lower() -> None:
+    jokers = [
+        {"label": "Photograph", "key": "j_photograph", "value": {}},
+        {"label": "Hanging Chad", "key": "j_hanging_chad", "value": {}},
+    ]
+    hand_red = _hand_cards(
+        ("J", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("J", "S", {}),
+        ("5", "H", {}),
+        ("3", "C", {}),
+        ("2", "D", {}),
+    )
+    hand_plain = _hand_cards(
+        ("J", "H", {"enhancement": "GLASS"}),
+        ("J", "S", {}),
+        ("5", "H", {}),
+        ("3", "C", {}),
+        ("2", "D", {}),
+    )
+    optimal = estimate.score_hand_indices(_est_state(hand_red, jokers=jokers), [0, 1])
+    suboptimal = estimate.score_hand_indices(_est_state(hand_plain, jokers=jokers), [0, 1])
+    assert suboptimal["score"] < optimal["score"]
+    assert optimal["score"] == 30720
+    assert suboptimal["score"] == 6400
+
+
+def test_estimate_mime_holo_adds_joker_main_mult() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    with_holo = [
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}},
+        {"label": "Mime", "key": "j_mime", "value": {}, "modifier": {"edition": "HOLO"}},
+    ]
+    plain = [
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}},
+        {"label": "Mime", "key": "j_mime", "value": {}},
+    ]
+    holo_score = estimate.score_hand_indices(_est_state(hand, jokers=with_holo), [0, 1])["score"]
+    plain_score = estimate.score_hand_indices(_est_state(hand, jokers=plain), [0, 1])["score"]
+    assert holo_score > plain_score
+    assert holo_score - plain_score == 200  # +10 mult on mime slot * 20 chips
+
+
+def test_estimate_mime_holo_held_steel_not_multiplied() -> None:
+    """Holo on held/retrigger jokers applies after held ×Mult stack (S31)."""
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "D", {}),
+        ("3", "H", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+        ("K", "H", {"enhancement": "STEEL", "seal": "RED"}),
+    )
+    with_holo = [
+        {"label": "Baron", "key": "j_baron", "value": {}},
+        {"label": "Mime", "key": "j_mime", "value": {}, "modifier": {"edition": "HOLO"}},
+    ]
+    plain = [
+        {"label": "Baron", "key": "j_baron", "value": {}},
+        {"label": "Mime", "key": "j_mime", "value": {}},
+    ]
+    holo = estimate.score_hand_indices(_est_state(hand, jokers=with_holo), [0, 1])
+    base = estimate.score_hand_indices(_est_state(hand, jokers=plain), [0, 1])
+    assert holo["score"] > base["score"]
+    assert holo["score"] - base["score"] == 200  # flat +10 mult, not × held stack
+    assert holo["score"] == 656  # (22.78125 + 10) * 20 rounded
+
+
 def test_estimate_stencil_xmult_from_empty_slots() -> None:
     hand = _hand_cards(
         ("K", "S", {}),
@@ -1967,6 +2117,104 @@ def test_estimate_baseball_reacts_to_uncommon_joker() -> None:
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["mult"] == 9
     assert top[0]["score"] == 180
+
+
+def test_estimate_joker_foil_before_effect() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}, "modifier": {"edition": "FOIL"}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["chips"] == 70
+    assert top[0]["mult"] == 10
+    assert top[0]["score"] == 700
+
+
+def test_estimate_joker_holo_before_effect() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}, "modifier": {"edition": "HOLO"}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 20
+    assert top[0]["score"] == 400
+
+
+def test_estimate_joker_poly_after_xmult() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {
+            "label": "Cavendish",
+            "key": "j_cavendish",
+            "value": {"rarity": "UNCOMMON"},
+            "modifier": {"edition": "POLYCHROME"},
+        },
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 9
+    assert top[0]["score"] == 180
+
+
+def test_estimate_joker_edition_on_per_card_joker() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Greedy Joker", "key": "j_greedy_joker", "value": {}, "modifier": {"edition": "HOLO"}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 12
+    assert top[0]["score"] == 240
+
+
+def test_estimate_blueprint_edition_copies_effect() -> None:
+    hand = _hand_cards(
+        ("5", "S", {}),
+        ("5", "H", {}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Blueprint", "key": "j_blueprint", "value": {}, "modifier": {"edition": "FOIL"}},
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["chips"] == 70
+    assert top[0]["mult"] == 18
+    assert top[0]["score"] == 1260
 
 
 def test_estimate_ice_cream_uses_stats_chips() -> None:

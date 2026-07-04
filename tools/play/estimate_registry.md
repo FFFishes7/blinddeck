@@ -279,20 +279,20 @@ Integration tests: `tests/lua/endpoints/test_estimate_live.py` — parametrized 
 `estimate(state)` → `play` same `indices` → `round.chips` delta must match.
 
 Multi-joker **interaction scenarios** live in `tests/lua/endpoints/estimate_live_scenarios.py`
-and run via `TestEstimateLiveScenarios` (24 scenarios × 2 lines ≈ 48 plays).
+and run via `TestEstimateLiveScenarios` (31 scenarios × 2 lines ≈ 62 plays).
 
 **Live coverage (2026-07-04):**
 
 | Suite | Count | Notes |
 | --- | ---: | --- |
 | Scoring jokers | 99 | One recipe per deterministic scoring key (`NO_SCORE` and `j_misprint` / `j_bloodstone` excluded) |
-| Card buffs | 9 | BONUS, MULT, GLASS, STONE, FOIL, HOLO, POLYCHROME, RED seal, STEEL held + Mime |
-| Interaction scenarios | 24 | Order-sensitive multi-joker combos; each has optimal + suboptimal line |
-| Runtime | ~5 min | Single Balatro instance; do not parallelize with other lua suites (OOM) |
+| Card buffs | 12 | Playing-card buffs (9) + joker edition foil/holo/poly live (3) |
+| Interaction scenarios | 31 | Order-sensitive multi-joker combos; each has optimal + suboptimal line |
+| Runtime | ~6 min | Single Balatro instance; do not parallelize with other lua suites (OOM) |
 
 `j_loyalty_card` skips when countdown is not active at glance time.
 
-### Live interaction scenarios (24)
+### Live interaction scenarios (31)
 
 **Division of labor:** single-joker matrix = full smoke coverage; scenarios = order / held /
 retrigger / combo regression with **contrast assertions** (optimal line: `estimate == play`;
@@ -300,6 +300,7 @@ suboptimal line: same match **and** score strictly lower).
 
 Runner: `estimate_live_runner.run_scenario` — each line reloads the fixture independently;
 optional `rearrange` jokers/hand; play order follows **hand slot order** (leftmost scoring card first).
+Scenarios may use [`JokerAdd`](tests/lua/endpoints/estimate_live_recipes.py) for joker editions.
 
 | Cat | ID | Description | Jokers | Contrast |
 | --- | --- | --- | --- | --- |
@@ -327,6 +328,17 @@ optional `rearrange` jokers/hand; play order follows **hand slot order** (leftmo
 | D | S09 | Face retrigger | Sock, Smiley, Scary Face | 4 faces vs 3 faces |
 | E hand type | S11 | Flush MULT/GLASS | Crafty | GLASS right vs GLASS left |
 | E | S18 | PhotoChad POLY (dup archetype) | Photograph, Hanging Chad | Face leftmost vs not |
+| F buffed joker | S27 | Blueprint Holo + Cavendish | Blueprint **HOLO** + Cavendish | With Holo vs plain Blueprint |
+| F | S28 | Jolly Foil + Cavendish | Jolly **FOIL** + Cavendish | Order (0,1) vs reversed |
+| F | S29 | Cavendish Poly | Jolly + Cavendish **POLY** | Poly vs plain Cavendish |
+| F | S30 | PhotoChad Holo joker | Photograph **HOLO** + Chad | POLY face left vs not |
+| F | S31 | Mime Holo + held steel | Baron + Mime **HOLO** + STEEL+RED K | Holo vs plain Mime |
+| F | S32 | Baseball + Poly Cavendish | Jolly + Cavendish **POLY** + Baseball | Order vs reversed |
+| F | S33 | **PhotoChad GLASS+RED 顶配** | Photograph + Chad | GLASS+RED J left vs GLASS only |
+
+**PhotoChad + GLASS + RED (S33):** leftmost scoring face with GLASS (×2/trigger) + RED (+1 retrigger)
++ Hanging Chad (+2 on `scoring_hand[1]`) + Photograph (×2 on first face each trigger). Live-validated;
+unit tests `test_estimate_photochad_glass_red_*`.
 
 **Buff coverage in scenarios (each ≥ 2 appearances):**
 
@@ -353,7 +365,12 @@ See **Scoring architecture** for file paths. Runtime order:
 2. Move highlighted cards `G.hand` → `G.play`
 3. Hand base chips/mult (+ Flint debuff)
 4. Per **scoring** card triggers (`SMODS.calculate_main_scoring` / `score_card`; retriggers via `calculate_repetitions`)
-5. Joker main phase left-to-right (`joker_main`) — Blackboard reads **`G.hand.cards`**
+5. Joker main phase left-to-right (`joker_main`) — per slot: **Foil +50 chips /
+   Holo +10 mult before** the joker effect, **Poly ×1.5 mult after** (edition read
+   from the physical card at that slot, including Blueprint/Brainstorm); then held
+   jokers (Baron, Mime, …). **Held/retrigger jokers** (Mime, Baron, Shoot the Moon,
+   Raised Fist, Dusk, …) apply edition **after** the held ×Mult stack so Holo is
+   add-only, not re-multiplied. Blackboard reads **`G.hand.cards`**
 6. Final scoring step / deck back effects / Plasma balance → **`SMODS.calculate_round_score()`**
 
 Retriggers (Dusk, Seltzer, Red Seal, Hanging Chad) apply to **scoring** card loops in

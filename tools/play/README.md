@@ -33,12 +33,15 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
 - **SELECTING_HAND:** `hands_left` / `discards_left` / `score=X/target`, the
     current blind, jokers and consumables with slot count `jokers (N/5)`, the hand
     (with modifier tags — see below), an `economy:` line when interest / Delayed
-    Gratification pending, and the `actions:` line.
+    Gratification / **rental** pending, and the `actions:` line.
 - **Card modifier tags** (so buffs are visible without a separate query):
     `e:Mult`, `e:Bonus`, `e:Glass`, `e:Stone`, `e:Wild`, `e:Lucky`, `e:Gold`,
     `e:Steel` (enhancement); `d:Foil`, `d:Holo`, `d:Poly`, `d:Neg` (edition);
     `s:Red`, `s:Blue`, `s:Gold`, `s:Purple` (seal). Example: `4♦[e:Mult,s:Red]`.
     Debuffed cards are wrapped in parentheses: `(7♣)`.
+- **Joker / consumable stickers** inline: `[0] (perishable 3r) (rental -$1/round)
+    (+10 mult) Holographic Jolly Joker — ...`. Shop rows use the same sticker
+    prefix when a card has edition/perishable/rental.
 - **Joker editions** are decoded inline: `[0] (+10 mult) Holographic Joker — ...`.
     Joker-internal category codes (e.g. `SUIT MULT`) are dropped; the effect text
     carries that meaning.
@@ -103,7 +106,8 @@ Verify new jokers in `%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua` before p
 `bot.ps1 estimate` is only available in `SELECTING_HAND`. It enumerates 1–5 card
 plays, classifies each poker hand, and scores: hand level + scoring-card chips +
 enhancement/edition/seal + retriggers + modeled jokers (+Mult before ×Mult) +
-boss debuff (The Flint) + Plasma balancing.
+**joker-slot Foil/Holo/Poly** (Foil/Holo before effect, Poly after; Blueprint uses
+its own slot edition) + boss debuff (The Flint) + Plasma balancing.
 
 Prints top-3 lines with **`idx`** = full `bot.ps1 play` indices (includes kickers
 when they change held-card jokers like Blackboard); optional **`scoring=`** when

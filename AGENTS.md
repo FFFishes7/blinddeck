@@ -33,6 +33,21 @@ This repository is a personal Balatro play setup built on BalatroBot. It consist
 1. **Python Package** (`src/balatrobot/`): A CLI and library to manage the Balatro game process, inject the mod, and handle communication.
 2. **Lua API** (`src/lua/`): The mod code running inside Balatro (Love2D) that exposes a HTTP JSON-RPC 2.0 API.
 
+### Live scenario policy
+
+When an estimate live scenario fails (`estimate != play`, setup error, flaky assertion):
+
+1. **Fix the root cause** — estimate logic, runner setup, fixture, or game alignment.
+2. **Do not** replace the scenario with a simpler variant to make tests pass.
+3. **Do not** skip, weaken assertions, or delete planned coverage without explicit user approval.
+4. **Do not** mark plan todos complete while known deviations remain undocumented.
+
+Keep the original scenario intent (IDs, jokers, buffs, optimal/suboptimal lines). Debug with unit tests + targeted live runs (e.g. `pytest … -k S31`).
+
+**Forbidden:** S31 Baron + Mime HOLO + STEEL+RED K fails → swap to Jolly + Mime HOLO. **Required:** fix edition timing for held/retrigger jokers; restore S31 as planned.
+
+Applies to `tests/lua/endpoints/estimate_live_scenarios.py`, `estimate_live_recipes.py`, and estimate modeling in `tools/play/`.
+
 ### Testing
 
 Integration tests (`tests/lua`) automatically start and stop Balatro instances on random ports.

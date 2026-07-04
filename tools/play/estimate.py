@@ -41,8 +41,12 @@ from bot_client import APIError
 from envelope import build_error_envelope
 from estimate_constants import LOW_RANKS, RANK_CHIPS, RANK_ORDER
 from estimate_jokers import (
+    EDITION_AFTER_HELD_PHYSICAL,
     NO_SCORE_JOKERS,
     PER_CARD_JOKERS,
+    RETRIGGER_ONLY_JOKERS,
+    _apply_joker_edition_after,
+    _apply_joker_edition_before,
     _baseball_react_xmult,
     _card_is_face,
     _effective_joker_at,
@@ -50,6 +54,7 @@ from estimate_jokers import (
     _global_joker_bonus,
     _held_joker_bonus,
     _held_playing_card_bonus,
+    _joker_edition_from,
     _mime_owned,
     _modeled,
     _per_card_joker_bonus,
@@ -395,18 +400,26 @@ def _score_combo(
         "cards_played": len(cards),
     }
     for i, j in enumerate(jokers):
-        j, key = _effective_joker_at(i, jokers)
-        if not j:
-            continue
-        if key in NO_SCORE_JOKERS or key in PER_CARD_JOKERS:
-            continue
-        if key in {"j_selzer", "j_hanging_chad", "j_dusk", "j_splash", "j_hack", "j_sock_and_buskin", "j_mime"}:
-            continue
-        add_c, add_m, xm = _global_joker_bonus(j, ctx2)
-        chips += add_c
-        mult += add_m
-        mult *= xm
-        mult *= _baseball_react_xmult(jokers, j)
+        physical = j
+        phys_key = physical.get("key") or ""
+        eff, key = _effective_joker_at(i, jokers)
+        edition = _joker_edition_from(physical)
+        apply_edition = phys_key not in EDITION_AFTER_HELD_PHYSICAL
+        if apply_edition:
+            chips, mult = _apply_joker_edition_before(edition, chips, mult)
+        if (
+            eff
+            and key not in NO_SCORE_JOKERS
+            and key not in PER_CARD_JOKERS
+            and key not in RETRIGGER_ONLY_JOKERS
+        ):
+            add_c, add_m, xm = _global_joker_bonus(eff, ctx2)
+            chips += add_c
+            mult += add_m
+            mult *= xm
+            mult *= _baseball_react_xmult(jokers, eff)
+        if apply_edition:
+            mult = _apply_joker_edition_after(edition, mult)
 
     held = ctx.get("held_cards") or []
     mime = _mime_owned(jokers)
@@ -414,6 +427,15 @@ def _score_combo(
     mult += h_add_m
     mult *= h_xm
     mult *= _held_playing_card_bonus(held, mime)
+    for physical in jokers:
+        phys_key = physical.get("key") or ""
+        if phys_key not in EDITION_AFTER_HELD_PHYSICAL:
+            continue
+        edition = _joker_edition_from(physical)
+        if not edition:
+            continue
+        chips, mult = _apply_joker_edition_before(edition, chips, mult)
+        mult = _apply_joker_edition_after(edition, mult)
 
     if ctx.get("plasma"):
         balanced = (chips + mult) // 2

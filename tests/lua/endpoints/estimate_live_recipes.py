@@ -29,11 +29,24 @@ class CardAdd:
 
 
 @dataclass(frozen=True)
+class JokerAdd:
+    key: str
+    edition: str | None = None
+
+    def to_add_params(self) -> dict[str, Any]:
+        params: dict[str, Any] = {"key": self.key}
+        if self.edition:
+            params["edition"] = self.edition
+        return params
+
+
+@dataclass(frozen=True)
 class LiveRecipe:
     """One live estimate == play validation scenario."""
 
     recipe_id: str
     joker_keys: tuple[str, ...] = ()
+    jokers: tuple[JokerAdd, ...] = ()
     cards: tuple[CardAdd, ...] = ()
     set_state: dict[str, Any] = field(default_factory=dict)
     pick: str = "pair_5s"
@@ -356,6 +369,27 @@ def build_buff_recipes() -> list[LiveRecipe]:
             joker_keys=("j_mime",),
             cards=MIME_STEEL,
             pick="mime_steel",
+            check_unmodeled=False,
+        ),
+        LiveRecipe(
+            recipe_id="joker_edition_foil",
+            jokers=(JokerAdd("j_jolly", edition="FOIL"),),
+            cards=PAIR_5,
+            pick="pair_5s",
+            check_unmodeled=False,
+        ),
+        LiveRecipe(
+            recipe_id="joker_edition_holo",
+            jokers=(JokerAdd("j_jolly", edition="HOLO"),),
+            cards=PAIR_5,
+            pick="pair_5s",
+            check_unmodeled=False,
+        ),
+        LiveRecipe(
+            recipe_id="joker_edition_poly",
+            jokers=(JokerAdd("j_cavendish", edition="POLYCHROME"),),
+            cards=PAIR_5,
+            pick="pair_5s",
             check_unmodeled=False,
         ),
     ]

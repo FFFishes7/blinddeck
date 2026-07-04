@@ -13,7 +13,7 @@ sys.path.insert(0, str(PLAY_ROOT))
 
 import estimate  # noqa: E402  # type: ignore[unresolved-import]
 
-from tests.lua.endpoints.estimate_live_recipes import CardAdd, LiveRecipe, PAIR_5  # noqa: E402
+from tests.lua.endpoints.estimate_live_recipes import CardAdd, JokerAdd, LiveRecipe, PAIR_5  # noqa: E402
 from tests.lua.endpoints.estimate_live_scenarios import ScenarioLine, ScenarioRecipe  # noqa: E402
 from tests.lua.conftest import api, load_fixture  # noqa: E402
 
@@ -107,8 +107,12 @@ def _add_cards(client: httpx.Client, gs: dict, cards: tuple[CardAdd, ...]) -> di
 
 def setup_recipe(client: httpx.Client, recipe: LiveRecipe) -> dict:
     gs = load_fixture(client, "gamestate", "state-SELECTING_HAND")
-    for key in recipe.joker_keys:
-        gs = api(client, "add", {"key": key})["result"]
+    if recipe.jokers:
+        for joker in recipe.jokers:
+            gs = api(client, "add", joker.to_add_params())["result"]
+    else:
+        for key in recipe.joker_keys:
+            gs = api(client, "add", {"key": key})["result"]
     gs = _add_cards(client, gs, recipe.cards)
     if recipe.set_state:
         gs = api(client, "set", recipe.set_state)["result"]
@@ -368,15 +372,28 @@ def _apply_hand_order(client: httpx.Client, gs: dict, hand_order: str) -> dict:
     raise ValueError(f"unknown hand_order: {hand_order}")
 
 
+def _add_jokers(client: httpx.Client, jokers: tuple[JokerAdd, ...]) -> dict:
+    gs = None
+    for joker in jokers:
+        gs = api(client, "add", joker.to_add_params())["result"]
+    assert gs is not None
+    return gs
+
+
 def setup_scenario(
     client: httpx.Client,
     recipe: ScenarioRecipe,
     line: ScenarioLine,
 ) -> dict:
     gs = load_fixture(client, "gamestate", "state-SELECTING_HAND")
-    joker_keys = line.joker_keys if line.joker_keys is not None else recipe.joker_keys
-    for key in joker_keys:
-        gs = api(client, "add", {"key": key})["result"]
+    if line.jokers is not None:
+        gs = _add_jokers(client, line.jokers)
+    elif recipe.jokers:
+        gs = _add_jokers(client, recipe.jokers)
+    else:
+        joker_keys = line.joker_keys if line.joker_keys is not None else recipe.joker_keys
+        for key in joker_keys:
+            gs = api(client, "add", {"key": key})["result"]
     cards = line.cards if line.cards is not None else recipe.cards
     gs = _add_cards(client, gs, cards)
     merged_set = {**recipe.set_state, **line.set_state}

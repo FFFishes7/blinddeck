@@ -104,18 +104,31 @@ JOKER_EDITION_LABEL = {
 }
 
 
+def _sticker_prefix(mod: dict[str, Any]) -> str:
+    """Edition + sticker tags for jokers/consumables/shop cards."""
+    parts: list[str] = []
+    perishable = mod.get("perishable")
+    if isinstance(perishable, int) and perishable > 0:
+        parts.append(f"(perishable {perishable}r)")
+    if mod.get("rental"):
+        parts.append("(rental -$1/round)")
+    ed = mod.get("edition")
+    if isinstance(ed, str):
+        parts.append(f"({JOKER_EDITION_LABEL.get(ed, ed)})")
+    if mod.get("eternal"):
+        parts.append("(eternal)")
+    return " ".join(parts)
+
+
 def _joker_line(idx: int, card: dict[str, Any]) -> str:
     name = card.get("label") or "?"
     effect = (card.get("value") or {}).get("effect") or ""
     prefix = f"[{idx}]"
     mod = card.get("modifier") or {}
     if isinstance(mod, dict):
-        # Editions add real score value not in the effect text — show decoded.
-        ed = mod.get("edition")
-        if isinstance(ed, str):
-            prefix += f" ({JOKER_EDITION_LABEL.get(ed, ed)})"
-        if mod.get("eternal"):
-            prefix += " (eternal)"
+        sticker = _sticker_prefix(mod)
+        if sticker:
+            prefix += f" {sticker}"
         # Joker-internal enhancement codes (e.g. "SUIT MULT", "DISCARD DOLLARS")
         # are categories already conveyed by the effect text — dropped to avoid
         # leaking raw enum keys.
@@ -231,6 +244,13 @@ def _economy_line(state: dict[str, Any]) -> str | None:
         discards_used_total = r.get("discards_used", 0)
         if discards_used_total == 0 and discards_left > 0:
             parts.append(f"delayed_grat=+${2 * discards_left} if 0 discards used")
+    rental_count = sum(
+        1
+        for j in jokers
+        if isinstance((j.get("modifier") or {}), dict) and (j.get("modifier") or {}).get("rental")
+    )
+    if rental_count > 0:
+        parts.append(f"rental_due=-${rental_count}/round")
     return "economy: " + " ".join(parts) if parts else None
 
 
@@ -338,14 +358,22 @@ def _joker_lines(state: dict[str, Any]) -> list[str]:
     return out
 
 
+def _shop_card_line(slot: str, card: dict[str, Any]) -> str:
+    """Shop row with modifier stickers when present."""
+    label = card.get("label") or "?"
+    cost = (card.get("cost") or {}).get("buy", "?")
+    effect = (card.get("value") or {}).get("effect") or ""
+    mod = card.get("modifier") or {}
+    sticker = _sticker_prefix(mod) if isinstance(mod, dict) else ""
+    name_part = f"{sticker} {label}".strip() if sticker else label
+    return f"  {slot} {name_part} ${cost} — {effect}" if effect else f"  {slot} {name_part} ${cost}"
+
+
 def _shop_block(state: dict[str, Any]) -> str:
     parts: list[str] = []
     shop = (state.get("shop") or {}).get("cards") or []
     for i, c in enumerate(shop):
-        label = c.get("label") or "?"
-        cost = (c.get("cost") or {}).get("buy", "?")
-        effect = (c.get("value") or {}).get("effect") or ""
-        parts.append(f"  shop[{i}] {label} ${cost} — {effect}")
+        parts.append(_shop_card_line(f"shop[{i}]", c))
     vouchers = (state.get("vouchers") or {}).get("cards") or []
     for i, c in enumerate(vouchers):
         label = c.get("label") or "?"

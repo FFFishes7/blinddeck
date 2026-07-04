@@ -45,7 +45,7 @@ class TestEstimateLiveCardBuffs:
         assert len(_SCORING_IDS) == 99
 
     def test_buff_recipe_count(self) -> None:
-        assert len(_BUFF_IDS) == 9
+        assert len(_BUFF_IDS) == 12
 
 
 class TestEstimateLiveScenarios:
@@ -60,4 +60,4 @@ class TestEstimateLiveScenarios:
         run_scenario(client, get_scenario(scenario_id))
 
     def test_scenario_count(self) -> None:
-        assert len(_SCENARIO_IDS) == 24
+        assert len(_SCENARIO_IDS) == 31

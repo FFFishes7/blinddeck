@@ -7,6 +7,7 @@ from typing import Any
 
 from tests.lua.endpoints.estimate_live_recipes import (
     CardAdd,
+    JokerAdd,
     PAIR_5,
     PAIR_J,
     STRAIGHT_5,
@@ -26,6 +27,7 @@ class ScenarioLine:
     hand_order: str = ""  # "", "queen_left", "queen_right", "two_left", "two_right"
     cards: tuple[CardAdd, ...] | None = None
     joker_keys: tuple[str, ...] | None = None
+    jokers: tuple[JokerAdd, ...] | None = None
     set_state: dict[str, Any] = field(default_factory=dict)
     expect_lower_than_optimal: bool = False
 
@@ -35,7 +37,8 @@ class ScenarioRecipe:
     scenario_id: str
     description: str
     category: str
-    joker_keys: tuple[str, ...]
+    joker_keys: tuple[str, ...] = ()
+    jokers: tuple[JokerAdd, ...] = ()
     cards: tuple[CardAdd, ...] = ()
     set_state: dict[str, Any] = field(default_factory=dict)
     lines: tuple[ScenarioLine, ...] = ()
@@ -47,6 +50,7 @@ STEEL_RED_K = CardAdd("H_K", enhancement="STEEL", seal="RED")
 STEEL_K = CardAdd("D_K", enhancement="STEEL")
 PLAIN_K = CardAdd("H_K")
 GLASS_J = CardAdd("H_J", enhancement="GLASS")
+GLASS_RED_J = CardAdd("H_J", enhancement="GLASS", seal="RED")
 POLY_J = CardAdd("H_J", edition="POLYCHROME")
 MULT_5 = CardAdd("S_5", enhancement="MULT")
 GLASS_5 = CardAdd("D_5", enhancement="GLASS")
@@ -91,6 +95,7 @@ def _line(
     hand_order: str = "",
     cards: tuple[CardAdd, ...] | None = None,
     joker_keys: tuple[str, ...] | None = None,
+    jokers: tuple[JokerAdd, ...] | None = None,
     set_state: dict[str, Any] | None = None,
     expect_lower: bool = False,
 ) -> ScenarioLine:
@@ -102,13 +107,14 @@ def _line(
         hand_order=hand_order,
         cards=cards,
         joker_keys=joker_keys,
+        jokers=jokers,
         set_state=set_state or {},
         expect_lower_than_optimal=expect_lower,
     )
 
 
 def build_scenarios() -> list[ScenarioRecipe]:
-    """All 24 order-sensitive multi-joker scenarios."""
+    """All order-sensitive multi-joker scenarios (24 base + 7 buffed joker)."""
     return [
         # --- A. Steel K / held buff ---
         ScenarioRecipe(
@@ -471,6 +477,109 @@ def build_scenarios() -> list[ScenarioRecipe]:
             lines=(
                 _line("optimal", play_order_cards=(POLY_J, CardAdd("S_J"))),
                 _line("face_not_left", play_order_cards=(CardAdd("S_J"), POLY_J), expect_lower=True),
+            ),
+        ),
+        # --- F. Buffed joker + hand buff combos ---
+        ScenarioRecipe(
+            scenario_id="S27",
+            description="Blueprint Holo copies Cavendish",
+            category="buffed_joker",
+            jokers=(JokerAdd("j_blueprint", edition="HOLO"), JokerAdd("j_cavendish")),
+            cards=(*PAIR_5, CardAdd("H_3"), CardAdd("C_7"), CardAdd("S_2")),
+            lines=(
+                _line("optimal", pick="pair_5s"),
+                _line(
+                    "no_holo",
+                    jokers=(JokerAdd("j_blueprint"), JokerAdd("j_cavendish")),
+                    pick="pair_5s",
+                    expect_lower=True,
+                ),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S28",
+            description="Jolly Foil before Cavendish",
+            category="buffed_joker",
+            jokers=(JokerAdd("j_jolly", edition="FOIL"), JokerAdd("j_cavendish")),
+            cards=(*PAIR_5, CardAdd("H_3"), CardAdd("C_7"), CardAdd("S_2")),
+            lines=(
+                _line("optimal", joker_order=(0, 1), pick="pair_5s"),
+                _line("reversed", joker_order=(1, 0), pick="pair_5s", expect_lower=True),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S29",
+            description="Cavendish Poly after Jolly",
+            category="buffed_joker",
+            jokers=(JokerAdd("j_jolly"), JokerAdd("j_cavendish", edition="POLYCHROME")),
+            cards=(*PAIR_5, CardAdd("H_3"), CardAdd("C_7"), CardAdd("S_2")),
+            lines=(
+                _line("optimal", joker_order=(0, 1), pick="pair_5s"),
+                _line(
+                    "no_poly",
+                    jokers=(JokerAdd("j_jolly"), JokerAdd("j_cavendish")),
+                    joker_order=(0, 1),
+                    pick="pair_5s",
+                    expect_lower=True,
+                ),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S30",
+            description="PhotoChad Holo joker slot",
+            category="buffed_joker",
+            jokers=(JokerAdd("j_photograph", edition="HOLO"), JokerAdd("j_hanging_chad")),
+            cards=(POLY_J, CardAdd("S_J"), CardAdd("H_5"), CardAdd("C_3"), CardAdd("D_2")),
+            lines=(
+                _line("optimal", play_order_cards=(POLY_J, CardAdd("S_J"))),
+                _line("face_not_left", play_order_cards=(CardAdd("S_J"), POLY_J), expect_lower=True),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S31",
+            description="Mime Holo + held steel",
+            category="buffed_joker",
+            jokers=(JokerAdd("j_baron"), JokerAdd("j_mime", edition="HOLO")),
+            cards=(*PAIR_5, STEEL_RED_K),
+            lines=(
+                _line("optimal", pick="pair_5s"),
+                _line(
+                    "no_holo",
+                    jokers=(JokerAdd("j_baron"), JokerAdd("j_mime")),
+                    pick="pair_5s",
+                    expect_lower=True,
+                ),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S32",
+            description="Baseball Poly Cavendish order",
+            category="buffed_joker",
+            jokers=(
+                JokerAdd("j_jolly"),
+                JokerAdd("j_cavendish", edition="POLYCHROME"),
+                JokerAdd("j_baseball"),
+            ),
+            cards=(*PAIR_5, CardAdd("H_3"), CardAdd("C_7"), CardAdd("S_2")),
+            lines=(
+                _line("optimal", joker_order=(0, 1, 2), pick="pair_5s"),
+                _line("reversed", joker_order=(1, 0, 2), pick="pair_5s", expect_lower=True),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S33",
+            description="PhotoChad GLASS+RED top tier",
+            category="buffed_joker",
+            joker_keys=("j_photograph", "j_hanging_chad"),
+            cards=(GLASS_RED_J, CardAdd("S_J"), CardAdd("H_5"), CardAdd("C_3"), CardAdd("D_2")),
+            lines=(
+                _line("optimal", play_order_cards=(GLASS_RED_J, CardAdd("S_J"))),
+                _line(
+                    "no_red",
+                    cards=(GLASS_J, CardAdd("S_J"), CardAdd("H_5"), CardAdd("C_3"), CardAdd("D_2")),
+                    play_order_cards=(GLASS_J, CardAdd("S_J")),
+                    expect_lower=True,
+                ),
             ),
         ),
     ]
