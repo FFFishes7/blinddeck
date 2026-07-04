@@ -201,6 +201,14 @@ def _blinds_block(state: dict[str, Any]) -> str:
                 line += f" — {tag_effect}"
             line += "]"
         lines.append(line)
+    rnd = state.get("round") or {}
+    boss_cost = rnd.get("boss_reroll_cost", 10)
+    if rnd.get("boss_reroll_available"):
+        lines.append(f"  reroll_boss=${boss_cost}{_afford_suffix(boss_cost, state)}")
+    elif rnd.get("boss_rerolled") and (state.get("used_vouchers") or {}).get(
+        "v_directors_cut"
+    ):
+        lines.append("  reroll_boss=[used this ante]")
     return "\n".join(lines) if lines else "blinds: (none)"
 
 

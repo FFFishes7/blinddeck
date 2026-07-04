@@ -8,7 +8,12 @@
 ---@field get_blinds_info fun(): table<string, Blind>
 ---@field get_gamestate fun(): GameState
 ---@field ensure_bosses_used fun()
+---@field boss_reroll_has_voucher fun(): boolean
+---@field boss_reroll_available fun(): boolean
+---@field BOSS_REROLL_COST integer
 local gamestate = {}
+
+gamestate.BOSS_REROLL_COST = 10
 
 local consumable = assert(SMODS.load_file("src/lua/utils/consumable.lua"))()
 
@@ -801,6 +806,42 @@ local function extract_round_scoring_targets()
   return targets
 end
 
+---True when run owns Retcon or unused Director's Cut boss reroll this ante
+---@return boolean
+function gamestate.boss_reroll_has_voucher()
+  if not G or not G.GAME or not G.GAME.used_vouchers then
+    return false
+  end
+  if G.GAME.used_vouchers["v_retcon"] then
+    return true
+  end
+  if G.GAME.used_vouchers["v_directors_cut"] then
+    local rerolled = G.GAME.round_resets and G.GAME.round_resets.boss_rerolled
+    return not rerolled
+  end
+  return false
+end
+
+---True when reroll_boss endpoint would succeed (mirrors in-game button)
+---@return boolean
+function gamestate.boss_reroll_available()
+  if not G or G.STATE ~= G.STATES.BLIND_SELECT then
+    return false
+  end
+  if not G.GAME or G.GAME.blind_on_deck ~= "Boss" then
+    return false
+  end
+  local boss_state = G.GAME.round_resets and G.GAME.round_resets.blind_states and G.GAME.round_resets.blind_states.Boss
+  if boss_state == "Defeated" or boss_state == "Skipped" then
+    return false
+  end
+  if not gamestate.boss_reroll_has_voucher() then
+    return false
+  end
+  local available_money = G.GAME.dollars - G.GAME.bankrupt_at
+  return available_money >= gamestate.BOSS_REROLL_COST
+end
+
 ---Extracts round state information
 ---@return Round round The Round object
 local function extract_round_info()
@@ -828,6 +869,14 @@ local function extract_round_info()
 
   if G.GAME.current_round.reroll_cost then
     round.reroll_cost = G.GAME.current_round.reroll_cost
+  end
+
+  round.boss_reroll_cost = gamestate.BOSS_REROLL_COST
+  if G.GAME.round_resets then
+    round.boss_rerolled = G.GAME.round_resets.boss_rerolled or false
+  end
+  if G.STATE == G.STATES.BLIND_SELECT then
+    round.boss_reroll_available = gamestate.boss_reroll_available()
   end
 
   -- Chips is stored in G.GAME not G.GAME.current_round

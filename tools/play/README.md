@@ -32,6 +32,9 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
 - **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists; `actions:` lists valid command names (e.g. `start load`).
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and any skip-reward tag; the selectable blind is marked `(current, select)`.
+    With Director's Cut or Retcon at Boss selection, **`reroll_boss=$10 [ok]`** /
+    **`[need $N]`** / **`[used this ante]`** may appear; `actions:` includes
+    `reroll_boss` when `round.boss_reroll_available`.
 - **SELECTING_HAND:** `hands_left` / `discards_left` / `score=X/target` with
     **`need=N`** when below the blind target or **`beaten`** when at/above it; the
     current blind (boss `effect=` only — no skip-reward tag while playing), jokers
@@ -71,6 +74,7 @@ No JSON, no quoting — `bot.ps1` forwards these to `act.py`, which parses posit
 | ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `start`                        | `DECK STAKE [SEED]`                    | e.g. `start RED WHITE`                                                                            |
 | `select`                       | —                                      | select current blind                                                                              |
+| `reroll_boss`                  | —                                      | reroll Boss blind ($10; Director's Cut / Retcon)                                                    |
 | `skip`                         | —                                      | skip current blind (Small/Big only) — collects the skip tag                                       |
 | `play`                         | `CARD_IDX...`                          | e.g. `play 0 1 2 3 4` (max 5, 0-based)                                                            |
 | `discard`                      | `CARD_IDX...`                          | e.g. `discard 0 1`                                                                                |
@@ -107,7 +111,7 @@ Restrictions:
 - **`add`**: `joker` / `card` / `consumable` only (no voucher/pack — use `exec` for those).
 - **`add card`**: only in `SELECTING_HAND` (API rule); key format `D_4`, `H_A`, …
 - Optional flags: `enhancement=`, `seal=`, `edition=`, `eternal=`, `perishable=`, `rental=`
-- **`set`**: `hands`, `discards`, `chips` only (aliases: `hands_left`, `discards_left`, `score`)
+- **`set`**: friendly `bot.ps1 set` accepts `hands`, `discards`, `chips` only (aliases: `hands_left`, `discards_left`, `score`). For `money`, `ante`, `grant_voucher`, `boss_rerolled`, or `shop`, use `exec` or `balatrobot api set` (JSON-RPC always accepts full params).
 - **`debuff`**: `SELECTING_HAND` only; 0-based hand indices; `debuff clear IDX …` to undo
 
 Typical estimate lab: `select` → `add`/`set` → `estimate` → `play` → compare score.

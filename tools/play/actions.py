@@ -252,6 +252,15 @@ def build_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
                 break
         if current and current.get("type") in ("SMALL", "BIG"):
             actions.append(_action("skip", "Skip current blind", example_params={}))
+        rnd = state.get("round") or {}
+        if rnd.get("boss_reroll_available"):
+            actions.append(
+                _action(
+                    "reroll_boss",
+                    "Reroll Boss blind for $10 (Director's Cut / Retcon)",
+                    example_params={},
+                )
+            )
         actions.extend(_sell_actions(state))
         actions.extend(_use_actions(state))
         return actions

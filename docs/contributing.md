@@ -186,7 +186,7 @@ pytest tests/lua -m integration
 pytest tests/lua -m "not integration"
 ```
 
-**Estimate live tests** (`tests/lua/endpoints/test_estimate_live.py`) start a single Balatro instance and run ~110 parametrized plays (~6 min). Do not run in parallel with other Lua suites (OOM risk). When changing `tools/play/estimate_jokers.py`, run:
+**Estimate live tests** (`tests/lua/endpoints/test_estimate_live.py`) start a single Balatro instance and run ~147 parametrized plays (99 scoring jokers + 15 card buffs + 33 multi-joker scenarios; ~6 min). Do not run in parallel with other Lua suites (OOM risk). When changing `tools/play/estimate_jokers.py`, run:
 
 ```bash
 pytest tests/lua/endpoints/test_estimate_live.py -v
@@ -294,9 +294,13 @@ return {
 
 > When writing tests for new endpoints, you can use the `@pytest.mark.dev` decorator to only run the tests you are developing with `pytest -n 6 tests/lua -m dev`.
 
+- Register the module in `balatrobot.lua` (endpoint load list)
+
 - Update `src/lua/utils/openrpc.json` with the new method
 
 - Update `docs/api.md` with the new method
+
+- If the method is player-facing, also update `tools/play/commands.py`, `actions.py`, `view.py`, `bot.ps1`, `PLAY.md`, and `AGENTS.md`
 
 ## Code Quality
 

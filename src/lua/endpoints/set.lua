@@ -12,6 +12,8 @@
 ---@field hands integer? New number of hands left number
 ---@field discards integer? New number of discards left number
 ---@field shop boolean? Re-stock shop with new items
+---@field grant_voucher string? Mark a voucher redeemed (debug / testing)
+---@field boss_rerolled boolean? Whether Boss reroll was used this ante (debug / testing)
 
 -- ==========================================================================
 -- Set Endpoint
@@ -60,6 +62,16 @@ return {
       required = false,
       description = "Re-stock shop with new items",
     },
+    grant_voucher = {
+      type = "string",
+      required = false,
+      description = "Mark a voucher as redeemed (debug / testing)",
+    },
+    boss_rerolled = {
+      type = "boolean",
+      required = false,
+      description = "Set Boss reroll-used flag for this ante (debug / testing)",
+    },
   },
 
   requires_state = nil,
@@ -87,6 +99,8 @@ return {
       and args.hands == nil
       and args.discards == nil
       and args.shop == nil
+      and args.grant_voucher == nil
+      and args.boss_rerolled == nil
     then
       send_response({
         message = "Must provide at least one field to set",
@@ -186,6 +200,29 @@ return {
       G.GAME.current_round.used_packs = nil
       G.STATE_COMPLETE = false
       G:update_shop()
+    end
+
+    if args.grant_voucher then
+      if not G.P_CENTERS or not G.P_CENTERS[args.grant_voucher] then
+        send_response({
+          message = "Unknown voucher key: " .. args.grant_voucher,
+          name = BB_ERROR_NAMES.BAD_REQUEST,
+        })
+        return
+      end
+      G.GAME.used_vouchers = G.GAME.used_vouchers or {}
+      G.GAME.used_vouchers[args.grant_voucher] = true
+    end
+
+    if args.boss_rerolled ~= nil then
+      if not G.GAME.round_resets then
+        send_response({
+          message = "Round resets not available",
+          name = BB_ERROR_NAMES.NOT_ALLOWED,
+        })
+        return
+      end
+      G.GAME.round_resets.boss_rerolled = args.boss_rerolled
     end
 
     G.E_MANAGER:add_event(Event({

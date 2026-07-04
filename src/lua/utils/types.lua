@@ -60,6 +60,9 @@
 ---@field discards_used integer? Number of discards used in this round
 ---@field reroll_cost integer? Current cost to reroll the shop
 ---@field chips integer? Current chips scored in this round
+---@field boss_reroll_cost integer? Cost to reroll Boss blind ($10 with Director's Cut / Retcon)
+---@field boss_reroll_available boolean? True when reroll_boss API action is allowed now
+---@field boss_rerolled boolean? True when Boss reroll was already used this ante (Director's Cut)
 ---@field ancient_suit Card.Value.Suit? Suit scored by Ancient Joker this round (changes end of round)
 ---@field idol_rank Card.Value.Rank? Rank scored by The Idol this round
 ---@field idol_suit Card.Value.Suit? Suit scored by The Idol this round

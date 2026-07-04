@@ -98,15 +98,15 @@ MENU ──► BLIND_SELECT ──► SELECTING_HAND ──► ROUND_EVAL ──
                 └─────────────────────────────────────────────────┘
 ```
 
-| State                  | Description                                     |
-| ---------------------- | ----------------------------------------------- |
-| `MENU`                 | Main menu                                       |
-| `BLIND_SELECT`         | Choosing which blind to play or skip            |
-| `SELECTING_HAND`       | Selecting cards to play or discard              |
-| `ROUND_EVAL`           | Round complete, ready to cash out               |
-| `SHOP`                 | Shopping phase                                  |
-| `SMODS_BOOSTER_OPENED` | Booster pack opened, selecting or skipping pack |
-| `GAME_OVER`            | Game ended                                      |
+| State                  | Description                                                                       |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `MENU`                 | Main menu                                                                         |
+| `BLIND_SELECT`         | Choosing which blind to play, skip, or reroll Boss ($10; Director's Cut / Retcon) |
+| `SELECTING_HAND`       | Selecting cards to play or discard                                                |
+| `ROUND_EVAL`           | Round complete, ready to cash out                                                 |
+| `SHOP`                 | Shopping phase                                                                    |
+| `SMODS_BOOSTER_OPENED` | Booster pack opened, selecting or skipping pack                                   |
+| `GAME_OVER`            | Game ended                                                                        |
 
 ---
 
@@ -125,6 +125,7 @@ MENU ──► BLIND_SELECT ──► SELECTING_HAND ──► ROUND_EVAL ──
 - [`pack`](#pack) - Select a card or skip a pack from an opened booster pack, requires to you select targets for Tarot/Spectral consumables when applicable
 - [`sell`](#sell) - Sell a joker or consumable
 - [`reroll`](#reroll) - Reroll the shop items
+- [`reroll_boss`](#reroll_boss) - Reroll the Boss blind ($10; Director's Cut / Retcon)
 - [`cash_out`](#cash_out) - Cash out round rewards and transition to shop
 - [`endless`](#endless) - Dismiss victory overlay to continue in endless mode
 - [`next_round`](#next_round) - Leave the shop and advance to blind selection
@@ -134,6 +135,7 @@ MENU ──► BLIND_SELECT ──► SELECTING_HAND ──► ROUND_EVAL ──
 - [`sort`](#sort) - Sort hand cards using Balatro's native rank or suit sort
 - [`use`](#use) - Use a consumable card
 - [`add`](#add) - Add a card to the game (debug/testing)
+- [`debuff`](#debuff) - Set or clear debuff on hand cards (debug / estimate testing)
 - [`screenshot`](#screenshot) - Take a screenshot of the game
 - [`set`](#set) - Set in-game values (debug/testing)
 
@@ -315,6 +317,28 @@ Skip the current blind (Small or Big only).
 curl -X POST http://127.0.0.1:12346 \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "skip", "id": 1}'
+```
+
+---
+
+### `reroll_boss`
+
+Reroll the Boss blind for **$10** during blind selection. Requires **Director's Cut** (once per ante) or **Retcon** (unlimited). Same rules as the in-game Reroll Boss button.
+
+**Returns:** [GameState](#gamestate-schema) (state stays `BLIND_SELECT`; boss name/effect update)
+
+**Errors:** `INVALID_STATE`, `NOT_ALLOWED`, `INTERNAL_ERROR`
+
+**Required State:** `BLIND_SELECT` with Boss on deck
+
+**Affordability:** `money - bankrupt_at >= 10`
+
+**Example:**
+
+```bash
+curl -X POST http://127.0.0.1:12346 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "reroll_boss", "id": 1}'
 ```
 
 ---
@@ -652,6 +676,10 @@ curl -X POST http://127.0.0.1:12346 \
 
 Add a card to the game (debug/testing). Supports jokers, consumables, vouchers, packs, and playing cards.
 
+!!! note "API vs `bot.ps1`"
+
+    The JSON-RPC `add` method is always callable when the mod is loaded (integration tests use it directly). **`bot.ps1 add`** is gated by `BALATROBOT_ALLOW_CHEATS=1` and only accepts `joker` / `card` / `consumable` — not voucher or pack keys. Use `exec` or `balatrobot api add` for full params.
+
 **Parameters:**
 
 | Name          | Type    | Required | Description                                                                    |
@@ -686,6 +714,35 @@ curl -X POST http://127.0.0.1:12346 \
 
 ---
 
+### `debuff`
+
+Set or clear debuff on hand cards (debug / estimate testing). Uses the game's `Card:set_debuff` — debuffed cards show `(rank♠)` in `glance` and Wild cards revert to their printed suit for scoring.
+
+**Parameters:**
+
+| Name     | Type      | Required | Description                           |
+| -------- | --------- | -------- | ------------------------------------- |
+| `cards`  | integer[] | Yes      | 0-based hand card indices (non-empty) |
+| `debuff` | boolean   | Yes      | `true` to debuff, `false` to clear    |
+
+**Returns:** [GameState](#gamestate-schema)
+
+**Errors:** `BAD_REQUEST`, `INVALID_STATE`
+
+**Required State:** `SELECTING_HAND`
+
+**Example:**
+
+```bash
+curl -X POST http://127.0.0.1:12346 \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "debuff", "params": {"cards": [0], "debuff": true}, "id": 1}'
+```
+
+Friendly CLI: `bot.ps1 debuff 0` · `bot.ps1 debuff clear 0` (requires `BALATROBOT_ALLOW_CHEATS=1`).
+
+---
+
 ### `screenshot`
 
 Take a screenshot of the game.
@@ -714,17 +771,23 @@ curl -X POST http://127.0.0.1:12346 \
 
 Set in-game values (debug/testing).
 
+!!! note "API vs `bot.ps1`"
+
+    The JSON-RPC `set` method accepts all parameters below. **`bot.ps1 set`** requires `BALATROBOT_ALLOW_CHEATS=1` and only maps `hands`, `discards`, and `chips` (`tools/play/cheats.py`). For `money`, `ante`, `grant_voucher`, `boss_rerolled`, or `shop`, use `exec` or `balatrobot api set`.
+
 **Parameters:** (at least one required)
 
-| Name       | Type    | Required | Description                     |
-| ---------- | ------- | -------- | ------------------------------- |
-| `money`    | integer | No       | Set money amount                |
-| `chips`    | integer | No       | Set chips scored                |
-| `ante`     | integer | No       | Set ante number                 |
-| `round`    | integer | No       | Set round number                |
-| `hands`    | integer | No       | Set hands remaining             |
-| `discards` | integer | No       | Set discards remaining          |
-| `shop`     | boolean | No       | Re-stock shop (SHOP state only) |
+| Name            | Type    | Required | Description                                                                 |
+| --------------- | ------- | -------- | --------------------------------------------------------------------------- |
+| `money`         | integer | No       | Set money amount                                                            |
+| `chips`         | integer | No       | Set chips scored                                                            |
+| `ante`          | integer | No       | Set ante number                                                             |
+| `round`         | integer | No       | Set round number                                                            |
+| `hands`         | integer | No       | Set hands remaining                                                         |
+| `discards`      | integer | No       | Set discards remaining                                                      |
+| `shop`          | boolean | No       | Re-stock shop (SHOP state only)                                             |
+| `grant_voucher` | string  | No       | Mark a voucher redeemed (debug / integration tests; e.g. `v_directors_cut`) |
+| `boss_rerolled` | boolean | No       | Set whether Boss reroll was used this ante (debug / testing)                |
 
 **Returns:** [GameState](#gamestate-schema)
 
@@ -771,20 +834,25 @@ The complete game state returned by most methods.
   "vouchers": { ... },
   "packs": { ... },
   "pack": { ... },
-  "run": { ... }
+  "run": { ... },
+  "run_summary": { ... }
 }
 ```
 
+`run_summary` is present on `GAME_OVER` (and omitted during an active run). See [RunSummary](#runsummary).
+
 `run` ([RunCounters](#runcounters)) is present during an active run. Joker cards may include `value.stats` ([JokerStats](#jokerstats)) and `value.rarity` — see [Joker card example](#card).
+
+On `GAME_OVER`, `run_summary` ([RunSummary](#runsummary)) is present with modal stats and a human-readable `result` line. Use `run_summary.result` (not `won` alone) to read the outcome — `won: true` can still mean an endless-mode death.
 
 `victory_overlay: true` means the post-win screen is visible (`won: true`, `ROUND_EVAL`); call [`endless`](#endless) before [`cash_out`](#cash_out) to continue into endless mode.
 
-`won: true` means the run **defeated the final Boss** (Ante 8). It stays true during endless mode and after an endless death. It does **not** mean the current screen is a win: on `GAME_OVER`, read `run_summary.result` for the outcome (`Lost to …` even when `won` is true).
+`won: true` means the run **defeated the final Boss** (Ante 8). It stays true during endless mode and after an endless death. It does **not** mean the current screen is a win: on `GAME_OVER`, read [`run_summary.result`](#runsummary) for the outcome (`Lost to …` even when `won` is true).
 
-| Field         | Type    | Description                                                                                                                                              |
-| ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `money`       | integer | Current dollars                                                                                                                                          |
-| `bankrupt_at` | integer | Credit Card and similar effects can make this negative; **buying power** is `money - bankrupt_at` (same check [`buy`](#buy) and [`reroll`](#reroll) use) |
+| Field         | Type    | Description                                                                                                                                                                              |
+| ------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `money`       | integer | Current dollars                                                                                                                                                                          |
+| `bankrupt_at` | integer | Credit Card and similar effects can make this negative; **buying power** is `money - bankrupt_at` (same check [`buy`](#buy), [`reroll`](#reroll), and [`reroll_boss`](#reroll_boss) use) |
 
 `bankrupt_at` is present during an active run (omitted on `MENU`).
 
@@ -815,6 +883,8 @@ For hidden cards, only these fields contain reliable information:
 - `cost` — sell/buy values (including booster `free` picks when applicable)
 
 All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, empty `value`, and empty `modifier`. Do not infer card identity from masked fields.
+
+`state.debuff: true` means the card is debuffed (boss blinds, debug [`debuff`](#debuff), etc.). Debuffed Wild cards count only as their printed suit; debuffed scoring cards lose enhancement bonuses.
 
 **Visible card example:**
 
@@ -916,6 +986,9 @@ Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.targ
   "discards_left": 3,
   "discards_used": 0,
   "reroll_cost": 5,
+  "boss_reroll_cost": 10,
+  "boss_reroll_available": false,
+  "boss_rerolled": false,
   "chips": 0,
   "ancient_suit": "S",
   "idol_rank": "7",
@@ -925,6 +998,8 @@ Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.targ
 ```
 
 Scoring-target fields (`ancient_suit`, `idol_rank`, `idol_suit`, `castle_suit`) appear when the corresponding joker is owned. Suit values: `H`, `D`, `C`, `S`. Rank values: `A`, `2`–`10`, `J`, `Q`, `K`.
+
+Boss reroll fields (`boss_reroll_cost`, `boss_reroll_available`, `boss_rerolled`) appear in `BLIND_SELECT`. `boss_reroll_available` is true when the Boss blind is on deck, you own Director's Cut (unused this ante) or Retcon, and `money - bankrupt_at >= 10`.
 
 ### RunCounters
 
@@ -938,6 +1013,39 @@ Run-level counters on `gamestate.run` (during an active run):
   "tarot_used": 3
 }
 ```
+
+### RunSummary
+
+Run statistics on `gamestate.run_summary` (primarily on `GAME_OVER`; may appear after a win while still in-run). Mirrors the game-over modal.
+
+```json
+{
+  "best_hand": 12450,
+  "most_played_hand": {
+    "name": "Pair",
+    "count": 42
+  },
+  "cards_played": 187,
+  "cards_discarded": 63,
+  "cards_purchased": 28,
+  "reroll_count": 5,
+  "new_discoveries": 3,
+  "result": "Lost to The Flint"
+}
+```
+
+| Field              | Type    | Description                                                          |
+| ------------------ | ------- | -------------------------------------------------------------------- |
+| `best_hand`        | integer | Highest single-hand score this run                                   |
+| `most_played_hand` | object  | `{ name, count }` — most frequently played poker hand (when tracked) |
+| `cards_played`     | integer | Total cards played                                                   |
+| `cards_discarded`  | integer | Total cards discarded                                                |
+| `cards_purchased`  | integer | Total cards purchased                                                |
+| `reroll_count`     | integer | Total shop rerolls                                                   |
+| `new_discoveries`  | integer | New discoveries this run                                             |
+| `result`           | string  | Human-readable outcome — e.g. `Victory`, `Lost to The Flint`, `Lost` |
+
+Only fields the game tracked are present. **`result`** is the reliable outcome on `GAME_OVER`; pair with `won` when distinguishing endless victory vs endless death.
 
 ### JokerStats
 

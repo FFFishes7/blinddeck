@@ -67,7 +67,9 @@ When you don't know what to do, read `actions:`.
 
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and skip-reward tag; the selectable blind is marked `(current, select)`.
-    Defeated blinds omit skip-reward text.
+    Defeated blinds omit skip-reward text. When Boss is on deck and you own
+    Director's Cut or Retcon, a **`reroll_boss=$10 [ok]`** / **`[need $N]`** /
+    **`[used this ante]`** line appears; `actions:` may include `reroll_boss`.
 - **SELECTING_HAND:** `score=X/target` includes **`need=N`** until you beat the
     blind, then **`beaten`**. Skip-reward tags are not repeated on the current blind
     line (you already chose to play).
@@ -95,7 +97,7 @@ When you don't know what to do, read `actions:`.
 | State                  | What to do                                      | Command                                                                                                                          |
 | ---------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `MENU`                 | Start a run                                     | `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`; optional seed: `start DECK STAKE SEED`)                                      |
-| `BLIND_SELECT`         | Play or skip the blind                          | `bot.ps1 select` · or `bot.ps1 skip` (Small/Big only)                                                                            |
+| `BLIND_SELECT`         | Play or skip the blind                          | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                  |
 | `SELECTING_HAND`       | Play / discard / use / sort (estimate optional) | `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` · *(optional)* `bot.ps1 estimate` |
 | `HAND_PLAYED`          | Transient — just poll                           | `bot.ps1 glance`                                                                                                                 |
 | `ROUND_EVAL`           | Collect rewards                                 | `bot.ps1 cash_out` · if `victory_overlay`: `bot.ps1 endless` first, then `cash_out`                                               |
@@ -116,7 +118,8 @@ Command arg cheatsheet:
 Debug (estimate testing only — not for normal play; requires `$env:BALATROBOT_ALLOW_CHEATS=1`):
 
 - `add joker j_dusk` · `add card D_4 enhancement=MULT seal=RED` · `add consumable c_fool`
-- `set hands 1 discards 0 chips 0` — only `hands` / `discards` / `chips` (no money/ante)
+- `set hands 1 discards 0 chips 0` — friendly `set` only accepts `hands` / `discards` / `chips` (money/ante/voucher debug via raw `exec` or API `set`)
+- `debuff 0` · `debuff clear 0` — debuff or clear hand cards (`SELECTING_HAND` only)
 - Not listed in normal `actions:`; see `tools/play/README.md` for restrictions
 
 ### Tag semantics (skip rewards)
@@ -172,6 +175,8 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 - **`buy` / `reroll` affordability is `money - bankrupt_at`**, not raw `money` (Credit Card raises `bankrupt_at`). `glance` shows `[ok]` / `[need $N]` on shop rows; if a buy still fails with `BAD_REQUEST`, slots may be full or cost changed after reroll.
 - **Joker/consumable slots can be full.** `buy` returns `BAD_REQUEST` when slots are full — `sell` something first or skip.
 - **`skip` only works on Small/Big blinds**, not boss. Skip collects a tag reward (see §2 tag semantics).
+- **`reroll_boss` is Boss-only and costs $10.** Only in `BLIND_SELECT` when the Boss blind is on deck, you own **Director's Cut** (once per ante) or **Retcon** (unlimited), and `money - bankrupt_at >= 10`. `glance` shows `reroll_boss=$10 [ok]` / `[need $N]` / `[used this ante]`; then `select` the new boss. Shop `reroll` is unrelated.
+- **`won` ≠ current outcome on `GAME_OVER`.** `won: true` means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual line (`Lost to …`, `Victory`, etc.) — especially after endless-mode death.
 - **Connection failure ≠ bug.** During state transitions the server may briefly not respond. Retry `glance` once before investigating.
 - **Error names:** `INTERNAL_ERROR` (Lua crash), `BAD_REQUEST` (bad params), `INVALID_STATE` (wrong state), `NOT_ALLOWED` (game rules blocked it). Read `error.message` — it's specific.
 

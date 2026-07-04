@@ -12,6 +12,7 @@ NO_PARAMS = frozenset(
         "cash_out",
         "endless",
         "reroll",
+        "reroll_boss",
         "gamestate",
         "menu",
         "health",

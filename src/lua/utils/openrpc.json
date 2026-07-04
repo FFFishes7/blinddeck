@@ -708,6 +708,35 @@
       ]
     },
     {
+      "name": "reroll_boss",
+      "summary": "Reroll the Boss blind",
+      "description": "Spend $10 to reroll the Boss blind during BLIND_SELECT when the Boss is on deck. Requires Director's Cut (once per ante) or Retcon (unlimited). Uses the same rules as the in-game Reroll Boss button.",
+      "tags": [
+        {
+          "$ref": "#/components/tags/blind"
+        }
+      ],
+      "params": [],
+      "result": {
+        "name": "gamestate",
+        "description": "Complete game state after rerolling the Boss blind",
+        "schema": {
+          "$ref": "#/components/schemas/GameState"
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/InvalidState"
+        },
+        {
+          "$ref": "#/components/errors/NotAllowed"
+        },
+        {
+          "$ref": "#/components/errors/InternalError"
+        }
+      ]
+    },
+    {
       "name": "sell",
       "summary": "Sell a joker or consumable",
       "description": "Sell a joker or consumable from player inventory. Must provide exactly one of: joker or consumable.",
@@ -819,6 +848,22 @@
         {
           "name": "shop",
           "description": "If true, re-stock shop with new items (only in SHOP state)",
+          "required": false,
+          "schema": {
+            "type": "boolean"
+          }
+        },
+        {
+          "name": "grant_voucher",
+          "description": "Mark a voucher as redeemed (debug / integration tests; bot.ps1 friendly set does not expose this — use raw API or exec)",
+          "required": false,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "boss_rerolled",
+          "description": "Whether Boss reroll was already used this ante (debug / testing)",
           "required": false,
           "schema": {
             "type": "boolean"
@@ -1320,6 +1365,18 @@
           "reroll_cost": {
             "type": "integer",
             "description": "Current cost to reroll the shop"
+          },
+          "boss_reroll_cost": {
+            "type": "integer",
+            "description": "Cost to reroll the Boss blind ($10 with Director's Cut or Retcon)"
+          },
+          "boss_reroll_available": {
+            "type": "boolean",
+            "description": "True when reroll_boss is allowed in the current BLIND_SELECT state"
+          },
+          "boss_rerolled": {
+            "type": "boolean",
+            "description": "True when Boss reroll was already used this ante (Director's Cut limit)"
           },
           "chips": {
             "type": "integer",

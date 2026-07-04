@@ -22,6 +22,7 @@
   "Director's Cut": {
     "key": "v_directors_cut",
     "effect": "Reroll Boss Blind 1 time per Ante, $10 per roll",
+    "api": "reroll_boss",
     "wiki": "https://balatrowiki.org/w/Director%27s_Cut"
   },
   "Glow Up": {
@@ -132,6 +133,7 @@
   "Retcon": {
     "key": "v_retcon",
     "effect": "Reroll Boss Blind unlimited times, $10 per roll",
+    "api": "reroll_boss",
     "wiki": "https://balatrowiki.org/w/Retcon"
   },
   "Seed Money": {

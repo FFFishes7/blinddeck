@@ -1363,6 +1363,10 @@ def test_debuff_requires_cheats_env(monkeypatch: pytest.MonkeyPatch) -> None:
         build_params("debuff", ["0"])
 
 
+def test_build_params_reroll_boss(cheats_on: None) -> None:
+    assert build_params("reroll_boss", []) == {}
+
+
 def test_estimate_wily_joker_three_of_a_kind_chips() -> None:
     hand = _hand_cards(
         ("K", "S", {}),
