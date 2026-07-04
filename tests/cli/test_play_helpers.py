@@ -15,6 +15,7 @@ sys.path.insert(0, str(PLAY_ROOT))
 import act  # noqa: E402  # type: ignore[unresolved-import]
 from actions import (  # noqa: E402  # type: ignore[unresolved-import]
     build_actions,
+    buy_blocked_by_slots,
     consumable_target_hint,
 )
 from commands import (  # noqa: E402  # type: ignore[unresolved-import]
@@ -937,6 +938,15 @@ def test_act_main_no_args_returns_usage(
     assert "usage" in data["error"]["message"]
 
 
+def test_buy_blocked_by_slots_allows_negative_joker_when_slots_full() -> None:
+    state = {"jokers": {"count": 5, "limit": 5}, "consumables": {"count": 0, "limit": 2}}
+    base_joker = {"set": "JOKER", "modifier": {}}
+    negative_joker = {"set": "JOKER", "modifier": {"edition": "NEGATIVE"}}
+
+    assert buy_blocked_by_slots(base_joker, state) is True
+    assert buy_blocked_by_slots(negative_joker, state) is False
+
+
 # --- estimate.estimate ------------------------------------------------------
 
 import estimate  # noqa: E402  # type: ignore[unresolved-import]
@@ -1374,6 +1384,28 @@ def test_estimate_half_joker_small_play() -> None:
     assert top[0]["indices"] == [0, 1]
     assert top[0]["mult"] == 22
     assert top[0]["score"] == 660
+
+
+def test_estimate_raised_fist_excludes_played_kicker_from_held_cards() -> None:
+    hand = _hand_cards(
+        ("A", "S", {}),
+        ("K", "H", {}),
+        ("9", "D", {}),
+        ("2", "C", {}),
+        ("3", "S", {}),
+    )
+    jokers = [{"label": "Raised Fist", "key": "j_raised_fist", "value": {}}]
+
+    ace_only = estimate.score_hand_indices(_est_state(hand, jokers=jokers), [0])
+    with_low_kicker = estimate.score_hand_indices(_est_state(hand, jokers=jokers), [0, 3])
+
+    assert ace_only["hand_type"] == "High Card"
+    assert ace_only["scoring_indices"] == [0]
+    assert ace_only["mult"] == 5  # base 1 + lowest held 2 doubled => +4
+    assert with_low_kicker["hand_type"] == "High Card"
+    assert with_low_kicker["scoring_indices"] == [0]
+    assert with_low_kicker["mult"] == 7  # played 2 is no longer held; lowest held 3 => +6
+    assert with_low_kicker["score"] > ace_only["score"]
 
 
 def test_estimate_hack_retriggers_low_ranks() -> None:

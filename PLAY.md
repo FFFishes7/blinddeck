@@ -181,6 +181,7 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 - **Beat the blind target, not maximize score.** `round.chips` is your current score; the current blind's `score` is the target. Once you've passed it, you can stop playing hands to bank unused hands ($1 each) and discards.
 - **Don't burn discards for no reason.** Each unused hand pays $1 interest at round end (interest capped at $5). Discard only to improve a hand you intend to play.
 - **Economy early, scaling late.** In early antes, money compounds. Don't reroll aggressively. Buy jokers that scale (Mult+) or generate economy.
+- **Joker order matters.** Put chips and `+Mult` jokers before `×Mult` jokers when possible; after buying Hologram, Polychrome, Card Sharp, etc., consider `bot.ps1 rearrange jokers ...` so multiplicative effects fire late.
 - **Boss-blind awareness.** Before `select`ing a boss, run `know preflight` and check the boss effect — some bosses invalidate strategies (e.g. "The Flint" halves base chips/mult, "The Psychic" forces 5-card plays and hides cards). Adjust which cards you play.
 - **Vouchers persist for the run.** Buying a voucher is usually higher value than a single joker if it matches your direction.
 - **When in doubt in shop:** buy a pack > reroll > skip to next round. Packs give selection among multiple cards.

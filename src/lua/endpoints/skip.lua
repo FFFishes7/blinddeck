@@ -54,23 +54,30 @@ return {
     -- Execute blind skip
     G.FUNCS.skip_blind(skip_button)
 
-    -- Wait for the skip to complete
-    -- Completion is indicated by the blind state changing to "Skipped"
+    -- Wait for the skip to complete and for tag side effects to settle. Some
+    -- tags update money or open a booster immediately after the blind status
+    -- flips to SKIPPED, so returning on the first skipped frame can expose stale
+    -- money/state to bot.ps1 glance.
+    local settled_once = false
     G.E_MANAGER:add_event(Event({
       trigger = "condition",
       blocking = true,
       func = function()
         local blinds = BB_GAMESTATE.get_blinds_info()
-        local done = (
-          G.STATE == G.STATES.BLIND_SELECT
-          and G.GAME.blind_on_deck ~= nil
+        local skipped = (
+          G.GAME.blind_on_deck ~= nil
           and G.blind_select_opts ~= nil
           and blinds[current_blind_key].status == "SKIPPED"
         )
+        local stable_state = G.STATE == G.STATES.BLIND_SELECT or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
+        local done = skipped and stable_state and settled_once
         if done then
           sendDebugMessage("Return skip()", "BB.ENDPOINTS")
           local state_data = BB_GAMESTATE.get_gamestate()
           send_response(state_data)
+        end
+        if skipped and stable_state then
+          settled_once = true
         end
 
         return done

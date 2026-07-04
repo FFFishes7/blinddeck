@@ -129,9 +129,12 @@ return {
       return
     end
 
-    -- Ensure there is space in joker area
+    -- Ensure there is space in joker area. Negative jokers add a joker slot,
+    -- so Balatro allows them even when the current joker area is full.
     if card.set == "JOKER" then
-      if gamestate.jokers.count >= gamestate.jokers.limit then
+      local modifier = card.modifier or {}
+      local is_negative = modifier.edition == "NEGATIVE"
+      if gamestate.jokers.count >= gamestate.jokers.limit and not is_negative then
         send_response({
           message = "Cannot purchase joker card, joker slots are full. Current: "
             .. gamestate.jokers.count

@@ -18,11 +18,16 @@ def _area_full(area: dict[str, Any]) -> bool:
     return limit is not None and count is not None and count >= limit
 
 
+def _is_negative(card: dict[str, Any]) -> bool:
+    mod = card.get("modifier") or {}
+    return isinstance(mod, dict) and mod.get("edition") == "NEGATIVE"
+
+
 def buy_blocked_by_slots(card: dict[str, Any], state: dict[str, Any]) -> bool:
     """True when buy.lua would reject for full joker/consumable slots."""
     card_set = (card.get("set") or "").upper()
     if card_set == "JOKER":
-        return _area_full(state.get("jokers") or {})
+        return _area_full(state.get("jokers") or {}) and not _is_negative(card)
     if card_set in ("TAROT", "PLANET", "SPECTRAL"):
         return _area_full(state.get("consumables") or {})
     return False
