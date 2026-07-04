@@ -127,34 +127,95 @@ end
 ---(sound, animation, h_popup creation)
 ---@param card table The card object
 ---@return string description The description text from UI
+local UI_EFFECT_FALLBACK = {
+  j_misprint = "+0 to +23 Mult (random each hand)",
+  j_bloodstone = "1 in 2 chance for X2 Mult (random)",
+  j_8_ball = "1 in 4 chance to spawn a Tarot (random)",
+}
+
+local function is_sparse_effect(text)
+  if not text or text:match("^%s*$") then
+    return true
+  end
+  if not text:match("[%a]") then
+    return true
+  end
+  if text:match("^[%s+%-–—xX%d%.]+$") then
+    return true
+  end
+  return false
+end
+
+local function ui_effect_fallback(card)
+  local key = card.config and card.config.center_key
+  if key and UI_EFFECT_FALLBACK[key] then
+    return UI_EFFECT_FALLBACK[key]
+  end
+  return nil
+end
+
+local function append_ui_text(parts, config)
+  if not config then
+    return
+  end
+  if config.text then
+    parts[#parts + 1] = config.text
+  end
+  if config.object and config.object.strings then
+    for _, s in ipairs(config.object.strings) do
+      if type(s) == "string" and s ~= "" then
+        parts[#parts + 1] = s
+      end
+    end
+  end
+end
+
+local function collect_ui_texts(nodes, out)
+  if type(nodes) ~= "table" then
+    return
+  end
+  if nodes.config then
+    append_ui_text(out, nodes.config)
+  end
+  if nodes.nodes then
+    for _, node in ipairs(nodes.nodes) do
+      collect_ui_texts(node, out)
+    end
+  end
+  for _, node in ipairs(nodes) do
+    if type(node) == "table" then
+      collect_ui_texts(node, out)
+    end
+  end
+end
+
 local function get_card_ui_description(card)
   -- Generate UI structure directly (no hover side effects)
   local ui_table = card:generate_UIBox_ability_table()
   if not ui_table then
-    return ""
+    return ui_effect_fallback(card) or ""
   end
 
-  -- Extract all text nodes from the UI tree
+  -- Extract all text nodes from the UI tree (recursive — catches highlighted values)
   local texts = {}
 
-  -- The UI table has main/info/type sections
   if ui_table.main then
     for _, line in ipairs(ui_table.main) do
       local line_texts = {}
-      for _, section in ipairs(line) do
-        if section.config and section.config.text then
-          -- normal text and colored text
-          line_texts[#line_texts + 1] = section.config.text
-        elseif section.nodes then
-          for _, node in ipairs(section.nodes) do
-            if node.config and node.config.text then
-              -- highlighted text
-              line_texts[#line_texts + 1] = node.config.text
-            end
-          end
-        end
+      collect_ui_texts(line, line_texts)
+      if #line_texts > 0 then
+        texts[#texts + 1] = table.concat(line_texts, "")
       end
-      texts[#texts + 1] = table.concat(line_texts, "")
+    end
+  end
+
+  if ui_table.info then
+    for _, line in ipairs(ui_table.info) do
+      local line_texts = {}
+      collect_ui_texts(line, line_texts)
+      if #line_texts > 0 then
+        texts[#texts + 1] = table.concat(line_texts, "")
+      end
     end
   end
 
@@ -166,8 +227,11 @@ local function get_card_ui_description(card)
     cleanup_ui_nodes(ui_table.name)
   end
 
-  -- Join text lines with spaces (in the game these are separated by newlines)
-  return table.concat(texts, " ")
+  local description = table.concat(texts, " ")
+  if is_sparse_effect(description) then
+    return ui_effect_fallback(card) or description
+  end
+  return description
 end
 
 -- ==========================================================================

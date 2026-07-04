@@ -58,10 +58,9 @@ After `GAME_OVER`: `bot.ps1 menu`, then `bot.ps1 start DECK STAKE` (e.g. `start 
 
 ### The `actions:` line is your navigation
 
-Every `glance` and action output ends with an `actions:` line listing friendly
-subcommand examples valid in the current state (e.g. `actions: play 0 1 2 3 4 · discard 0 1 · sort rank`). The full
-JSON envelope (from `bot.ps1 state`, `bot.ps1 exec ...`, or any action with `--json`)
-includes an `actions[]` array where each entry has a ready-to-use `example` payload.
+Every `glance` and action output ends with an `actions:` line listing valid
+command names for the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). The full JSON envelope (from `bot.ps1 state`, `bot.ps1 exec ...`, or any action with `--json`) includes an `actions[]` array where each entry
+has a ready-to-use `example` payload with concrete indices when applicable.
 When you don't know what to do, read `actions:`.
 
 ### What `glance` shows you (so you rarely need `state`)
@@ -73,8 +72,7 @@ When you don't know what to do, read `actions:`.
     blind, then **`beaten`**. Skip-reward tags are not repeated on the current blind
     line (you already chose to play).
 - **SHOP:** prices show **`[ok]`**, **`[need $N]`**, or **`[slots full]`**; header
-    adds **`buy_power=`** when Credit Card raises `bankrupt_at`. Actions:
-    **`(unaffordable)`** or **`(slots full)`** (slot full wins when both apply).
+    adds **`buy_power=`** when Credit Card raises `bankrupt_at`.
 - **Pack open:** Tarot/Spectral candidates show **`(needs 1-2 targets)`** etc.
 - **GAME_OVER:** **`→ menu  then  start RED WHITE [SEED]`** uses the run's deck/stake.
 - **ROUND_EVAL:** pending round-end money (hands left, interest, Delayed

@@ -7,7 +7,6 @@ the current state at a glance instead of scanning the full JSON envelope.
 from __future__ import annotations
 
 import json
-import re
 from typing import Any
 
 from actions import (
@@ -17,7 +16,6 @@ from actions import (
     consumable_target_hint,
 )
 from bot_client import APIError
-from commands import format_friendly_action
 from envelope import build_error_envelope, build_play_envelope
 from layers import TRANSITION_STATES
 from start_options import build_decks, build_stakes
@@ -344,90 +342,13 @@ def _hand_line(state: dict[str, Any]) -> str:
     return "hand: " + " ".join(f"[{i}] {card_label(c)}" for i, c in enumerate(cards))
 
 
-ACTIONS_MAX_LEN = 120
-ACTION_PRIORITY_PREFIXES = (
-    "play ",
-    "discard ",
-    "select",
-    "skip",
-    "cash_out",
-    "buy ",
-    "pack ",
-    "menu",
-    "next_round",
-    "reroll",
-)
-
-
-def _compress_index_run(seen: list[str], prefix: str) -> list[str]:
-    """Fold consecutive ``prefix N`` entries into ``prefix A..B``."""
-    pattern = re.compile(rf"^{re.escape(prefix)}(\d+)$")
-    out: list[str] = []
-    i = 0
-    while i < len(seen):
-        match = pattern.match(seen[i])
-        if not match:
-            out.append(seen[i])
-            i += 1
-            continue
-        start = int(match.group(1))
-        j = i + 1
-        while j < len(seen):
-            m2 = pattern.match(seen[j])
-            if m2 and int(m2.group(1)) == start + (j - i):
-                j += 1
-            else:
-                break
-        if j - i > 1:
-            out.append(f"{prefix}{start}..{start + j - i - 1}")
-        else:
-            out.append(seen[i])
-        i = j
-    return out
-
-
-def _compress_actions(seen: list[str]) -> list[str]:
-    for prefix in (
-        "sell joker ",
-        "sell consumable ",
-        "buy card ",
-        "buy pack ",
-        "buy voucher ",
-    ):
-        seen = _compress_index_run(seen, prefix)
-    return seen
-
-
-def _prioritize_actions(seen: list[str]) -> list[str]:
-    priority: list[str] = []
-    rest: list[str] = []
-    for item in seen:
-        if any(item == p or item.startswith(p) for p in ACTION_PRIORITY_PREFIXES):
-            priority.append(item)
-        else:
-            rest.append(item)
-    return priority + rest
-
-
 def _actions_line(envelope: dict[str, Any]) -> str:
     seen: list[str] = []
     for a in envelope.get("actions") or []:
-        friendly = format_friendly_action(a)
-        if not friendly:
-            continue
-        if a.get("slots_full"):
-            friendly += " (slots full)"
-        elif a.get("affordable") is False:
-            friendly += " (unaffordable)"
-        if friendly not in seen:
-            seen.append(friendly)
-    if not seen:
-        return "actions: (none)"
-    seen = _prioritize_actions(_compress_actions(seen))
-    joined = " · ".join(seen)
-    if len(joined) > ACTIONS_MAX_LEN:
-        joined = joined[: ACTIONS_MAX_LEN - 1].rsplit(" · ", 1)[0] + " · …"
-    return f"actions: {joined}"
+        cmd = a.get("command")
+        if cmd and cmd not in seen:
+            seen.append(cmd)
+    return "actions: " + (" ".join(seen) if seen else "(none)")
 
 
 def _option_ids(envelope: dict[str, Any], key: str, fallback_fn) -> list[str]:

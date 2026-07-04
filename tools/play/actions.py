@@ -28,24 +28,6 @@ def buy_blocked_by_slots(card: dict[str, Any], state: dict[str, Any]) -> bool:
     return False
 
 
-def _shop_buy_action(
-    action: dict[str, Any], item: dict[str, Any], cost: int, state: dict[str, Any]
-) -> dict[str, Any]:
-    if buy_blocked_by_slots(item, state):
-        action["slots_full"] = True
-    elif cost > buy_power(state):
-        action["affordable"] = False
-    return action
-
-
-def _affordable_action(
-    action: dict[str, Any], cost: int, state: dict[str, Any]
-) -> dict[str, Any]:
-    if cost > buy_power(state):
-        action["affordable"] = False
-    return action
-
-
 def _example(command: str, params: dict | None = None) -> dict:
     return {"command": command, "params": params or {}}
 
@@ -84,16 +66,6 @@ def _consumable_needs_hand(card: dict) -> bool:
     if key == "c_death":
         return True
     return "select" in effect.lower() and "hand" in effect.lower()
-
-
-def consumable_needs_hand_targets(card: dict) -> bool:
-    """True when pack/use needs hand card indices (not joker-only targets)."""
-    value = card.get("value") or {}
-    if value.get("requires_joker"):
-        return False
-    if value.get("target_min") is not None:
-        return True
-    return _consumable_needs_hand(card)
 
 
 def consumable_target_hint(card: dict) -> str | None:
@@ -184,40 +156,20 @@ def _use_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    for idx, item in enumerate(state.get("shop", {}).get("cards", [])):
-        cost = (item.get("cost") or {}).get("buy", 0)
+    for idx, _item in enumerate(state.get("shop", {}).get("cards", [])):
         actions.append(
-            _shop_buy_action(
-                _action("buy", f"Buy shop card {idx}", example_params={"card": idx}),
-                item,
-                cost,
-                state,
-            )
+            _action("buy", f"Buy shop card {idx}", example_params={"card": idx})
         )
-    for idx, item in enumerate(state.get("vouchers", {}).get("cards", [])):
-        cost = (item.get("cost") or {}).get("buy", 0)
+    for idx, _item in enumerate(state.get("vouchers", {}).get("cards", [])):
         actions.append(
-            _affordable_action(
-                _action("buy", f"Buy voucher {idx}", example_params={"voucher": idx}),
-                cost,
-                state,
-            )
+            _action("buy", f"Buy voucher {idx}", example_params={"voucher": idx})
         )
-    for idx, item in enumerate(state.get("packs", {}).get("cards", [])):
-        cost = (item.get("cost") or {}).get("buy", 0)
+    for idx, _item in enumerate(state.get("packs", {}).get("cards", [])):
         actions.append(
-            _affordable_action(
-                _action("buy", f"Buy booster pack {idx}", example_params={"pack": idx}),
-                cost,
-                state,
-            )
+            _action("buy", f"Buy booster pack {idx}", example_params={"pack": idx})
         )
     actions.extend(_sell_actions(state))
-    reroll_cost = (state.get("round") or {}).get("reroll_cost", 0)
-    reroll = _action("reroll", "Reroll shop offers", example_params={})
-    if reroll_cost > buy_power(state):
-        reroll["affordable"] = False
-    actions.append(reroll)
+    actions.append(_action("reroll", "Reroll shop offers", example_params={}))
     actions.append(
         _action("next_round", "Leave shop for blind select", example_params={})
     )
@@ -227,12 +179,9 @@ def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _pack_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    for idx, card in enumerate(state.get("pack", {}).get("cards", [])):
-        params: dict[str, Any] = {"card": idx}
-        if consumable_needs_hand_targets(card):
-            params["targets"] = [0]
+    for idx, _card in enumerate(state.get("pack", {}).get("cards", [])):
         actions.append(
-            _action("pack", f"Select pack card {idx}", example_params=params)
+            _action("pack", f"Select pack card {idx}", example_params={"card": idx})
         )
     actions.append(_action("pack", "Skip pack", example_params={"skip": True}))
     actions.extend(_sell_actions(state))

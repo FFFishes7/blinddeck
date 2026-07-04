@@ -29,7 +29,7 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
 
 - **Header:** `state`, `ante`, `round`, `money`, `deck`, `stake`. In **SHOP** with
     Credit Card (`bankrupt_at != 0`), also **`buy_power=`** (`money - bankrupt_at`).
-- **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists; `actions:` with friendly examples (e.g. `start RED WHITE` from envelope example).
+- **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists; `actions:` lists valid command names (e.g. `start load`).
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and any skip-reward tag; the selectable blind is marked `(current, select)`.
 - **SELECTING_HAND:** `hands_left` / `discards_left` / `score=X/target` with
@@ -41,8 +41,8 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
 - **SHOP:** each shop row shows price plus **`[ok]`**, **`[need $N]`**, or
     **`[slots full]`** (joker/consumable slots full — same check as `buy.lua`).
     Reroll uses affordability only. Header may include **`buy_power=`** when
-    `bankrupt_at != 0`. Unaffordable buys show **`(unaffordable)`**; slot-blocked
-    buys show **`(slots full)`** (takes priority over unaffordable).
+    `bankrupt_at != 0`. Slot/full-price hints are on shop rows, not duplicated in
+    `actions:`.
 - **SMODS_BOOSTER_OPENED:** pack rows show target hints such as **`(needs 1-2 targets)`**
     from API `target_min`/`target_max` (Tarot/Spectral).
 - **GAME_OVER:** restart hint uses the ended run's deck/stake, e.g.
@@ -51,9 +51,6 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
     interest, Delayed Gratification) and **`→ cash_out`**.
 - **Transient states** (`HAND_PLAYED`, `DRAW_TO_HAND`, `NEW_ROUND`, `PLAY_TAROT`):
     **`→ transient: wait for stable state, then glance again`** and `actions: (none)`.
-- **`actions:` folding:** consecutive `sell joker 0`, `sell joker 1`, … collapse to
-    `sell joker 0..N` (same for consumables / consecutive `buy card` indices). Long
-    lists prioritize play/discard/select/cash_out/buy/pack/menu before truncating.
 - **Card modifier tags** (so buffs are visible without a separate query):
     `e:Mult`, `e:Bonus`, `e:Glass`, `e:Stone`, `e:Wild`, `e:Lucky`, `e:Gold`,
     `e:Steel` (enhancement); `d:Foil`, `d:Holo`, `d:Poly`, `d:Neg` (edition);
@@ -160,8 +157,8 @@ Anything else → `unmodeled` (treat score as lower bound only).
 
 *(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
 
-Every `glance` / action output ends with an `actions:` line listing **friendly
-subcommand examples** (e.g. `buy card 0 · buy pack 1 · next_round`), deduplicated
+Every `glance` / action output ends with an `actions:` line listing **command
+names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or the play guide for argument syntax.
 and truncated if very long. The full envelope (from `state` /
 `exec` / `<action> --json`) includes an `actions[]` array with `example`
 payloads for each.

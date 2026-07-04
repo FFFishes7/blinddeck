@@ -36,7 +36,6 @@ from start_options import (  # noqa: E402  # type: ignore[unresolved-import]
 from view import (  # noqa: E402  # type: ignore[unresolved-import]
     _blind_line,
     _blinds_block,
-    _compress_actions,
     _header,
     _joker_line,
     _round_line,
@@ -251,6 +250,13 @@ def test_build_actions_pack_open(selecting_hand_state: dict) -> None:
     }
     commands = {a["command"] for a in build_actions(pack_state)}
     assert {"pack", "sell", "use"}.issubset(commands)
+    pick = next(
+        a
+        for a in build_actions(pack_state)
+        if a["command"] == "pack"
+        and not (a.get("example") or {}).get("params", {}).get("skip")
+    )
+    assert pick["example"]["params"] == {"card": 0}
 
 
 # --- view.card_label ---------------------------------------------------------
@@ -459,7 +465,6 @@ def test_shop_affordability(capsys: pytest.CaptureFixture[str]) -> None:
     assert "shop[0]" in out and "[ok]" in out
     assert "shop[1]" in out and "[need $3]" in out
     assert "reroll=$5 [need $2]" in out
-    assert "(unaffordable)" in out
 
 
 def test_shop_slots_full_joker(capsys: pytest.CaptureFixture[str]) -> None:
@@ -497,41 +502,7 @@ def test_shop_slots_full_joker(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "jokers (5/5)" in out
     assert "shop[0]" in out and "[slots full]" in out
-    assert "(slots full)" in out
-    assert "buy card 0 (unaffordable)" not in out
-
-
-def test_actions_slots_full_over_unaffordable() -> None:
-    raw = {
-        "state": "SHOP",
-        "money": 1,
-        "bankrupt_at": 0,
-        "round": {"reroll_cost": 5},
-        "jokers": {
-            "count": 5,
-            "limit": 5,
-            "cards": [{"label": "J", "key": "j_joker", "value": {"effect": ""}}] * 5,
-        },
-        "consumables": {"count": 0, "limit": 2, "cards": []},
-        "shop": {
-            "count": 1,
-            "limit": 2,
-            "cards": [
-                {
-                    "label": "Blocked",
-                    "key": "j_greedy",
-                    "set": "JOKER",
-                    "cost": {"buy": 10},
-                    "value": {"effect": ""},
-                },
-            ],
-        },
-        "vouchers": {"count": 0, "limit": 1, "cards": []},
-        "packs": {"count": 0, "limit": 2, "cards": []},
-    }
-    buy_action = next(a for a in build_actions(raw) if a["command"] == "buy")
-    assert buy_action.get("slots_full") is True
-    assert "affordable" not in buy_action
+    assert "actions: buy" in out and "reroll" in out and "next_round" in out
 
 
 def test_header_buy_power() -> None:
@@ -565,11 +536,6 @@ def test_pack_target_hint_range() -> None:
         consumable_target_hint({"value": {"requires_joker": True}})
         == "needs joker target"
     )
-
-
-def test_actions_compress_sell_jokers() -> None:
-    seen = ["sell joker 0", "sell joker 1", "sell joker 2", "play 0 1"]
-    assert _compress_actions(seen) == ["sell joker 0..2", "play 0 1"]
 
 
 def test_print_summary_transient(capsys: pytest.CaptureFixture[str]) -> None:
@@ -719,7 +685,7 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
     assert "??" in out
     assert "jokers (1/5)" in out
     assert "Seltzer" in out
-    assert "actions: play 0 1 2 3 4 · discard 0 1 · sort rank" in out
+    assert "actions: play discard sort rearrange" in out
 
 
 def test_print_summary_round_eval(capsys: pytest.CaptureFixture[str]) -> None:
@@ -795,7 +761,7 @@ def test_print_summary_shop(capsys: pytest.CaptureFixture[str]) -> None:
     assert "state=SHOP" in out
     assert "shop[0] Joker" in out
     assert "[ok]" in out
-    assert "actions: buy card 0 · buy pack 0 · reroll · next_round" in out
+    assert "actions: buy" in out and "reroll" in out and "next_round" in out
     raw = {
         "state": "SHOP",
         "money": 10,
@@ -874,8 +840,8 @@ def test_print_summary_pack_opened(capsys: pytest.CaptureFixture[str]) -> None:
     assert "state=SMODS_BOOSTER_OPENED" in out
     assert "The Magician" in out
     assert "needs 1-2 targets" in out
-    assert "pack 0" in out
-    assert "pack skip" in out
+    assert "actions: pack" in out
+    assert "pack skip" not in out or "actions: pack" in out
 
 
 def test_print_summary_game_over(capsys: pytest.CaptureFixture[str]) -> None:
