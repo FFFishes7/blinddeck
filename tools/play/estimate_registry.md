@@ -199,6 +199,7 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_shortcut` | Straights may contain one rank gap | Hand classifier |
 | `j_mime` | Retriggers held card/joker effects once (Steel ×1.5, Baron, …) | Held phase |
 | `j_baseball` | ×1.5 Mult per Baseball when an Uncommon joker fires joker_main | Global; needs `value.rarity` |
+| `j_smeared` | Hearts≈Diamonds, Spades≈Clubs for suit jokers / Flower Pot / Seeing Double | Modifier |
 
 **Output fields**
 

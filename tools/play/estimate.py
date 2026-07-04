@@ -269,6 +269,70 @@ PER_CARD_JOKERS = {
     "j_triboulet": lambda c: (0, 0, 2 if c["rank"] in ("K", "Q") else 1),
 }
 
+_RED_SUITS = frozenset({"H", "D"})
+_BLACK_SUITS = frozenset({"S", "C"})
+
+
+def _card_is_suit(card: dict, suit: str, ctx: dict) -> bool:
+    """Mirror ``Card:is_suit`` including Smeared Joker (Hearts≈Diamonds, Spades≈Clubs)."""
+    cs = card.get("suit")
+    if not cs:
+        return False
+    if cs == suit:
+        return True
+    if not ctx.get("smeared"):
+        return False
+    if suit in _RED_SUITS and cs in _RED_SUITS:
+        return True
+    return suit in _BLACK_SUITS and cs in _BLACK_SUITS
+
+
+def _per_card_joker_bonus(card: dict, key: str, ctx: dict) -> tuple[int, int, float]:
+    """Per-card joker bonus for one scoring-card trigger."""
+    if key == "j_greedy_joker":
+        return (0, 3 if _card_is_suit(card, "D", ctx) else 0, 1)
+    if key == "j_lusty_joker":
+        return (0, 3 if _card_is_suit(card, "H", ctx) else 0, 1)
+    if key == "j_wrathful_joker":
+        return (0, 3 if _card_is_suit(card, "S", ctx) else 0, 1)
+    if key == "j_gluttenous_joker":
+        return (0, 3 if _card_is_suit(card, "C", ctx) else 0, 1)
+    if key == "j_onyx_agate":
+        return (0, 7 if _card_is_suit(card, "C", ctx) else 0, 1)
+    if key == "j_arrowhead":
+        return (50 if _card_is_suit(card, "S", ctx) else 0, 0, 1)
+    fn = PER_CARD_JOKERS.get(key)
+    if fn:
+        return fn(card)
+    return (0, 0, 1)
+
+
+def _flower_pot_active(scoring_cards: list[dict], ctx: dict) -> bool:
+    tallies = {"H": 0, "D": 0, "S": 0, "C": 0}
+    for card in scoring_cards:
+        if _card_is_suit(card, "H", ctx):
+            if tallies["H"] == 0:
+                tallies["H"] = 1
+        elif _card_is_suit(card, "D", ctx):
+            if tallies["D"] == 0:
+                tallies["D"] = 1
+        elif _card_is_suit(card, "S", ctx):
+            if tallies["S"] == 0:
+                tallies["S"] = 1
+        elif _card_is_suit(card, "C", ctx):
+            if tallies["C"] == 0:
+                tallies["C"] = 1
+    return all(tallies[s] > 0 for s in "HDSC")
+
+
+def _seeing_double_active(scoring_cards: list[dict], ctx: dict) -> bool:
+    tallies = {s: 0 for s in "HDSC"}
+    for card in scoring_cards:
+        for s in "HDSC":
+            if tallies[s] == 0 and _card_is_suit(card, s, ctx):
+                tallies[s] = 1
+    return tallies["C"] > 0 and any(tallies[s] > 0 for s in "HDS")
+
 
 def _parse_effect_bonus(joker: dict, stat: str) -> int:
     """Parse current +Mult or +Chips from localized joker `value.effect` UI text.
@@ -467,14 +531,14 @@ def _round_aware_card_xmult(card: dict, jokers: list[dict], ctx: dict) -> float:
     xmult = 1.0
     for j in jokers:
         key = j.get("key") or ""
-        if key == "j_ancient" and ctx.get("ancient_suit") and card.get("suit") == ctx["ancient_suit"]:
+        if key == "j_ancient" and ctx.get("ancient_suit") and _card_is_suit(card, ctx["ancient_suit"], ctx):
             xmult *= 1.5
         if (
             key == "j_idol"
             and ctx.get("idol_rank")
             and ctx.get("idol_suit")
             and card.get("rank") == ctx["idol_rank"]
-            and card.get("suit") == ctx["idol_suit"]
+            and _card_is_suit(card, ctx["idol_suit"], ctx)
         ):
             xmult *= 2
     return xmult
@@ -587,8 +651,8 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
             return (0, 0, 3)
         return (0, 0, 1)
     if key == "j_flower_pot":
-        suits = {c["suit"] for c in ctx["scoring_cards"] if c["suit"]}
-        return (0, 0, 3) if {"D", "C", "H", "S"} <= suits else (0, 0, 1)
+        scoring = ctx.get("scoring_cards") or []
+        return (0, 0, 3) if _flower_pot_active(scoring, ctx) else (0, 0, 1)
     if key == "j_family":  # The Family: X4 if hand contains a 4oak
         return (0, 0, 4) if ctx["hand_type"] == "Four of a Kind" else (0, 0, 1)
     if key in EFFECT_XMULT_JOKERS:
@@ -633,10 +697,8 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         played = (ctx.get("hands_meta") or {}).get(hand_type, {}).get("played", 0)
         return (0, played, 1)
     if key == "j_seeing_double":
-        suits = {c["suit"] for c in ctx.get("scoring_cards") or [] if c.get("suit")}
-        if "C" in suits and len(suits - {"C"}) > 0:
-            return (0, 0, 2)
-        return (0, 0, 1)
+        scoring = ctx.get("scoring_cards") or []
+        return (0, 0, 2) if _seeing_double_active(scoring, ctx) else (0, 0, 1)
     if key == "j_cavendish":
         return (0, 0, 3)
     if key == "j_bull":
@@ -826,6 +888,7 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_shortcut",
             "j_mime",
             "j_baseball",
+            "j_smeared",
         }
         | EFFECT_MULT_JOKERS
         | EFFECT_CHIPS_JOKERS
@@ -1014,9 +1077,9 @@ def _classify(
     return "High Card", [best]
 
 
-def _classify_flags(jokers: list[dict]) -> tuple[bool, bool]:
+def _classify_flags(jokers: list[dict]) -> tuple[bool, bool, bool]:
     keys = {j.get("key") for j in jokers}
-    return ("j_four_fingers" in keys, "j_shortcut" in keys)
+    return ("j_four_fingers" in keys, "j_shortcut" in keys, "j_smeared" in keys)
 
 
 # --- scoring ----------------------------------------------------------------
@@ -1024,7 +1087,7 @@ def _classify_flags(jokers: list[dict]) -> tuple[bool, bool]:
 
 def _card_trigger_chips_mult(
     card: dict,
-    per_card_jokers: list,
+    per_card_keys: list[str],
     ctx: dict,
     jokers: list[dict],
     *,
@@ -1056,8 +1119,8 @@ def _card_trigger_chips_mult(
     elif ed == "POLYCHROME":
         xmult *= 1.5
     # per-card joker bonuses (fire once per trigger)
-    for fn in per_card_jokers:
-        c_add, m_add, x = fn(card)
+    for key in per_card_keys:
+        c_add, m_add, x = _per_card_joker_bonus(card, key, ctx)
         chips += c_add
         mult += m_add
         xmult *= x
@@ -1096,11 +1159,11 @@ def _score_combo(
     chips = base_chips
     mult = base_mult
 
-    per_card_fns = []
+    per_card_keys: list[str] = []
     for i, _j in enumerate(jokers):
         _eff, key = _effective_joker_at(i, jokers)
         if key in PER_CARD_JOKERS:
-            per_card_fns.append(PER_CARD_JOKERS[key])
+            per_card_keys.append(key)
     retrigger_all = cfg.get("retrigger_all", 0)
     retrigger_leftmost = cfg.get("retrigger_leftmost", 0)
     if dusk_active and cfg.get("dusk_owned"):
@@ -1138,7 +1201,7 @@ def _score_combo(
         for _ in range(triggers):
             c_add, m_add, x = _card_trigger_chips_mult(
                 card,
-                per_card_fns,
+                per_card_keys,
                 ctx,
                 jokers,
                 photograph_x2=photograph_owned and i == first_face_scoring_idx,
@@ -1265,12 +1328,13 @@ def score_hand_indices(state: dict, hand_indices: list[int]) -> dict:
 
     jokers = (state.get("jokers") or {}).get("cards") or []
     cfg = _retrigger_config(jokers)
-    four_fingers, shortcut = _classify_flags(jokers)
+    four_fingers, shortcut, smeared = _classify_flags(jokers)
     ctx_base = {
         **_ctx(state),
         "joker_count": len(jokers),
         "stencil_count": sum(1 for j in jokers if j.get("key") == "j_stencil"),
         "pareidolia": any(j.get("key") == "j_pareidolia" for j in jokers),
+        "smeared": smeared,
     }
     levels = _hand_levels(state)
     dusk_now = cfg.get("dusk_owned", False) and ctx_base.get("hands_left") == 1
@@ -1317,12 +1381,13 @@ def estimate(state: dict) -> dict:
             parsed.append(p)
     jokers = (state.get("jokers") or {}).get("cards") or []
     cfg = _retrigger_config(jokers)
-    four_fingers, shortcut = _classify_flags(jokers)
+    four_fingers, shortcut, smeared = _classify_flags(jokers)
     ctx = {
         **_ctx(state),
         "joker_count": len(jokers),
         "stencil_count": sum(1 for j in jokers if j.get("key") == "j_stencil"),
         "pareidolia": any(j.get("key") == "j_pareidolia" for j in jokers),
+        "smeared": smeared,
     }
     levels = _hand_levels(state)
     _, unmodeled = _modeled(jokers)

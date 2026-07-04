@@ -1965,3 +1965,22 @@ def test_estimate_ice_cream_uses_stats_chips() -> None:
     assert top[0]["hand_type"] == "Pair"
     assert top[0]["chips"] == 120
     assert top[0]["score"] == 240
+
+
+def test_estimate_smeared_greedy_counts_hearts_as_diamonds() -> None:
+    hand = _hand_cards(
+        ("K", "H", {}),
+        ("K", "D", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    jokers = [
+        {"label": "Smeared Joker", "key": "j_smeared", "value": {}},
+        {"label": "Greedy Joker", "key": "j_greedy_joker", "value": {}},
+    ]
+    est = estimate.estimate(_est_state(hand, jokers=jokers))
+    top = est["estimate"]["top"]
+    assert top[0]["hand_type"] == "Pair"
+    assert top[0]["mult"] == 8
+    assert top[0]["score"] == 240
