@@ -14,7 +14,7 @@ The core of this repo—the Lua mod, Python CLI, API, and tests—comes from the
 
 On top of that foundation, my changes are mostly personal:
 
-- `tools/play/` — wrappers, compact state view, and RPC helpers for manual / LLM-assisted play
+- `tools/play/` — `bot.ps1` wrappers: compact `glance` state view, `estimate` score helper, friendly action subcommands, and RPC helpers for manual / LLM-assisted play
 - `knowledge/balatro/` — source-backed fact tables for `know.py`
 - a handful of API and gamestate improvements I hit while playing (e.g. `sort`, hidden-card masking)
 - docs and CI trimmed to match how I actually use the repo
@@ -82,14 +82,19 @@ Leave this terminal open while you play. You do not need to set those env vars i
 In a **second terminal**, with the game still running:
 
 ```powershell
-.\tools\play\bot.ps1 state
-.\tools\play\bot.ps1 query deck
-.\tools\play\bot.ps1 know preflight
-.\tools\play\bot.ps1 exec '{"command":"play","params":{"cards":[0,1,2,3,4]}}'
-.\tools\play\bot.ps1 help
+.\tools\play\bot.ps1 glance              # compact state summary (use constantly)
+.\tools\play\bot.ps1 estimate            # top playable hands + score estimate
+.\tools\play\bot.ps1 select              # friendly action subcommands (no JSON quoting)
+.\tools\play\bot.ps1 play 0 1 2 3 4
+.\tools\play\bot.ps1 save saves\myrun.jkr   # checkpoint the current run
+.\tools\play\bot.ps1 help                # state-aware command list
 ```
 
-`bot.ps1` calls the running API through `.venv\Scripts\python.exe`. If you see connection errors, check that `serve.ps1` is still running and the game finished loading.
+`bot.ps1` calls the running API through `.venv\Scripts\python.exe`. Prefer the **friendly subcommands** (`glance`, `estimate`, `play`, `select`, `buy`, …) — they avoid PowerShell JSON quoting issues. Use `state` / `exec` only for advanced or scripted use.
+
+**For AI agents playing a full run:** read [`PLAY.md`](PLAY.md) — loop, state→command table, pitfalls, and strategy. Helper details: [`tools/play/README.md`](tools/play/README.md).
+
+If you see connection errors, check that `serve.ps1` is still running and the game finished loading.
 
 ## Acknowledgments
 
