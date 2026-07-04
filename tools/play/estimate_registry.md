@@ -249,19 +249,19 @@ Lucky card enhancement (+20 Mult proc) is likewise not modeled on scoring cards.
 
 ### Wild Card enhancement (`WILD`)
 
-| Modeled | Detail |
-| ------- | ------ |
-| Flush / SF detection | Wild fills any suit in `_flush_indices` (`estimate.py`) |
-| Rank unchanged | Pair/ToK use printed rank only — Wild Q does not match Ace |
-| Suit Jokers | `_card_is_suit` returns true for any suit when Wild (Lusty, Greedy, …) |
-| Flower Pot / Seeing Double | Backtracking: each Wild assigned **one** suit per card |
-| Blackboard (held) | Wild counts as Spade or Club while held |
-| On-score bonus | None (Wild has no +chips/+mult when scored — correct) |
-| Debuffed Wild | `_card_is_wild` false when `state.debuff`; printed suit only (`estimate_jokers.py`) |
-| Flush Five tier | `_classify` checks flush+5oak before Five of a Kind (`estimate.py`) |
+| Modeled                    | Detail                                                                              |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| Flush / SF detection       | Wild fills any suit in `_flush_indices` (`estimate.py`)                             |
+| Rank unchanged             | Pair/ToK use printed rank only — Wild Q does not match Ace                          |
+| Suit Jokers                | `_card_is_suit` returns true for any suit when Wild (Lusty, Greedy, …)              |
+| Flower Pot / Seeing Double | Backtracking: each Wild assigned **one** suit per card                              |
+| Blackboard (held)          | Wild counts as Spade or Club while held                                             |
+| On-score bonus             | None (Wild has no +chips/+mult when scored — correct)                               |
+| Debuffed Wild              | `_card_is_wild` false when `state.debuff`; printed suit only (`estimate_jokers.py`) |
+| Flush Five tier            | `_classify` checks flush+5oak before Five of a Kind (`estimate.py`)                 |
 
-| Not modeled | Why |
-| ----------- | --- |
+| Not modeled         | Why                                             |
+| ------------------- | ----------------------------------------------- |
 | Deck unlock tallies | Wild does not count toward “30 of suit in deck” |
 
 Rule reference: `bot.ps1 know check rule wild_card_enhancement`.

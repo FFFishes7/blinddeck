@@ -78,7 +78,7 @@ No JSON, no quoting — `bot.ps1` forwards these to `act.py`, which parses posit
 | ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `start`                        | `DECK STAKE [SEED]`                    | e.g. `start RED WHITE`                                                                            |
 | `select`                       | —                                      | select current blind                                                                              |
-| `reroll_boss`                  | —                                      | reroll Boss blind ($10; Director's Cut / Retcon)                                                    |
+| `reroll_boss`                  | —                                      | reroll Boss blind ($10; Director's Cut / Retcon)                                                  |
 | `skip`                         | —                                      | skip current blind (Small/Big only) — collects the skip tag                                       |
 | `play`                         | `CARD_IDX...`                          | e.g. `play 0 1 2 3 4` (max 5, 0-based)                                                            |
 | `discard`                      | `CARD_IDX...`                          | e.g. `discard 0 1`                                                                                |
