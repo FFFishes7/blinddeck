@@ -779,6 +779,8 @@ The complete game state returned by most methods.
 
 `victory_overlay: true` means the post-win screen is visible (`won: true`, `ROUND_EVAL`); call [`endless`](#endless) before [`cash_out`](#cash_out) to continue into endless mode.
 
+`won: true` means the run **defeated the final Boss** (Ante 8). It stays true during endless mode and after an endless death. It does **not** mean the current screen is a win: on `GAME_OVER`, read `run_summary.result` for the outcome (`Lost to …` even when `won` is true).
+
 | Field         | Type    | Description                                                                                                                                              |
 | ------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `money`       | integer | Current dollars                                                                                                                                          |

@@ -1039,7 +1039,7 @@
           },
           "won": {
             "type": "boolean",
-            "description": "Whether the game has been won"
+            "description": "True after defeating the final Boss (Ante 8); remains true during endless mode and after endless death. Does not mean the current outcome is a win — use run_summary.result on GAME_OVER."
           },
           "victory_overlay": {
             "type": "boolean",
@@ -1193,7 +1193,7 @@
           },
           "result": {
             "type": "string",
-            "description": "Human-readable win/loss line from game UI"
+            "description": "Human-readable outcome: Victory on post-boss ROUND_EVAL; Lost to {blind} or Lost on GAME_OVER (including endless death when won is still true)"
           }
         },
         "required": [

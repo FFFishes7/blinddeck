@@ -28,7 +28,7 @@
 ---@field shop Area? Shop area (available during shop phase)
 ---@field vouchers Area? Vouchers area (available during shop phase)
 ---@field packs Area? Booster packs area (available during shop phase)
----@field won boolean? Whether the game has been won
+---@field won boolean? True after defeating final Boss; stays true in endless mode
 ---@field victory_overlay boolean? Victory screen visible; call endless to continue
 ---@field run RunCounters? Run-level counters for scoring (skips, deck size, …)
 ---@field run_summary RunSummary? Run statistics (GAME_OVER only)

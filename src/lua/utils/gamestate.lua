@@ -1269,6 +1269,17 @@ end
 ---Build human-readable game-over result line
 ---@return string
 local function extract_run_result()
+  if G.STATE == G.STATES.GAME_OVER then
+    local blind_name = G.GAME.blind and G.GAME.blind.name
+    if not blind_name and G.GAME.round_resets then
+      blind_name = G.GAME.round_resets.blind
+    end
+    if blind_name and blind_name ~= "" then
+      return "Lost to " .. blind_name
+    end
+    return "Lost"
+  end
+
   if G.GAME.won then
     return "Victory"
   end

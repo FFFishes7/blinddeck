@@ -905,6 +905,28 @@ def test_print_summary_game_over(capsys: pytest.CaptureFixture[str]) -> None:
     assert "actions: menu" in out
 
 
+def test_print_summary_game_over_endless_loss(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw = {
+        "state": "GAME_OVER",
+        "won": True,
+        "deck": "RED",
+        "stake": "WHITE",
+        "seed": "ABC",
+        "ante_num": 9,
+        "round_num": 25,
+        "run_summary": {
+            "best_hand": 50000,
+            "result": "Lost to Small Blind",
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "GAME_OVER: Lost to Small Blind" in out
+    assert "Victory" not in out
+
+
 def test_print_summary_error_envelope(capsys: pytest.CaptureFixture[str]) -> None:
     print_summary(
         {

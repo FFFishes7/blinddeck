@@ -429,8 +429,7 @@ def print_summary(envelope: dict[str, Any]) -> None:
         lines.append(_actions_line(envelope))
     elif name == "GAME_OVER":
         summary = state.get("run_summary") or {}
-        won = state.get("won")
-        result = summary.get("result") or ("Victory" if won else "Lost")
+        result = summary.get("result") or "Lost"
         lines.append(f"GAME_OVER: {result}")
         if summary.get("most_played_hand"):
             mp = summary["most_played_hand"]
