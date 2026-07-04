@@ -42,8 +42,9 @@ If any check fails → add to **Never model** below; leave `unmodeled`; **stop**
 
 ### 3. Test
 
-- [ ] Unit test in `tests/cli/test_play_helpers.py` (`pytest tests/cli/test_play_helpers.py -k estimate`).
-- [ ] Live check when possible: `$env:BALATROBOT_ALLOW_CHEATS=1` → `estimate` → `play` **same `idx`** → score must match.
+- [ ] Unit test in `tests/cli/test_play_helpers.py` (`python -m pytest tests/cli/test_play_helpers.py -k estimate`).
+- [ ] **Integration test** in `tests/lua/endpoints/test_estimate_live.py` — required for new/changed modeled jokers: real gamestate → `estimate(state)` → `play` same `indices` → `round.chips` delta must equal `score`. Unit tests alone are self-referential and do not count as verification.
+- [ ] Manual fallback when fixture cannot trigger the joker: `$env:BALATROBOT_ALLOW_CHEATS=1` → `estimate` → `play` **same `idx`** → log in live validation table.
 
 ### 4. Document (working tree)
 
@@ -111,9 +112,12 @@ that run.
 | `x_mult` | Multiplicative Mult in joker_main |
 | `seltzer_remaining` | Seltzer countdown |
 | `steel_tally` / `stone_tally` / `driver_tally` | Deck tallies |
+| `loyalty_every` / `loyalty_remaining` / `loyalty_x_mult` | Loyalty Card countdown |
 
 Run-level counters live on `gamestate.run`: `skips`, `deck_size`,
 `starting_deck_size`, `tarot_used`.
+
+Round scoring targets on `gamestate.round`: `ancient_suit`, `idol_rank`, `idol_suit`, `castle_suit`.
 
 `estimate.py` reads `stats` first; `value.effect` text parsing is fallback only.
 
@@ -171,6 +175,14 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_arrowhead` | +50 chips per Spade scored | Per-card |
 | `j_triboulet` | ×2 Mult per King or Queen scored | Per-card |
 | `j_sock_and_buskin` | +1 retrigger per face card scored | Retrigger |
+| `j_ancient` | ×1.5 Mult per played card matching `round.ancient_suit` | Per-card; needs `round.ancient_suit` |
+| `j_idol` | ×2 Mult on played card matching `round.idol_rank` + `round.idol_suit` | Per-card |
+| `j_loyalty_card` | ×4 Mult when `value.stats.loyalty_remaining == loyalty_every` | Global |
+| `j_drivers_license` | ×Mult from `value.stats.x_mult` when tally ≥ 16 | Global |
+| `j_square` / `j_runner` / `j_wee` | +chips from `stats` + in-hand growth (4 cards / Straight / each 2 scored) | Global |
+| `j_trousers` | +Mult from `stats` + 2 on Two Pair / Full House | Global |
+| `j_madness` / `j_vampire` | ×Mult from `stats` (+0.1 per enhanced scoring card for Vampire) | Global |
+| `j_blackboard` | Wild held cards count as ♠/♣ for the held-card check | Global |
 
 **Output fields**
 
@@ -185,7 +197,8 @@ Modeled as zero score impact so they do **not** appear in `unmodeled_jokers`:
 
 `j_midas_mask`, `j_delayed_grat`, `j_egg`, `j_gift`, `j_golden`, `j_flash`, `j_faceless`,
 `j_cartomancer`, `j_certificate`, `j_mail`, `j_ramen`, `j_ripple`, `j_hologram`,
-`j_trading`, `j_riff_raff`, `j_drunkard` (+discard slot only), `j_matador`, …
+`j_trading`, `j_riff_raff`, `j_drunkard` (+discard slot only), `j_matador`, `j_cloud_9`,
+`j_hiker`, `j_rough_gem`, `j_golden_ticket`, `j_business`, `j_reserved_parking`, …
 
 ---
 
@@ -209,15 +222,10 @@ Do not add closed-form estimates — keep **`unmodeled`**:
 
 ## TODO (deterministic, not yet ported)
 
-Candidates worth adding when needed — all are deterministic once conditions are read from state:
+*(none — add rows here when a joker needs new API fields)*
 
-| Key | Blocker / notes |
-| --- | --- |
-| `j_blackboard` wild cards | `is_suit(..., true)` — Wild counts as both; need wild flag in API |
-| `j_driver's_license` | Modeled when `value.stats.x_mult` set (tally ≥ 16) |
-| `j_ancient` | Needs `current_round.ancient_card.suit` in gamestate |
-| `j_idol` | Needs round idol card id+suit in gamestate |
-
+Integration tests: `tests/lua/endpoints/test_estimate_live.py` — `add joker` →
+`estimate(state)` → `play` same `indices` → `round.chips` delta must match.
 ---
 
 ## Scoring order (pipeline summary)

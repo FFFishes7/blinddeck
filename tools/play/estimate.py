@@ -155,6 +155,12 @@ NO_SCORE_JOKERS = {
     "j_riff_raff",
     "j_drunkard",
     "j_matador",
+    "j_cloud_9",
+    "j_hiker",
+    "j_rough_gem",
+    "j_golden_ticket",
+    "j_business",
+    "j_reserved_parking",
 }
 
 # Per-card joker bonus for ONE trigger of a scoring card.
@@ -264,6 +270,10 @@ def _stat_chips(joker: dict) -> int:
     stats = _joker_stats(joker)
     if "chips" in stats:
         return int(stats["chips"])
+    key = joker.get("key") or ""
+    # Growth jokers embed "+15" / "+8" in static descriptions — never parse those.
+    if key in EFFECT_CHIPS_JOKERS:
+        return 0
     return _parse_effect_chips(joker)
 
 
@@ -313,8 +323,62 @@ EFFECT_XMULT_JOKERS = frozenset(
         "j_lucky_cat",
         "j_hologram",
         "j_ramen",
+        "j_madness",
+        "j_vampire",
     }
 )
+
+# Hand types that satisfy growth conditions (game uses poker_hands flags; we mirror).
+_RUNNER_HAND_TYPES = frozenset({"Straight", "Straight Flush"})
+_TROUSERS_HAND_TYPES = frozenset({"Two Pair", "Full House", "Flush House"})
+
+
+def _blackboard_held_ok(card: dict) -> bool:
+    """Held card counts for Blackboard (Wild satisfies Spade/Club-only rule)."""
+    if card.get("enhancement") == "WILD":
+        return True
+    return card.get("suit") in {"S", "C"}
+
+
+def _scoring_enhanced_count(scoring_cards: list[dict]) -> int:
+    return sum(
+        1
+        for c in scoring_cards
+        if c.get("enhancement") not in (None, "", "BASE")
+    )
+
+
+def _project_chips_joker(joker: dict, key: str, ctx: dict) -> int:
+    """Chips from stats plus in-hand growth for Square / Runner / Wee."""
+    chips = _stat_chips(joker)
+    cards_played = ctx.get("cards_played", 5)
+    hand_type = ctx.get("hand_type") or ""
+    scoring = ctx.get("scoring_cards") or []
+    if key == "j_square" and cards_played == 4:
+        chips += 4
+    elif key == "j_runner" and hand_type in _RUNNER_HAND_TYPES:
+        chips += 15
+    elif key == "j_wee":
+        chips += 8 * sum(1 for c in scoring if c.get("rank") == "2")
+    return chips
+
+
+def _round_aware_card_xmult(card: dict, jokers: list[dict], ctx: dict) -> float:
+    """Per-card ×Mult from jokers that depend on round scoring targets."""
+    xmult = 1.0
+    for j in jokers:
+        key = j.get("key") or ""
+        if key == "j_ancient" and ctx.get("ancient_suit") and card.get("suit") == ctx["ancient_suit"]:
+            xmult *= 1.5
+        if (
+            key == "j_idol"
+            and ctx.get("idol_rank")
+            and ctx.get("idol_suit")
+            and card.get("rank") == ctx["idol_rank"]
+            and card.get("suit") == ctx["idol_suit"]
+        ):
+            xmult *= 2
+    return xmult
 
 
 def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
@@ -336,11 +400,16 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         return (0, 3 * ctx.get("joker_count", 0), 1)
     if key == "j_mystic_summit":
         return (0, 15 if ctx["discards_left"] == 0 else 0, 1)
+    if key == "j_trousers":
+        mult = _stat_mult(joker)
+        if hand_type in _TROUSERS_HAND_TYPES:
+            mult += 2
+        return (0, mult, 1) if mult > 0 else (0, 0, 1)
     if key == "j_swashbuckler" or key in EFFECT_MULT_JOKERS:
         return (0, _stat_mult(joker), 1)
     if key == "j_blackboard":
         held_cards = ctx.get("held_cards") or []
-        if held_cards and all(c.get("suit") in {"S", "C"} for c in held_cards):
+        if held_cards and all(_blackboard_held_ok(c) for c in held_cards):
             return (0, 0, 3)
         return (0, 0, 1)
     if key == "j_flower_pot":
@@ -350,6 +419,12 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         return (0, 0, 4) if ctx["hand_type"] == "Four of a Kind" else (0, 0, 1)
     if key in EFFECT_XMULT_JOKERS:
         xm = _stat_xmult(joker)
+        if key == "j_vampire":
+            base = xm if xm > 1.0 else 1.0
+            xm = base + 0.1 * _scoring_enhanced_count(ctx.get("scoring_cards") or [])
+            return (0, 0, xm) if xm > 1.0 else (0, 0, 1)
+        if key == "j_madness":
+            return (0, 0, xm) if xm > 1.0 else (0, 0, 1)
         if key == "j_steel_joker" and xm <= 1.0:
             return (0, 0, 1)
         if key == "j_throwback" and xm <= 1.0:
@@ -390,7 +465,8 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     if key == "j_bull":
         return (max(0, ctx.get("money", 0)) * 2, 0, 1)
     if key in EFFECT_CHIPS_JOKERS:
-        return (_stat_chips(joker), 0, 1)
+        chips = _project_chips_joker(joker, key, ctx)
+        return (chips, 0, 1) if chips > 0 else (0, 0, 1)
     if key == "j_stencil":
         limit = ctx.get("joker_limit", 0)
         count = ctx.get("joker_count", 0)
@@ -406,6 +482,16 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
             int(run.get("starting_deck_size", 52)) - int(run.get("deck_size", 52)),
         )
         return (0, 4 * missing, 1) if missing > 0 else (0, 0, 1)
+    if key == "j_drivers_license":
+        xm = _stat_xmult(joker)
+        return (0, 0, xm) if xm > 1.0 else (0, 0, 1)
+    if key == "j_loyalty_card":
+        stats = _joker_stats(joker)
+        every = int(stats.get("loyalty_every", 5))
+        remaining = stats.get("loyalty_remaining")
+        if remaining is not None and int(remaining) == every:
+            return (0, 0, float(stats.get("loyalty_x_mult", 4)))
+        return (0, 0, 1)
     return (0, 0, 1)
 
 
@@ -501,6 +587,10 @@ def _modeled(jokers: list[dict]) -> tuple[list[str], list[str]]:
             "j_raised_fist",
             "j_stencil",
             "j_erosion",
+            "j_ancient",
+            "j_idol",
+            "j_drivers_license",
+            "j_loyalty_card",
         }
         | EFFECT_MULT_JOKERS
         | EFFECT_CHIPS_JOKERS
@@ -626,6 +716,7 @@ def _card_trigger_chips_mult(
     card: dict,
     per_card_jokers: list,
     ctx: dict,
+    jokers: list[dict],
     *,
     photograph_x2: bool = False,
 ) -> tuple[int, int, float]:
@@ -660,6 +751,7 @@ def _card_trigger_chips_mult(
         chips += c_add
         mult += m_add
         xmult *= x
+    xmult *= _round_aware_card_xmult(card, jokers, ctx)
     if photograph_x2:
         xmult *= 2
     if card["debuff"]:
@@ -725,6 +817,7 @@ def _score_combo(
                 card,
                 per_card_fns,
                 ctx,
+                jokers,
                 photograph_x2=photograph_owned and i == first_face_scoring_idx,
             )
             chips += c_add
@@ -814,10 +907,68 @@ def _ctx(state: dict) -> dict:
         "boss_effect": blind.get("effect") or "",
         "hands_meta": _hands_meta(state),
         "run": state.get("run") or {},
+        "ancient_suit": r.get("ancient_suit"),
+        "idol_rank": r.get("idol_rank"),
+        "idol_suit": r.get("idol_suit"),
     }
 
 
 # --- top-level estimate -----------------------------------------------------
+
+
+def score_hand_indices(state: dict, hand_indices: list[int]) -> dict:
+    """Score one explicit play (indices into ``state.hand.cards``). For tests/tools."""
+    if state.get("state") != "SELECTING_HAND":
+        raise InvalidEstimateState(state.get("state") or "UNKNOWN")
+    hand_cards = (state.get("hand") or {}).get("cards") or []
+    parsed = []
+    for i, c in enumerate(hand_cards):
+        p = _parse_card(c)
+        if p is not None:
+            p["hand_index"] = i
+            parsed.append(p)
+    want = set(hand_indices)
+    combo_local = [i for i, p in enumerate(parsed) if p["hand_index"] in want]
+    if len(combo_local) != len(hand_indices):
+        raise ValueError(f"invalid or hidden hand indices: {hand_indices}")
+
+    jokers = (state.get("jokers") or {}).get("cards") or []
+    cfg = _retrigger_config(jokers)
+    ctx_base = {
+        **_ctx(state),
+        "joker_count": len(jokers),
+        "stencil_count": sum(1 for j in jokers if j.get("key") == "j_stencil"),
+    }
+    levels = _hand_levels(state)
+    dusk_now = cfg.get("dusk_owned", False) and ctx_base.get("hands_left") == 1
+
+    cards = [parsed[i] for i in combo_local]
+    hand_type, scoring_idx = _classify(cards)
+    level = levels.get(hand_type, {"chips": 0, "mult": 0, "level": 1})
+    combo_set = set(combo_local)
+    combo_ctx = {
+        **ctx_base,
+        "held_cards": [parsed[i] for i in range(len(parsed)) if i not in combo_set],
+    }
+    chips, mult, score = _score_combo(
+        cards,
+        scoring_idx,
+        hand_type,
+        level,
+        jokers,
+        cfg,
+        combo_ctx,
+        dusk_active=dusk_now,
+    )
+    return {
+        "hand_type": hand_type,
+        "indices": hand_indices,
+        "scoring_indices": [parsed[combo_local[i]]["hand_index"] for i in scoring_idx],
+        "chips": chips,
+        "mult": mult,
+        "score": score,
+        "level": level.get("level", 1),
+    }
 
 
 def estimate(state: dict) -> dict:

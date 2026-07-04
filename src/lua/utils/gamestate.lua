@@ -321,6 +321,18 @@ local function extract_joker_stats(card)
     if tally >= 16 and type(a.extra) == "number" then
       stats.x_mult = a.extra
     end
+  elseif name == "Loyalty Card" and type(a.extra) == "table" then
+    local every = a.extra.every
+    if type(every) == "number" then
+      stats.loyalty_every = every
+      if G and G.GAME then
+        local at_create = a.hands_played_at_create or 0
+        stats.loyalty_remaining = (every - 1 - (G.GAME.hands_played - at_create)) % (every + 1)
+      end
+      if type(a.extra.Xmult) == "number" then
+        stats.loyalty_x_mult = a.extra.Xmult
+      end
+    end
   end
 
   if next(stats) == nil then
@@ -597,6 +609,51 @@ end
 -- Round Info Extractor
 -- ==========================================================================
 
+---Round-scoring targets (Ancient Joker suit, The Idol rank+suit, …).
+---@return table<string, string>?
+local function extract_round_scoring_targets()
+  if not G or not G.GAME or not G.GAME.current_round then
+    return nil
+  end
+
+  local cr = G.GAME.current_round
+  local targets = {}
+
+  if cr.ancient_card and cr.ancient_card.suit then
+    local suit = convert_suit_to_enum(cr.ancient_card.suit)
+    if suit then
+      targets.ancient_suit = suit
+    end
+  end
+
+  if cr.idol_card then
+    if cr.idol_card.suit then
+      local suit = convert_suit_to_enum(cr.idol_card.suit)
+      if suit then
+        targets.idol_suit = suit
+      end
+    end
+    if cr.idol_card.rank then
+      local rank = convert_rank_to_enum(cr.idol_card.rank)
+      if rank then
+        targets.idol_rank = rank
+      end
+    end
+  end
+
+  if cr.castle_card and cr.castle_card.suit then
+    local suit = convert_suit_to_enum(cr.castle_card.suit)
+    if suit then
+      targets.castle_suit = suit
+    end
+  end
+
+  if next(targets) == nil then
+    return nil
+  end
+  return targets
+end
+
 ---Extracts round state information
 ---@return Round round The Round object
 local function extract_round_info()
@@ -629,6 +686,22 @@ local function extract_round_info()
   -- Chips is stored in G.GAME not G.GAME.current_round
   if G.GAME.chips then
     round.chips = G.GAME.chips
+  end
+
+  local targets = extract_round_scoring_targets()
+  if targets then
+    if targets.ancient_suit then
+      round.ancient_suit = targets.ancient_suit
+    end
+    if targets.idol_rank then
+      round.idol_rank = targets.idol_rank
+    end
+    if targets.idol_suit then
+      round.idol_suit = targets.idol_suit
+    end
+    if targets.castle_suit then
+      round.castle_suit = targets.castle_suit
+    end
   end
 
   return round

@@ -1238,6 +1238,22 @@
           "chips": {
             "type": "integer",
             "description": "Current chips scored in this round"
+          },
+          "ancient_suit": {
+            "$ref": "#/components/schemas/CardSuit",
+            "description": "Suit that triggers Ancient Joker this round"
+          },
+          "idol_rank": {
+            "$ref": "#/components/schemas/CardRank",
+            "description": "Rank that triggers The Idol this round"
+          },
+          "idol_suit": {
+            "$ref": "#/components/schemas/CardSuit",
+            "description": "Suit that triggers The Idol this round"
+          },
+          "castle_suit": {
+            "$ref": "#/components/schemas/CardSuit",
+            "description": "Suit that Castle Joker gains chips from when discarded"
           }
         }
       },
@@ -1421,6 +1437,18 @@
           "driver_tally": {
             "type": "integer",
             "description": "Modified cards in deck (Driver's License)"
+          },
+          "loyalty_every": {
+            "type": "integer",
+            "description": "Loyalty Card hands between ×Mult procs"
+          },
+          "loyalty_remaining": {
+            "type": "integer",
+            "description": "Loyalty Card countdown until next ×Mult proc"
+          },
+          "loyalty_x_mult": {
+            "type": "number",
+            "description": "Loyalty Card ×Mult when countdown hits every"
           }
         }
       },

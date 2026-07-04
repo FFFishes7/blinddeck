@@ -58,6 +58,10 @@
 ---@field discards_used integer? Number of discards used in this round
 ---@field reroll_cost integer? Current cost to reroll the shop
 ---@field chips integer? Current chips scored in this round
+---@field ancient_suit Card.Value.Suit? Suit scored by Ancient Joker this round (changes end of round)
+---@field idol_rank Card.Value.Rank? Rank scored by The Idol this round
+---@field idol_suit Card.Value.Suit? Suit scored by The Idol this round
+---@field castle_suit Card.Value.Suit? Suit that Castle gains chips from when discarded
 
 ---@class Blind
 ---@field type Blind.Type Type of the blind

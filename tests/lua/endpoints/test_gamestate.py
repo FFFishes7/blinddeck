@@ -910,6 +910,22 @@ class TestGamestateJokerStats:
         assert "starting_deck_size" in run
         assert run["starting_deck_size"] >= run["deck_size"]
 
+    def test_round_scoring_targets_on_active_run(self, client: httpx.Client) -> None:
+        gamestate = load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        rnd = gamestate["round"]
+        assert rnd.get("ancient_suit") in {"H", "D", "C", "S"}
+        assert rnd.get("idol_rank") in {"A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"}
+        assert rnd.get("idol_suit") in {"H", "D", "C", "S"}
+
+    def test_loyalty_card_exposes_loyalty_stats(self, client: httpx.Client) -> None:
+        load_fixture(client, "gamestate", "state-SELECTING_HAND")
+        response = api(client, "add", {"key": "j_loyalty_card"})
+        joker = response["result"]["jokers"]["cards"][-1]
+        stats = joker["value"]["stats"]
+        assert stats["loyalty_every"] == 5
+        assert "loyalty_remaining" in stats
+        assert stats["loyalty_x_mult"] == 4
+
 
 class TestGamestateCardModifiers:
     """Test gamestate card modifiers."""
