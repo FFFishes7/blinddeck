@@ -1,4 +1,4 @@
-"""Personal Balatro play setup with API and helpers."""
+"""BlindDeck — Balatro play desk with API and helpers."""
 
 from balatrobot.cli.client import APIError, BalatroClient
 from balatrobot.config import Config

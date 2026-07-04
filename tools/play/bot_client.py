@@ -1,4 +1,4 @@
-"""Shared fast HTTP client for BalatroBot JSON-RPC API.
+"""Shared fast HTTP client for BlindDeck JSON-RPC API.
 
 All play/helper scripts should import ``rpc`` from here instead of spawning
 subprocesses or duplicating httpx calls. The server accepts one request at a

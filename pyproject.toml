@@ -1,9 +1,14 @@
 [project]
 name = "balatrobot"
 version = "1.5.2"
-description = "Personal Balatro play setup with API and helpers"
+description = "BlindDeck — Balatro play desk with API and helpers"
 readme = "README.md"
 authors = [
+  { name = "S1M0N38" },
+  { name = "stirby" },
+  { name = "phughesion" },
+  { name = "besteon" },
+  { name = "giewev" },
   { name = "FFFishes7", email = "es_fish@outlook.com" },
 ]
 requires-python = ">=3.13"
@@ -19,9 +24,9 @@ classifiers = [
 balatrobot = "balatrobot.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/FFFishes7/balatrobot"
-Issues = "https://github.com/FFFishes7/balatrobot/issues"
-Repository = "https://github.com/FFFishes7/balatrobot"
+Homepage = "https://github.com/FFFishes7/blinddeck"
+Issues = "https://github.com/FFFishes7/blinddeck/issues"
+Repository = "https://github.com/FFFishes7/blinddeck"
 
 [build-system]
 requires = ["hatchling"]
@@ -63,6 +68,6 @@ dev = [
   "mdformat-gfm-alerts>=2.0.0",
   "mdformat-mkdocs>=5.1.1",
   "mdformat-simple-breaks>=0.0.1",
-  "ruff>=0.14.10",
+  "ruff>=0.15.20",
   "ty>=0.0.9",
 ]

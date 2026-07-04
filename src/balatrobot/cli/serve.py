@@ -1,4 +1,4 @@
-"""Serve command - Start Balatro with BalatroBot mod loaded."""
+"""Serve command - Start Balatro with BlindDeck mod loaded."""
 
 import asyncio
 from typing import Annotated
@@ -62,7 +62,7 @@ def serve(
     ] = None,
     # fmt: on
 ) -> None:
-    """Start Balatro with BalatroBot mod loaded."""
+    """Start Balatro with BlindDeck mod loaded."""
     # Validate platform choice
     if platform is not None and platform not in PLATFORM_CHOICES:
         typer.echo(

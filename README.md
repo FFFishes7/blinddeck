@@ -1,29 +1,37 @@
 <div align="center">
-  <h1>BalatroBot</h1>
-  <div><img src="./docs/assets/balatrobot.svg" alt="balatrobot" width="170" height="170"></div>
-  <p><em>Personal Balatro play setup with API and helpers</em></p>
+  <h1>BlindDeck</h1>
+  <div><img src="./docs/assets/balatrobot.svg" alt="BlindDeck" width="170" height="170"></div>
+  <p><em>Balatro play desk — API, glance, and verified knowledge</em></p>
 </div>
 
 ---
 
-This repository is my personal setup for playing Balatro locally. It builds on [BalatroBot](https://github.com/coder/balatrobot)—a mod that exposes game state and controls through a JSON-RPC HTTP API—and adds a few things I wanted for everyday play: helper scripts, a knowledge library, and some small API tweaks.
+**BlindDeck** is a Balatro play desk: a Steamodded mod, JSON-RPC HTTP API, and command-line helpers for reading run state and taking one action at a time—whether you play yourself or delegate to an agent.
 
-## About This Fork
+BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (game-state API and launcher) with play helpers, a verified knowledge library, and additional API surface (e.g. `sort`, hidden-card masking, `reroll_boss`).
 
-The core of this repo—the Lua mod, Python CLI, API, and tests—comes from the BalatroBot projects linked below. I forked [`coder/balatrobot`](https://github.com/coder/balatrobot) (MIT) for my own games and kept the original history and credit in place.
+## Documentation
 
-On top of that foundation, my changes are mostly personal:
+| Document                                         | Audience              | Contents                                    |
+| ------------------------------------------------ | --------------------- | ------------------------------------------- |
+| [**PLAY.md**](PLAY.md)                           | Players and AI agents | Core loop, commands, pitfalls, strategy     |
+| [**tools/play/README.md**](tools/play/README.md) | Play-helper users     | `bot.ps1` commands, glance output, `--json` |
+| [**docs/api.md**](docs/api.md)                   | Integrators           | JSON-RPC methods, schemas, errors           |
+| [**docs/OVERVIEW.md**](docs/OVERVIEW.md)         | Developers            | Architecture map and doc index              |
+| [**docs/cli.md**](docs/cli.md)                   | Operators             | `balatrobot serve` / `api`, env vars, paths |
 
-- `tools/play/` — `bot.ps1` wrappers: compact `glance` state view, `estimate` score helper, friendly action subcommands, and RPC helpers for manual / LLM-assisted play
-- `knowledge/balatro/` — source-backed fact tables for `know.py`
-- a handful of API and gamestate improvements I hit while playing (e.g. `sort`, hidden-card masking)
-- docs and CI trimmed to match how I actually use the repo
+## Features
 
-If you are looking for the main BalatroBot project, releases, or the wider community, [`coder/balatrobot`](https://github.com/coder/balatrobot) is the place to start. This copy is just my working tree.
+- **`bot.ps1 glance`** — compact multi-line state summary and an `actions:` line for valid next commands
+- **`bot.ps1 know`** — source-backed joker, boss, tag, stake, and rule lookups (`preflight` before big decisions)
+- **`bot.ps1 query`** — detail queries (hand levels, deck, blinds, vouchers, seed) as tables or JSON
+- **Friendly actions** — `play`, `select`, `buy`, `pack`, … without PowerShell JSON quoting
+- **JSON-RPC API** — full game control for scripts; OpenRPC spec in `src/lua/utils/openrpc.json`
+- **Boss reroll** — `reroll_boss` when Director's Cut or Retcon is owned (see [PLAY.md](PLAY.md))
 
-## Local Play
+## Quick start (Windows)
 
-This is the workflow I use on Windows. Two parts: get the mod into Balatro once, then launch the game and talk to it with the helper scripts.
+Two steps: install the mod once, then launch the game and use the helpers.
 
 ### 1. One-time setup
 
@@ -33,7 +41,7 @@ This is the workflow I use on Windows. Two parts: get the mod into Balatro once,
 
 2. Install [Steamodded](https://github.com/Steamodded/smods/wiki) — put `smods` under `%AppData%\Balatro\Mods\`.
 
-3. Put this repo under `%AppData%\Balatro\Mods\balatrobot\`. For development, a symlink works well:
+3. Put this repository under `%AppData%\Balatro\Mods\balatrobot\`. For development, a symlink works well:
 
     ```powershell
     New-Item -ItemType SymbolicLink -Path "$env:APPDATA\Balatro\Mods\balatrobot" -Target (Get-Location)
@@ -41,9 +49,11 @@ This is the workflow I use on Windows. Two parts: get the mod into Balatro once,
 
     (Run PowerShell as Administrator if the symlink command fails.)
 
-**In this repo**
+    The mod directory name remains `balatrobot` (SMODS mod id); the in-game mod title is **BlindDeck**.
 
-1. Install dependencies — creates `.venv` with the `balatrobot` CLI and play-helper Python packages:
+**In this repository**
+
+1. Install dependencies — creates `.venv` with the `balatrobot` CLI and play-helper packages:
 
     ```powershell
     make install
@@ -63,47 +73,44 @@ For platform-specific paths (macOS / Linux Proton / native Love) and CLI flags, 
 
 ### 2. Launch Balatro (GUI + API)
 
-From the repo root:
+From the repository root:
 
 ```powershell
 .\tools\play\serve.ps1
 ```
 
-What this does:
-
-- Sets `BALATROBOT_BALATRO_PATH`, `BALATROBOT_LOVE_PATH`, and `BALATROBOT_LOVELY_PATH` for the current terminal session from your Balatro install directory.
-- Runs `.venv\Scripts\balatrobot.exe serve`, which starts `Balatro.exe` with the mod loaded.
-- Starts the JSON-RPC HTTP server on `http://127.0.0.1:12346` (default).
+This sets session env vars for Balatro paths, runs `balatrobot serve` to start the game with the mod, and exposes JSON-RPC on `http://127.0.0.1:12346` (default).
 
 Useful flags: `.\tools\play\serve.ps1 --fast --debug`
 
-Leave this terminal open while you play. You do not need to set those env vars in Windows system settings — `serve.ps1` handles them each time.
+Leave this terminal open while you play.
 
-### 3. Use the play helpers
+### 3. Play
 
-In a **second terminal**, with the game still running:
+In a **second terminal**, with the game running:
 
 ```powershell
-.\tools\play\bot.ps1 glance              # compact state summary (use constantly)
-.\tools\play\bot.ps1 query hands         # real base chips/mult per hand type
-# optional: .\tools\play\bot.ps1 estimate   # partial score model (not recommended for play)
-.\tools\play\bot.ps1 select              # friendly action subcommands (no JSON quoting)
+.\tools\play\bot.ps1 glance              # compact state summary (use every turn)
+.\tools\play\bot.ps1 query hands         # hand-type chips/mult for scoring
+.\tools\play\bot.ps1 select              # friendly actions (no JSON quoting)
 .\tools\play\bot.ps1 play 0 1 2 3 4
-.\tools\play\bot.ps1 save saves\myrun.jkr   # checkpoint the current run
-.\tools\play\bot.ps1 help                # state-aware command list
+.\tools\play\bot.ps1 save saves\myrun.jkr
+.\tools\play\bot.ps1 help
 ```
 
-`bot.ps1` calls the running API through `.venv\Scripts\python.exe`. Prefer the **friendly subcommands** (`glance`, `play`, `select`, `buy`, …) — they avoid PowerShell JSON quoting issues. `estimate` exists but is **optional and not recommended** for normal play (see `PLAY.md`). Use `state` / `exec` only for advanced or scripted use.
+`bot.ps1` calls the API via `.venv\Scripts\python.exe`. Prefer **friendly subcommands** (`glance`, `play`, `select`, `buy`, …). `estimate` is optional and not recommended for normal play — see [PLAY.md](PLAY.md). Use `state` / `exec` for scripting.
 
-**For AI agents playing a full run:** read [`PLAY.md`](PLAY.md) — loop, state→command table, pitfalls, and strategy. Helper details: [`tools/play/README.md`](tools/play/README.md).
+**AI agents:** follow [PLAY.md](PLAY.md) for the full loop, command table, and pitfalls.
 
-If you see connection errors, check that `serve.ps1` is still running and the game finished loading.
+If connection fails, confirm `serve.ps1` is still running and the game finished loading.
 
 ## Acknowledgments
 
-Thanks to everyone who built BalatroBot before this fork:
+BlindDeck is a fork of [BalatroBot](https://github.com/coder/balatrobot). The mod, JSON-RPC API, and Python launcher were created by the BalatroBot authors; this repo adds play helpers, knowledge lookups, and extensions.
+
+Thanks to:
 
 - [coder/balatrobot](https://github.com/coder/balatrobot) — [@S1M0N38](https://github.com/S1M0N38), [@stirby](https://github.com/stirby), and contributors
 - [besteon/balatrobot](https://github.com/besteon/balatrobot) — [@phughesion](https://github.com/phughesion), [@besteon](https://github.com/besteon), [@giewev](https://github.com/giewev)
 
-Their work on the mod, API, and botting framework is what makes this repo possible.
+BlindDeck is maintained by [@FFFishes7](https://github.com/FFFishes7).

@@ -1,9 +1,13 @@
 # Play Helpers
 
-Two interfaces on top of the BalatroBot JSON-RPC API:
+Command-line helpers on top of the BlindDeck JSON-RPC API.
 
-- **Friendly subcommands** (default) — positional args, no JSON to quote.
-- **JSON envelope** (`state` / `exec` / `query` / `know`) — machine-readable, for advanced use.
+## Two command styles
+
+- **Compact commands** (default) — positional args (`glance`, `play 0 1 2 3 4`, `select`). No JSON quoting.
+- **JSON commands** — `state`, `exec`, `query … --json`, `know … --json` for structured output and scripting.
+
+See [PLAY.md](../../PLAY.md#three-ways-to-read-state) for when to use compact summaries, detail queries, full JSON state, and knowledge lookups.
 
 ## Workflow
 
@@ -11,17 +15,17 @@ Two interfaces on top of the BalatroBot JSON-RPC API:
 2. **Launch:** `.\tools\play\serve.ps1` — starts Balatro with the mod and the API on port 12346.
 3. **Play:** in another terminal, use `.\tools\play\bot.ps1 ...`.
 
-See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md) for the full play guide.
+See the root [README](../../README.md#quick-start-windows) and [`PLAY.md`](../../PLAY.md) for the full play guide.
 
 ## Commands
 
 ```powershell
-.\tools\play\bot.ps1 glance              # compact multi-line state summary
+.\tools\play\bot.ps1 glance              # compact summary (default state read)
 .\tools\play\bot.ps1 estimate            # top playable hands + score estimate
-.\tools\play\bot.ps1 state               # full JSON envelope
+.\tools\play\bot.ps1 state               # full JSON state + actions + queries
 .\tools\play\bot.ps1 know preflight      # verified joker/boss/stake/tag facts (table; --json for raw)
-.\tools\play\bot.ps1 query hands         # poker hand level table (base chips/mult)
-.\tools\play\bot.ps1 query blinds        # three-blind summary (table; --json for raw)
+.\tools\play\bot.ps1 query hands         # detail query: poker hand level table
+.\tools\play\bot.ps1 query blinds        # detail query: three-blind summary
 .\tools\play\bot.ps1 help                # state-aware command list
 ```
 
@@ -68,7 +72,7 @@ See the root [README](../../README.md#local-play) and [`PLAY.md`](../../PLAY.md)
 
 ### Friendly action subcommands
 
-No JSON, no quoting — `bot.ps1` forwards these to `act.py`, which parses positional args via `commands.build_params` and prints the new state as a compact summary. Append `--json` to any of them to print the raw envelope instead.
+No JSON, no quoting — `bot.ps1` forwards these to `act.py`, which parses positional args via `commands.build_params` and prints a compact summary. Append `--json` for full JSON state instead.
 
 | Command                        | Args                                   | Notes                                                                                             |
 | ------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -146,7 +150,7 @@ Anything else → `unmodeled` (treat score as lower bound only).
 ### JSON / advanced
 
 ```powershell
-.\tools\play\bot.ps1 state                       # full play envelope (gamestate + actions + queries)
+.\tools\play\bot.ps1 state                       # full JSON state (gamestate + actions + queries)
 .\tools\play\bot.ps1 exec '{\"command\":\"play\",\"params\":{\"cards\":[0,1,2,3,4]}}'
 .\tools\play\bot.ps1 query deck | query hands | query blinds | query used_vouchers | query seed
 ```
@@ -158,35 +162,34 @@ Anything else → `unmodeled` (treat score as lower bound only).
 
 ## AI loop
 
-1. `glance` → compact state + `actions:` line (valid next commands)
+1. `glance` → compact summary + `actions:` line (valid next commands)
 2. `know preflight` → verified joker/boss/stake/tag effects (before non-trivial decisions)
 3. (optional) `query hands` / `query deck` / … — **use `query hands` for scoring math**
-4. friendly action subcommand → prints the new compact state automatically
+4. friendly action subcommand → prints the new compact summary automatically
 5. Repeat until `state == GAME_OVER`, then `menu` + `start`
 
 *(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
 
 Every `glance` / action output ends with an `actions:` line listing **command
-names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or the play guide for argument syntax.
-and truncated if very long. The full envelope (from `state` /
-`exec` / `<action> --json`) includes an `actions[]` array with `example`
-payloads for each.
+names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or [PLAY.md](../../PLAY.md) for argument syntax.
+
+For full JSON state (`state`, `exec`, or `<action> --json`), the same commands appear in an `actions[]` array with `example` payloads for each.
 
 ## Files
 
 - `bot.ps1` — entry point (`glance` / `estimate` / `state` / `query` / `know` / `exec` / `help` + friendly action subcommands)
 - `view.py` — compact summary formatter + `glance` command (`card_label`, `print_summary`)
-- `act.py` — friendly action dispatcher (`build_params` → `execute` → compact summary, `--json` for envelope)
+- `act.py` — friendly action dispatcher (`build_params` → `execute` → compact summary, `--json` for full state)
 - `estimate.py` — score estimator CLI + pipeline (`estimate` command)
 - `estimate_jokers.py` — joker registry and scoring effects (add new jokers here)
 - `estimate_constants.py` — rank/chip tables shared by classifier and jokers
 - `estimate_registry.md` — modeled / no-op / never-RNG joker list + source refs
-- `state.py` — full JSON gamestate envelope
-- `query.py` — Layer 2 queries (table output by default; `--json` for raw)
-- `exec.py` — raw JSON-RPC action, returns envelope
+- `state.py` — full JSON gamestate for `state` command
+- `query.py` — detail queries (table by default; `--json` for raw)
+- `exec.py` — raw JSON-RPC action, returns full state envelope
 - `know.py` — knowledge base lookups (preflight table by default; `--json` for raw)
 - `commands.py` — friendly-command → RPC params parser
 - `cheats.py` — gated `add`/`set`/`debuff` parsers (requires `BALATROBOT_ALLOW_CHEATS=1`)
 - `actions.py` — state-aware action list builder
-- `layers.py`, `envelope.py`, `start_options.py`, `bot_client.py` — core logic
+- `layers.py`, `envelope.py`, `start_options.py`, `bot_client.py` — core logic (internal; user docs say compact summary / detail queries)
 - `serve.example.ps1` — copy to `serve.ps1` and set your Balatro Steam path (`serve.ps1` is gitignored)

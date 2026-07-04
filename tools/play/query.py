@@ -1,7 +1,7 @@
-"""Layer-2 query commands.
+"""Detail query commands (`query hands`, `query deck`, …).
 
-Default output is a compact human/AI-readable table for the common queries
-(``hands``, ``blinds``); other queries and ``--json`` print the raw envelope.
+Default output is a compact table for common queries; `--json` returns structured data.
+User docs: detail queries — see PLAY.md § Command reference.
 """
 
 from __future__ import annotations

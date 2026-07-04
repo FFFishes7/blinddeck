@@ -1,4 +1,4 @@
-"""CLI entry point for BalatroBot."""
+"""CLI entry point for BlindDeck."""
 
 import typer
 
@@ -7,7 +7,7 @@ from balatrobot.cli.serve import serve
 
 app = typer.Typer(
     name="balatrobot",
-    help="BalatroBot - personal Balatro play setup with API and helpers",
+    help="BlindDeck — Balatro play desk with API and helpers",
     no_args_is_help=True,
 )
 

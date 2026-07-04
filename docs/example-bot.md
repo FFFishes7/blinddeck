@@ -14,11 +14,11 @@ A minimal Python example that plays Balatro using the local JSON-RPC API.
 
 import requests
 
-# BalatroBot API endpoint
+# BlindDeck API endpoint
 URL = "http://127.0.0.1:12346"
 
 def rpc(method: str, params: dict = {}) -> dict:
-    """Send a JSON-RPC 2.0 request to the BalatroBot API."""
+    """Send a JSON-RPC 2.0 request to the BlindDeck API."""
     response = requests.post(URL, json={
         "jsonrpc": "2.0",
         "method": method,

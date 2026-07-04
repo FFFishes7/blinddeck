@@ -1,4 +1,4 @@
-"""Configuration dataclass for BalatroBot launcher."""
+"""Configuration dataclass for BlindDeck launcher."""
 
 import os
 from dataclasses import dataclass
@@ -52,7 +52,7 @@ def _parse_env_value(field: str, value: str) -> str | int | bool:
 
 @dataclass
 class Config:
-    """Configuration for BalatroBot launcher."""
+    """Configuration for BlindDeck launcher."""
 
     # HTTP
     host: str = "127.0.0.1"

@@ -1,4 +1,4 @@
-# Example GUI launcher for BalatroBot (Windows).
+# Example GUI launcher for BlindDeck (Windows).
 # Copy to serve.ps1, set $BalatroDir (or BALATROBOT_GAME_DIR), keep serve.ps1 untracked.
 # Sets BALATROBOT_BALATRO_PATH / LOVE_PATH / LOVELY_PATH for this session, then runs balatrobot serve.
 param(

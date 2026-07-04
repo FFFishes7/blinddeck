@@ -1,4 +1,8 @@
-"""Layer 1/L2/L3 filtering and transition polling for Play Helper."""
+"""State filtering, detail-query registry, and transition polling for play helpers.
+
+User-facing docs call these: compact summary (filtered gamestate), detail queries,
+full JSON state. Internal names: filter_layer1, RUN_QUERIES.
+"""
 
 from __future__ import annotations
 

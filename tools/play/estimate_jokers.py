@@ -331,8 +331,9 @@ def _seeing_double_active(scoring_cards: list[dict], ctx: dict) -> bool:
     return _suit_assignment_possible(
         scoring_cards,
         ctx,
-        lambda assigned: "C" in assigned
-        and any(s in assigned for s in ("H", "D", "S")),
+        lambda assigned: (
+            "C" in assigned and any(s in assigned for s in ("H", "D", "S"))
+        ),
     )
 
 

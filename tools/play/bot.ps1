@@ -1,4 +1,4 @@
-# Convenience wrapper for BalatroBot Play Helper.
+# Convenience wrapper for BlindDeck play helpers.
 # Friendly action subcommands (no JSON quoting needed):
 #   .\bot.ps1 glance                      # compact state summary
 #   .\bot.ps1 estimate                    # top playable hands + score estimate
@@ -13,7 +13,7 @@
 #   .\bot.ps1 add joker j_dusk | add card D_4 enhancement=MULT | set hands 1 chips 0 | debuff 0
 # JSON / advanced:
 #   .\bot.ps1 state                       # full JSON envelope
-#   .\bot.ps1 query deck                  # Layer-2 query
+#   .\bot.ps1 query deck                  # detail query (deck, hands, blinds, …)
 #   .\bot.ps1 know preflight              # verified facts
 #   .\bot.ps1 exec '{\"command\":\"play\",\"params\":{\"cards\":[0,1,2,3,4]}}'
 #   .\bot.ps1 help

@@ -1,5 +1,5 @@
 --[[
-  Error definitions for BalatroBot API.
+  Error definitions for BlindDeck API.
   Type aliases defined in types.lua.
 ]]
 

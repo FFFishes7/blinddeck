@@ -6,7 +6,7 @@ Single-file map of the whole project: what it is, how the pieces connect, and wh
 
 ## 1. What This Project Is
 
-A personal setup for letting an AI (Cursor / Codex) play Balatro autonomously while you watch.
+**BlindDeck** is a Balatro play desk: a mod and JSON-RPC API plus command-line helpers for reading run state and issuing actions—designed for human play, agent-assisted play, and automation.
 
 | Role              | Who                                          |
 | ----------------- | -------------------------------------------- |
@@ -69,17 +69,17 @@ balatrobot/
 
 ## 4. Where to Read What
 
-| Topic                                                                                     | Document                                                                   |
-| ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| **Playing a run** (loop, state→endpoint table, trace, pitfalls, strategy)                 | [`PLAY.md`](../PLAY.md)                                                    |
-| **Installing / launching** (one-time setup, `serve.ps1`)                                  | [`README.md`](../README.md)                                                |
-| **AI dev guidance** (make rules, architecture summary, play quick-start inline)           | [`AGENTS.md`](../AGENTS.md)                                                |
-| **API reference** (every method, params, schemas, enums, errors)                          | [`api.md`](api.md)                                                         |
-| **CLI reference** (all `serve` flags, env vars, platform paths, troubleshooting)          | [`cli.md`](cli.md)                                                         |
-| **Contributing / dev setup** (direnv, Lua LSP, adding an endpoint, tests, CI, PR rules)   | [`contributing.md`](contributing.md)                                       |
-| **Play helpers** (`bot.ps1` commands, layers, envelope)                                   | [`../tools/play/README.md`](../tools/play/README.md)                       |
-| **Estimate scoring model** (joker registry, live-test checklist)                          | [`../tools/play/estimate_registry.md`](../tools/play/estimate_registry.md) |
-| **Knowledge library** (verified joker/boss/tag/tarot/planet/voucher/spectral/rule tables) | [`../knowledge/balatro/README.md`](../knowledge/balatro/README.md)         |
+| Topic                                                                                                        | Document                                                                   |
+| ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| **Playing a run** (loop, state→command table, [command reference](../PLAY.md#6-command-reference), pitfalls) | [`PLAY.md`](../PLAY.md)                                                    |
+| **Installing / launching** (one-time setup, `serve.ps1`)                                                     | [`README.md`](../README.md)                                                |
+| **AI dev guidance** (make rules, architecture summary, play quick-start inline)                              | [`AGENTS.md`](../AGENTS.md)                                                |
+| **API reference** (every method, params, schemas, enums, errors)                                             | [`api.md`](api.md)                                                         |
+| **CLI reference** (all `serve` flags, env vars, platform paths, troubleshooting)                             | [`cli.md`](cli.md)                                                         |
+| **Contributing / dev setup** (direnv, Lua LSP, adding an endpoint, tests, CI, PR rules)                      | [`contributing.md`](contributing.md)                                       |
+| **Play helpers** (`bot.ps1` commands, compact summary vs detail queries vs JSON)                             | [`../tools/play/README.md`](../tools/play/README.md)                       |
+| **Estimate scoring model** (joker registry, live-test checklist)                                             | [`../tools/play/estimate_registry.md`](../tools/play/estimate_registry.md) |
+| **Knowledge library** (verified joker/boss/tag/tarot/planet/voucher/spectral/rule tables)                    | [`../knowledge/balatro/README.md`](../knowledge/balatro/README.md)         |
 
 ---
 

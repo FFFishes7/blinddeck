@@ -1,6 +1,6 @@
 # Contributing
 
-Guide for working on this personal Balatro play repository.
+Guide for contributing to **BlindDeck**.
 
 ## Prerequisites
 
@@ -90,7 +90,7 @@ The `.luarc.json` file should be placed at the root of the balatrobot repository
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/FFFishes7/balatrobot.git
+git clone https://github.com/FFFishes7/blinddeck.git
 cd balatrobot
 ```
 

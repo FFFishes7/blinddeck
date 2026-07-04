@@ -1,6 +1,6 @@
 # CLI Reference
 
-Command-line interface for this personal Balatro play setup.
+Command-line interface for **BlindDeck** (`balatrobot` CLI).
 
 ## Usage
 
@@ -12,14 +12,14 @@ uvx balatrobot serve [OPTIONS]
 uvx balatrobot api METHOD [PARAMS] [OPTIONS]
 ```
 
-BalatroBot provides two commands:
+BlindDeck provides two commands:
 
-- **serve** - Start Balatro with the BalatroBot mod loaded
+- **serve** - Start Balatro with the BlindDeck mod loaded
 - **api** - Call API endpoints on a running server
 
 ## serve Command
 
-Start Balatro with the BalatroBot mod loaded and API server running.
+Start Balatro with the BlindDeck mod loaded and API server running.
 
 ```bash
 uvx balatrobot serve [OPTIONS]
@@ -59,7 +59,7 @@ All options can be set via CLI flags or environment variables. CLI flags overrid
 
 ## api Command
 
-Call an API endpoint on a running BalatroBot server. Returns JSON response to stdout.
+Call an API endpoint on a running BlindDeck server. Returns JSON response to stdout.
 
 ```bash
 uvx balatrobot api METHOD [PARAMS] [OPTIONS]

@@ -1,5 +1,5 @@
 --[[
-  Logger utilities for BalatroBot
+  Logger utilities for BlindDeck
   Provides helpers for consistent, readable log output
 ]]
 

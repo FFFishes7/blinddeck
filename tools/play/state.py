@@ -1,4 +1,4 @@
-"""Fetch Layer-1 gamestate envelope."""
+"""Fetch full JSON gamestate for the `state` command (user docs: full JSON state)."""
 
 from __future__ import annotations
 

@@ -1,8 +1,14 @@
-# Playing Balatro — Quick Guide for AI Agents
+# Playing Balatro with BlindDeck — Quick Guide for AI Agents
 
 You are the player. The game runs on `127.0.0.1:12346` and exposes a JSON-RPC 2.0 API. You call endpoints; the game responds with the new state. This file tells you everything you need to run a full game without reading any source.
 
-For the repo overview and development workflow, see `AGENTS.md` and `docs/OVERVIEW.md`.
+**Read this if…**
+
+- **Playing a run** (human or agent) — follow the core loop and [Command reference](#6-command-reference) below.
+- **Writing a script** against the API — use `bot.ps1 state` or `--json`; see [docs/api.md](docs/api.md).
+- **Changing the mod or helpers** — see [AGENTS.md](AGENTS.md) and [docs/OVERVIEW.md](docs/OVERVIEW.md).
+
+For installation and launch, see [README.md](README.md). Command details: [tools/play/README.md](tools/play/README.md).
 
 ---
 
@@ -49,18 +55,31 @@ repeat:
   1. bot.ps1 glance                    ← compact state summary (state, blinds, hand, jokers, actions)
   2. (optional, not recommended) bot.ps1 estimate  ← score helper; incomplete joker model — prefer reasoning + query hands
   3. (optional) bot.ps1 know preflight ← verify joker/boss/tag effects before deciding
-  4. bot.ps1 <action> [args]           ← see §2 friendly-command table
+  4. bot.ps1 <action> [args]           ← see [State → command table](#2-state--friendly-command-table)
   5. read the printed compact summary  ← the action prints the new state automatically
 until state == GAME_OVER
 ```
 
 After `GAME_OVER`: `bot.ps1 menu`, then `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`).
 
+### Three ways to read state
+
+| Kind | Commands | Output | When to use |
+| ---- | -------- | ------ | ----------- |
+| **Compact summary** | `glance`, any action (default) | Multi-line text + `actions:` | Every turn — default |
+| **Detail queries** | `query hands`, `query deck`, `query blinds`, `query used_vouchers`, `query seed` | Table (default) or JSON (`--json`) | Scoring math, deck tracking, extra blind/voucher detail |
+| **Full state (JSON)** | `state`, any action with `--json` | JSON: `gamestate`, `actions`, optional `queries` | Scripting / structured parsing |
+| **Knowledge lookups** | `know preflight`, `know check …` | Verified joker/boss/tag/rule tables | Before non-trivial decisions |
+
+**Rule of thumb:** `glance` first; use `query hands` for score math; use `state --json` only when you need machine-readable structure.
+
 ### The `actions:` line is your navigation
 
 Every `glance` and action output ends with an `actions:` line listing valid
-command names for the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). The full JSON envelope (from `bot.ps1 state`, `bot.ps1 exec ...`, or any action with `--json`) includes an `actions[]` array where each entry
-has a ready-to-use `example` payload with concrete indices when applicable.
+command names for the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`).
+
+For full JSON state (`bot.ps1 state`, `bot.ps1 exec ...`, or any action with `--json`), the same commands appear in an `actions[]` array; each entry includes a ready-to-use `example` payload with concrete indices when applicable.
+
 When you don't know what to do, read `actions:`.
 
 ### What `glance` shows you (so you rarely need `state`)
@@ -169,12 +188,12 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 
 - **0-based indices.** First hand card is `0`. `play 0 1 2 3 4` plays the first five.
 - **One request at a time.** The server is single-client, serial. Wait for each response before sending the next.
-- **PowerShell eats JSON quotes.** Never call `bot.ps1 exec '{"command":...}'` with bare `"` — PowerShell strips them. Use the friendly subcommands (§2/§3), or escape as `\"` if you must use `exec`.
+- **PowerShell eats JSON quotes.** Never call `bot.ps1 exec '{"command":...}'` with bare `"` — PowerShell strips them. Use the friendly subcommands ([State → command table](#2-state--friendly-command-table), [Minimal trace](#3-minimal-full-game-trace)), or escape as `\"` if you must use `exec`.
 - **`pack` `targets` only for Tarot/Spectral.** Buffoon/Celestial/Standard packs don't need targets. The endpoint validates target count against the card's requirement and returns `BAD_REQUEST` if wrong.
 - **Boss blinds hide card faces.** Cards with `state.hidden == true` return no rank/suit (shown as `??` in `glance`) — do not try to "read" them; decide based on what's visible.
 - **`buy` / `reroll` affordability is `money - bankrupt_at`**, not raw `money` (Credit Card raises `bankrupt_at`). `glance` shows `[ok]` / `[need $N]` on shop rows; if a buy still fails with `BAD_REQUEST`, slots may be full or cost changed after reroll.
 - **Joker/consumable slots can be full.** `buy` returns `BAD_REQUEST` when slots are full — `sell` something first or skip.
-- **`skip` only works on Small/Big blinds**, not boss. Skip collects a tag reward (see §2 tag semantics).
+- **`skip` only works on Small/Big blinds**, not boss. Skip collects a tag reward (see [Tag semantics](#tag-semantics-skip-rewards)).
 - **`reroll_boss` is Boss-only and costs $10.** Only in `BLIND_SELECT` when the Boss blind is on deck, you own **Director's Cut** (once per ante) or **Retcon** (unlimited), and `money - bankrupt_at >= 10`. `glance` shows `reroll_boss=$10 [ok]` / `[need $N]` / `[used this ante]`; then `select` the new boss. Shop `reroll` is unrelated.
 - **`won` ≠ current outcome on `GAME_OVER`.** `won: true` means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual line (`Lost to …`, `Victory`, etc.) — especially after endless-mode death.
 - **Connection failure ≠ bug.** During state transitions the server may briefly not respond. Retry `glance` once before investigating.
@@ -223,13 +242,22 @@ Output is a `checks[]` array (stake / each joker / boss / pending tags), each wi
 `passed: false` means a fact wasn't found in the knowledge library — treat the
 effect as unknown and fall back to the in-game `effect`/`tag_effect` text.
 
-## 6. Useful Queries
+## 6. Command reference
 
-- `bot.ps1 glance` — compact state summary (state, blinds, round, hand with modifier tags, jokers w/ slot count, `actions:` line). Use this constantly.
-- `bot.ps1 query hands` — poker hand level table with real `chips`/`mult` per hand type (table by default; `--json` for raw). **Primary tool for scoring math.**
-- `bot.ps1 estimate` — *(optional, not recommended)* top playable hands + partial score model. Dev/regression helper only; see `tools/play/estimate_registry.md`.
-- `bot.ps1 state` — full JSON envelope (gamestate + actions + queries).
-- `bot.ps1 query deck` / `query blinds` / `query used_vouchers` / `query seed` — other Layer-2 queries.
-- `bot.ps1 know preflight` — verified effects of all active jokers + current boss + pending tags (table by default; `--json` for raw).
-- `bot.ps1 know check joker "Name"` / `check boss "Name"` / `check tag "Name"` — look up one entry.
-- `screenshot PATH` / `save PATH` / `load PATH` — visual debug and run checkpoints (`bot.ps1 screenshot C:\tmp\ss.png`).
+| Command | Output | When to use |
+| ------- | ------ | ----------- |
+| `glance` | Compact summary + `actions:` | Every turn — primary state read |
+| `query hands` | Hand-type level / chips / mult table | **Scoring math** (preferred over `estimate`) |
+| `query deck` | Remaining draw pile | Deck composition / draw tracking |
+| `query blinds` | All three blinds (full detail) | When the glance blind block is not enough |
+| `query used_vouchers` | Vouchers owned this run | Shop planning, `reroll_boss` eligibility |
+| `query seed` | Run seed | Debug / replay |
+| `state` | Full JSON state + `actions` + available `queries` | Scripting; append `--json` to actions for the same shape |
+| `know preflight` | Verified joker / boss / tag / stake checks | Before boss select, shop buys, tricky joker lines |
+| `know check joker "Name"` / `check boss "Name"` / `check tag "Name"` / `check rule "…"` | Single knowledge entry | One-off lookup |
+| `estimate` | Top playable hands + partial score model | Dev/regression only — [not recommended for play](tools/play/estimate_registry.md) |
+| `screenshot PATH` / `save PATH` / `load PATH` | File I/O | Checkpoints and visual debug |
+
+Append `--json` to `query` or `know` for raw JSON instead of tables.
+
+See also [Three ways to read state](#three-ways-to-read-state) and [tools/play/README.md](tools/play/README.md).

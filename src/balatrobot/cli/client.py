@@ -1,4 +1,4 @@
-"""Client for BalatroBot JSON-RPC 2.0 API."""
+"""Client for BlindDeck JSON-RPC 2.0 API."""
 
 from dataclasses import dataclass, field
 from typing import Any
@@ -7,7 +7,7 @@ import httpx
 
 
 class APIError(Exception):
-    """Error returned by the BalatroBot API."""
+    """Error returned by the BlindDeck API."""
 
     def __init__(self, name: str, message: str, code: int):
         self.name = name
@@ -18,7 +18,7 @@ class APIError(Exception):
 
 @dataclass
 class BalatroClient:
-    """Sync client for BalatroBot API."""
+    """Sync client for BlindDeck API."""
 
     host: str = "127.0.0.1"
     port: int = 12346

@@ -1,5 +1,5 @@
 --[[
-BalatroBot configure settings in Balatro using the following environment variables:
+BlindDeck configure settings in Balatro using the following environment variables:
 
   - BALATROBOT_HOST: the hostname when the TCP server is running.
       Type string (default: 127.0.0.1)
@@ -262,7 +262,7 @@ local function configure_audio()
   G.F_SOUND_THREAD = true
 end
 
---- Initializes and applies all BalatroBot settings based on environment variables
+--- Initializes and applies all BlindDeck settings based on environment variables
 --- Orchestrates configuration of love.update, game settings, and optional features
 --- (headless, render-on-api, fast mode, audio)
 ---@return nil

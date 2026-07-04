@@ -4,7 +4,7 @@ assert(SMODS.load_file("src/lua/settings.lua"))() -- define BB_SETTINGS
 -- Configure Balatro with appropriate settings from environment variables
 BB_SETTINGS.setup()
 
--- Endpoints for the BalatroBot API
+-- Endpoints for the BlindDeck API
 BB_ENDPOINTS = {
   -- Health endpoint
   "src/lua/endpoints/health.lua",
@@ -97,4 +97,4 @@ love.update = function(dt) ---@diagnostic disable-line: duplicate-set-field
   BB_SERVER.update(BB_DISPATCHER)
 end
 
-sendInfoMessage("BalatroBot loaded - version " .. SMODS.current_mod.version, "BB.BALATROBOT")
+sendInfoMessage("BlindDeck loaded - version " .. SMODS.current_mod.version, "BB.BALATROBOT")

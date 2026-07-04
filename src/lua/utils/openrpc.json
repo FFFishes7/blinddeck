@@ -1,7 +1,7 @@
 {
   "openrpc": "1.3.2",
   "info": {
-    "title": "BalatroBot API",
+    "title": "BlindDeck API",
     "description": "JSON-RPC 2.0 API for controlling Balatro locally. External clients can query game state and execute actions through an HTTP server.",
     "version": "1.5.2",
     "license": {

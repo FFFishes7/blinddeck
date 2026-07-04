@@ -116,7 +116,7 @@ BB_DEBUG = {
   log = nil,
 }
 --- Initializes DebugPlus integration if available
---- Registers BalatroBot with DebugPlus and creates logger instance
+--- Registers BlindDeck with DebugPlus and creates logger instance
 ---@return nil
 BB_DEBUG.setup = function()
   local success, dpAPI = pcall(require, "debugplus.api")
@@ -128,7 +128,7 @@ BB_DEBUG.setup = function()
     sendDebugMessage("DebugPlus API version is not compatible", "BB.DEBUGGER")
     return
   end
-  local dp = dpAPI.registerID("BalatroBot")
+  local dp = dpAPI.registerID("BlindDeck")
   if not dp then
     sendDebugMessage("Failed to register with DebugPlus", "BB.DEBUGGER")
     return

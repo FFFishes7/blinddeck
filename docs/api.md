@@ -1,6 +1,6 @@
-# BalatroBot API Reference
+# BlindDeck API Reference
 
-JSON-RPC 2.0 API for controlling Balatro locally in this personal play setup.
+JSON-RPC 2.0 API for controlling Balatro locally via **BlindDeck**.
 
 ## Overview
 

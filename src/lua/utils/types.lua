@@ -331,7 +331,7 @@
 ---@field animation_fps integer Animation FPS (default: 10)
 ---@field no_reduced_motion boolean Whether to disable reduced motion for faster animations
 ---@field pixel_art_smoothing boolean Whether to enable pixel art smoothing (texture_scaling = 2)
----@field setup fun()? Initialize and apply all BalatroBot settings
+---@field setup fun()? Initialize and apply all BlindDeck settings
 
 ---@class Debug
 ---@field log table? DebugPlus logger instance with debug/info/error methods (nil if DebugPlus not available)

@@ -1,4 +1,4 @@
-"""API command for interacting with running BalatroBot server."""
+"""API command for interacting with running BlindDeck server."""
 
 import json
 from enum import StrEnum
@@ -43,7 +43,7 @@ def api(
     host: Annotated[str, typer.Option(help="Server hostname")] = "127.0.0.1",
     port: Annotated[int, typer.Option(help="Server port")] = 12346,
 ) -> None:
-    """Call API endpoint on a running BalatroBot server."""
+    """Call API endpoint on a running BlindDeck server."""
     # Validate JSON params
     try:
         params_dict = json.loads(params)

@@ -44,7 +44,7 @@
   "native_rank_and_suit_sort": {
     "title": "Rank and suit sorting should use the game's native hand sort",
     "category": "operation",
-    "rule": "Balatro's Sort by Rank button orders hand cards by rank (Ace high) descending; Sort by Suit orders by suit then rank. BalatroBot's sort endpoint invokes the game's native sort, so prefer `bot.ps1 sort` over manually rearranging cards.",
+    "rule": "Balatro's Sort by Rank button orders hand cards by rank (Ace high) descending; Sort by Suit orders by suit then rank. BlindDeck's sort endpoint invokes the game's native sort, so prefer `bot.ps1 sort` over manually rearranging cards.",
     "source": [
       "Balatro Wiki — Card Ranks (Ace scores high, rank ordering): https://balatrowiki.org/w/Card_Ranks"
     ]

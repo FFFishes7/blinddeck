@@ -23,7 +23,7 @@ class FixtureSpec:
 
 
 def api(client: httpx.Client, method: str, params: dict) -> dict:
-    """Send a JSON-RPC 2.0 request to BalatroBot."""
+    """Send a JSON-RPC 2.0 request to BlindDeck."""
     global _request_id
     _request_id += 1
 
@@ -118,7 +118,7 @@ def generate_fixture(client: httpx.Client, spec: FixtureSpec, pbar: tqdm) -> boo
 
 
 def main() -> int:
-    print("BalatroBot Fixture Generator")
+    print("BlindDeck Fixture Generator")
     print(f"Connecting to {HOST}:{PORT}\n")
 
     json_data = load_fixtures_json()
@@ -154,7 +154,7 @@ def main() -> int:
 
     except httpx.ConnectError:
         print(f"Error: Could not connect to Balatro at {HOST}:{PORT}")
-        print("Make sure Balatro is running with BalatroBot mod loaded")
+        print("Make sure Balatro is running with BlindDeck mod loaded")
         return 1
     except httpx.TimeoutException:
         print(f"Error: Connection timeout to Balatro at {HOST}:{PORT}")

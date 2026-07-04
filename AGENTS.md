@@ -2,7 +2,8 @@
 
 This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
-**GitHub Repository**: [`FFFishes7/balatrobot`](https://github.com/FFFishes7/balatrobot)
+**Project**: **BlindDeck** — Balatro play desk (mod + API + play helpers).\
+**GitHub Repository**: [`FFFishes7/blinddeck`](https://github.com/FFFishes7/blinddeck)
 
 ## Playing Balatro (read this first if asked to play)
 
@@ -28,7 +29,7 @@ Each `glance`/action output ends with an `actions:` line listing valid next comm
 
 ## Overview
 
-This repository is a personal Balatro play setup built on BalatroBot. It consists of two main parts:
+This repository is **BlindDeck** — a Balatro play desk built on [BalatroBot](https://github.com/coder/balatrobot). It consists of two main parts:
 
 1. **Python Package** (`src/balatrobot/`): A CLI and library to manage the Balatro game process, inject the mod, and handle communication.
 2. **Lua API** (`src/lua/`): The mod code running inside Balatro (Love2D) that exposes a HTTP JSON-RPC 2.0 API.
