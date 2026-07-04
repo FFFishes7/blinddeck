@@ -55,7 +55,8 @@ return {
             or num_items(G.shop_vouchers) > 0
         end
 
-        if has_shop_items then
+        local settled = has_shop_items and BB_GAMESTATE.tags_stack_stable()
+        if settled then
           shop_ready_ticks = shop_ready_ticks + 1
         else
           shop_ready_ticks = 0

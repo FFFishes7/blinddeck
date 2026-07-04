@@ -34,6 +34,14 @@ class TestGamestateEndpoint:
             stake="WHITE",
         )
 
+    def test_held_tags_fields_on_blind_select(self, client: httpx.Client) -> None:
+        """gamestate always includes held_tags list and held_tags_ready flag."""
+        fixture_name = "state-BLIND_SELECT--round_num-0--deck-RED--stake-WHITE"
+        gamestate = load_fixture(client, "gamestate", fixture_name)
+        assert isinstance(gamestate.get("held_tags"), list)
+        assert gamestate["held_tags"] == []
+        assert gamestate.get("held_tags_ready") is True
+
 
 class TestGamestateRunSummary:
     """Test run_summary extraction on GAME_OVER."""

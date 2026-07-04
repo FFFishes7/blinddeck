@@ -36,6 +36,10 @@ See the root [README](../../README.md#quick-start-windows) and [`PLAY.md`](../..
 - **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists; `actions:` lists valid command names (e.g. `start load`).
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and any skip-reward tag; the selectable blind is marked `(current, select)`.
+    When the tag stack is stable, **`held tags (pending): …`** lists untriggered
+    tags already earned from earlier skips (oldest → newest) — not the skip reward
+    on upcoming blinds (`blinds.*.tag_name`). `glance` waits for `held_tags_ready`
+    before returning (same idea as transient state polling).
     With Director's Cut or Retcon at Boss selection, **`reroll_boss=$10 [ok]`** /
     **`[need $N]`** / **`[used this ante]`** may appear; `actions:` includes
     `reroll_boss` when `round.boss_reroll_available`.

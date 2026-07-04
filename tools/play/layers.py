@@ -31,6 +31,7 @@ LAYER1_KEYS_BY_STATE: dict[str, frozenset[str]] = {
             "jokers",
             "consumables",
             "cards",
+            "held_tags",
         }
     ),
     "SELECTING_HAND": frozenset(
@@ -48,6 +49,7 @@ LAYER1_KEYS_BY_STATE: dict[str, frozenset[str]] = {
             "consumables",
             "cards",
             "hand",
+            "held_tags",
         }
     ),
     "ROUND_EVAL": frozenset(
@@ -66,6 +68,7 @@ LAYER1_KEYS_BY_STATE: dict[str, frozenset[str]] = {
             "cards",
             "won",
             "victory_overlay",
+            "held_tags",
         }
     ),
     "SHOP": frozenset(
@@ -84,6 +87,7 @@ LAYER1_KEYS_BY_STATE: dict[str, frozenset[str]] = {
             "shop",
             "vouchers",
             "packs",
+            "held_tags",
         }
     ),
     "SMODS_BOOSTER_OPENED": frozenset(
@@ -100,6 +104,7 @@ LAYER1_KEYS_BY_STATE: dict[str, frozenset[str]] = {
             "consumables",
             "pack",
             "hand",
+            "held_tags",
         }
     ),
     "GAME_OVER": frozenset(
@@ -274,6 +279,16 @@ def extract_query(raw: dict[str, Any], name: str) -> dict[str, Any]:
     return data
 
 
+def is_gamestate_stable(raw: dict[str, Any]) -> bool:
+    """True when play helpers can read state (no transition, tag stack settled)."""
+    state = raw.get("state", "UNKNOWN")
+    if state in TRANSITION_STATES:
+        return False
+    if raw.get("held_tags_ready") is False:
+        return False
+    return True
+
+
 def poll_until_stable(
     fetch: Callable[[], dict[str, Any]],
     *,
@@ -283,12 +298,16 @@ def poll_until_stable(
     deadline = time.monotonic() + timeout
     last = fetch()
     while True:
-        state = last.get("state", "UNKNOWN")
-        if state not in TRANSITION_STATES:
+        if is_gamestate_stable(last):
             return last
         if time.monotonic() >= deadline:
-            raise TimeoutError(
-                f"game state stuck in transition {state!r} after {timeout}s"
-            )
+            state = last.get("state", "UNKNOWN")
+            if state in TRANSITION_STATES:
+                reason = f"game state stuck in transition {state!r}"
+            elif last.get("held_tags_ready") is False:
+                reason = "held_tags not ready"
+            else:
+                reason = "game state not stable"
+            raise TimeoutError(f"{reason} after {timeout}s")
         time.sleep(interval)
         last = fetch()

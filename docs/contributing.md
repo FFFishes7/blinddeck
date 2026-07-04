@@ -195,6 +195,24 @@ pytest tests/cli/test_play_helpers.py -k estimate -v
 
 See [`tools/play/estimate_registry.md`](../tools/play/estimate_registry.md) for the modeling checklist.
 
+### Live test seeds (tag / scenario setup)
+
+**Do not** search random seeds inside committed pytest loops. Discover once, commit the seed, assert drift at test start.
+
+1. Run the matching finder under `scripts/` (e.g. `python scripts/find_foil_seed.py`).
+2. Record the printed seed in [`tests/lua/tag_seeds.py`](../tests/lua/tag_seeds.py).
+3. Import that constant in the live test; fail fast if blind tags no longer match (`seed … drifted`).
+
+| Finder                  | Constant           | Use                         |
+| ----------------------- | ------------------ | --------------------------- |
+| `find_charm_seed.py`    | `CHARM_SMALL`      | Pack opens on skip          |
+| `find_foil_seed.py`     | `FOIL_SMALL`       | Deferred tag / shop trigger |
+| `find_economy_seed.py`  | `ECONOMY_SMALL`    | Immediate tag consume       |
+| `find_boss_seed.py`     | `BOSS_SMALL`       | Non-pack skip smoke         |
+| `find_tag_pair_seed.py` | `DOUBLE_THEN_FOIL` | Two-blind tag combo         |
+
+Add a **new** `scripts/find_<scenario>_seed.py` for new scenario types; extend `tag_seeds.py` (or a sibling module) — do not bolt scenarios onto an unrelated finder.
+
 ## Available Make Commands
 
 The project includes a Makefile with convenient targets for common development tasks. Run `make help` to see all available commands.

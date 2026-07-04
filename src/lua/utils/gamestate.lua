@@ -15,12 +15,17 @@
 ---@field pack_open_ready fun(): boolean
 ---@field is_pack_skip_tag fun(tag_name: string|nil): boolean
 ---@field skip_settled fun(blind_key: string, opts?: { expect_pack?: boolean }): boolean
+---@field tags_stack_stable fun(): boolean
+---@field extract_held_tags fun(): table[]
 ---@field get_reported_state_name fun(): string
 local gamestate = {}
 
 gamestate.BOSS_REROLL_COST = 10
 
 local consumable = assert(SMODS.load_file("src/lua/utils/consumable.lua"))()
+
+---@type fun(string, table|nil): { name: string, effect: string }
+local get_tag_info
 
 -- ==========================================================================
 -- State Name Mapping
@@ -148,7 +153,7 @@ function gamestate.skip_settled(blind_key, opts)
   end
 
   if gamestate.pack_open_ready() then
-    return true
+    return gamestate.tags_stack_stable()
   end
 
   if has_pending_pack_skip_tag() then
@@ -169,10 +174,69 @@ function gamestate.skip_settled(blind_key, opts)
   end
 
   if G.STATE == G.STATES.BLIND_SELECT and G.STATE_COMPLETE then
-    return true
+    return gamestate.tags_stack_stable()
   end
 
   return false
+end
+
+---Whether any tag yep animation still holds a CONTROLLER lock.
+---@return boolean
+local function has_active_tag_lock()
+  if G.CONTROLLER == nil or G.CONTROLLER.locks == nil or G.GAME == nil or G.GAME.tags == nil then
+    return false
+  end
+  local tag_ids = {}
+  for _, tag in ipairs(G.GAME.tags) do
+    if tag.ID ~= nil then
+      tag_ids[tag.ID] = true
+    end
+  end
+  for lock_key, locked in pairs(G.CONTROLLER.locks) do
+    if locked and tag_ids[lock_key] then
+      return true
+    end
+  end
+  return false
+end
+
+---Tag stack is stable enough for a held_tags snapshot (no in-flight yep/trigger).
+---@return boolean
+function gamestate.tags_stack_stable()
+  if G.STATE_COMPLETE ~= true then
+    return false
+  end
+  if G.GAME == nil or G.GAME.tags == nil then
+    return true
+  end
+  for _, tag in ipairs(G.GAME.tags) do
+    if tag.triggered then
+      return false
+    end
+  end
+  if has_active_tag_lock() then
+    return false
+  end
+  return true
+end
+
+---Pending held tags (untriggered), oldest first.
+---@return table[]
+function gamestate.extract_held_tags()
+  local out = {}
+  if G.GAME == nil or G.GAME.tags == nil then
+    return out
+  end
+  for _, tag in ipairs(G.GAME.tags) do
+    if not tag.triggered and tag.key then
+      local info = get_tag_info(tag.key, tag)
+      out[#out + 1] = {
+        name = info.name,
+        effect = info.effect,
+      }
+    end
+  end
+  return out
 end
 
 -- ==========================================================================
@@ -1086,8 +1150,9 @@ end
 
 ---Gets tag information using localize function (same approach as Tag:set_text)
 ---@param tag_key string The tag key from G.P_TAGS
+---@param tag_instance table|nil Live tag for instance fields (e.g. Orbital hand)
 ---@return table tag_info {name: string, effect: string}
-local function get_tag_info(tag_key)
+get_tag_info = function(tag_key, tag_instance)
   local result = { name = "", effect = "" }
 
   if not tag_key or not G.P_TAGS or not G.P_TAGS[tag_key] then
@@ -1123,7 +1188,10 @@ local function get_tag_info(tag_key)
     local skips = (G.GAME and G.GAME.skips) or 0
     loc_vars = { skip_bonus, skip_bonus * (skips + 1) }
   elseif name == "Orbital Tag" then
-    local orbital_hand = "Poker Hand" -- Default placeholder
+    local orbital_hand = "Poker Hand"
+    if tag_instance and tag_instance.ability and tag_instance.ability.orbital_hand then
+      orbital_hand = tag_instance.ability.orbital_hand
+    end
     local levels = tag_data.config and tag_data.config.levels or 0
     loc_vars = { orbital_hand, levels }
   elseif name == "Economy Tag" then
@@ -1299,6 +1367,8 @@ function gamestate.get_gamestate()
       round_num = 0,
       ante_num = 0,
       money = 0,
+      held_tags = {},
+      held_tags_ready = true,
     }
   end
 
@@ -1398,6 +1468,9 @@ function gamestate.get_gamestate()
   if G.GAME and (G.STATE == G.STATES.GAME_OVER or G.GAME.won) then
     state_data.run_summary = gamestate.extract_run_summary()
   end
+
+  state_data.held_tags = gamestate.extract_held_tags()
+  state_data.held_tags_ready = gamestate.tags_stack_stable()
 
   return state_data
 end

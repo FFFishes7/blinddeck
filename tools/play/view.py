@@ -212,6 +212,24 @@ def _blinds_block(state: dict[str, Any]) -> str:
     return "\n".join(lines) if lines else "blinds: (none)"
 
 
+def _held_tags_line(state: dict[str, Any]) -> str | None:
+    """Pending held tags (stable snapshot); oldest first."""
+    tags = state.get("held_tags") or []
+    if not tags:
+        return None
+    names = [str(t.get("name") or "?") for t in tags]
+    return "held tags (pending): " + " → ".join(names)
+
+
+def _append_summary_footer(
+    lines: list[str], envelope: dict[str, Any], state: dict[str, Any]
+) -> None:
+    held = _held_tags_line(state)
+    if held:
+        lines.append(held)
+    lines.append(_actions_line(envelope))
+
+
 def _current_blind(state: dict[str, Any]) -> dict[str, Any] | None:
     for blind in (state.get("blinds") or {}).values():
         if blind.get("status") in ("CURRENT", "SELECT"):
@@ -409,7 +427,7 @@ def print_summary(envelope: dict[str, Any]) -> None:
     elif name == "BLIND_SELECT":
         lines.append(_blinds_block(state))
         lines.extend(_joker_lines(state))
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name == "SELECTING_HAND":
         blind = _current_blind(state)
         target = blind.get("score") if blind else None
@@ -421,20 +439,20 @@ def print_summary(envelope: dict[str, Any]) -> None:
         econ = _economy_line(state)
         if econ:
             lines.append(econ)
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name == "ROUND_EVAL":
         lines.extend(_round_eval_block(state))
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name == "SHOP":
         lines.append(_shop_block(state))
         lines.extend(_joker_lines(state))
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name == "SMODS_BOOSTER_OPENED":
         lines.append(_pack_block(state))
         if (state.get("hand") or {}).get("cards"):
             lines.append(_hand_line(state))
         lines.extend(_joker_lines(state))
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name == "GAME_OVER":
         summary = state.get("run_summary") or {}
         result = summary.get("result") or "Lost"
@@ -443,12 +461,12 @@ def print_summary(envelope: dict[str, Any]) -> None:
             mp = summary["most_played_hand"]
             lines.append(f"  most_played: {mp.get('name')} x{mp.get('count')}")
         lines.append(_game_over_hint(state))
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
     elif name in TRANSITION_STATES:
         lines.append("→ transient: wait for stable state, then glance again")
         lines.append(_actions_line(envelope))
     else:
-        lines.append(_actions_line(envelope))
+        _append_summary_footer(lines, envelope, state)
 
     print("\n".join(lines))
 

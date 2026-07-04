@@ -32,6 +32,12 @@
 ---@field victory_overlay boolean? Victory screen visible; call endless to continue
 ---@field run RunCounters? Run-level counters for scoring (skips, deck size, …)
 ---@field run_summary RunSummary? Run statistics (GAME_OVER only)
+---@field held_tags HeldTag[] Pending untriggered tags (oldest first); read when held_tags_ready
+---@field held_tags_ready boolean? True when held_tags snapshot is stable (no tag yep in flight)
+
+---@class HeldTag
+---@field name string
+---@field effect string
 
 ---@class RunSummary
 ---@field best_hand number? Highest single-hand score this run

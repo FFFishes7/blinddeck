@@ -157,6 +157,14 @@ the tag library). After skip, `glance` should show `SMODS_BOOSTER_OPENED` and
 is the only pack tag on ante 1. Tags stack oldest-first — an older Charm Tag can
 still open a pack when you skip a later blind with a non-pack tag.
 
+**Held tags (pending stack):** After tag animations settle, `glance` / action
+summaries may show `held tags (pending): …` — tags you already earned by
+skipping earlier blinds but have **not triggered yet** (oldest → newest). This
+is a **stable snapshot** only: `glance` waits for `held_tags_ready` (like
+transition states). It does **not** predict Double Tag copies or shop trigger
+order. For skip rewards on blinds you have **not** skipped yet, use
+`blinds.{small,big}.tag_name` instead.
+
 ## 3. Minimal Full-Game Trace
 
 ```powershell

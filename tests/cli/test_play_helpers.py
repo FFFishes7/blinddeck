@@ -30,7 +30,9 @@ from layers import (  # noqa: E402  # type: ignore[unresolved-import]
     effective_state,
     extract_query,
     filter_layer1,
+    is_gamestate_stable,
     normalize_play_state,
+    poll_until_stable,
 )
 from start_options import (  # noqa: E402  # type: ignore[unresolved-import]
     build_decks,
@@ -366,6 +368,125 @@ def test_print_summary_tag_skip_pack_open(capsys: pytest.CaptureFixture[str]) ->
     assert "pack:" in out
     assert "actions: pack" in out
     assert "select" not in out.split("actions:")[-1]
+
+
+def test_is_gamestate_stable_requires_held_tags_ready() -> None:
+    assert not is_gamestate_stable({"state": "BLIND_SELECT", "held_tags_ready": False})
+    assert is_gamestate_stable({"state": "BLIND_SELECT", "held_tags_ready": True})
+    assert is_gamestate_stable({"state": "BLIND_SELECT"})
+    assert not is_gamestate_stable({"state": "HAND_PLAYED", "held_tags_ready": True})
+
+
+def test_poll_until_stable_waits_for_held_tags() -> None:
+    calls = iter(
+        [
+            {"state": "BLIND_SELECT", "held_tags_ready": False},
+            {"state": "BLIND_SELECT", "held_tags_ready": True},
+        ]
+    )
+    result = poll_until_stable(lambda: next(calls), timeout=1.0, interval=0)
+    assert result["held_tags_ready"] is True
+
+
+def _held_tags_fixture_state(state: str) -> dict:
+    """Minimal gamestate dict with held_tags for filter_layer1 / print_summary tests."""
+    held = [{"name": "Foil Tag", "effect": "Next base edition shop Joker is free"}]
+    base: dict = {
+        "state": state,
+        "money": 4,
+        "round_num": 0,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "held_tags": held,
+        "held_tags_ready": True,
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "cards": {"count": 52, "limit": 52},
+    }
+    if state in ("BLIND_SELECT", "SELECTING_HAND", "ROUND_EVAL"):
+        base["blinds"] = {
+            "small": {"status": "SKIPPED", "name": "Small Blind", "type": "SMALL"},
+            "big": {
+                "status": "SELECT",
+                "name": "Big Blind",
+                "type": "BIG",
+                "score": 450,
+            },
+            "boss": {
+                "status": "UPCOMING",
+                "name": "The Hook",
+                "type": "BOSS",
+                "score": 600,
+            },
+        }
+    if state == "SELECTING_HAND":
+        base["round"] = {"hands_left": 4, "discards_left": 3, "chips": 0}
+        base["hand"] = {"count": 8, "limit": 8, "cards": [{"label": "Ace of Spades"}]}
+    if state == "ROUND_EVAL":
+        base["round"] = {"hands_left": 3, "discards_left": 3, "chips": 500}
+        base["won"] = False
+    if state == "SHOP":
+        base["round"] = {"reroll_cost": 5}
+        base["shop"] = {"count": 2, "limit": 2, "cards": []}
+        base["vouchers"] = {"count": 1, "limit": 1, "cards": []}
+        base["packs"] = {"count": 2, "limit": 2, "cards": []}
+    if state == "SMODS_BOOSTER_OPENED":
+        base["round"] = {"hands_left": 4, "discards_left": 3, "chips": 0}
+        base["pack"] = {"count": 3, "limit": 3, "cards": [{"label": "The Fool"}]}
+        base["hand"] = {"count": 8, "limit": 8, "cards": [{"label": "Ace of Spades"}]}
+    return base
+
+
+HELD_TAGS_LAYER1_STATES = (
+    "BLIND_SELECT",
+    "SELECTING_HAND",
+    "ROUND_EVAL",
+    "SHOP",
+    "SMODS_BOOSTER_OPENED",
+)
+
+
+@pytest.mark.parametrize("state", HELD_TAGS_LAYER1_STATES)
+def test_filter_layer1_includes_held_tags_by_state(state: str) -> None:
+    raw = _held_tags_fixture_state(state)
+    filtered = filter_layer1(raw)
+    assert filtered.get("held_tags") == raw["held_tags"]
+
+
+@pytest.mark.parametrize("state", ("MENU", "GAME_OVER"))
+def test_filter_layer1_excludes_held_tags_outside_layer1(state: str) -> None:
+    raw = _held_tags_fixture_state("BLIND_SELECT")
+    raw["state"] = state
+    if state == "GAME_OVER":
+        raw["won"] = False
+        raw["run_summary"] = {"result": "Defeat"}
+    filtered = filter_layer1(raw)
+    assert "held_tags" not in filtered
+
+
+@pytest.mark.parametrize("state", HELD_TAGS_LAYER1_STATES)
+def test_print_summary_held_tags_line_by_state(
+    state: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    print_summary(_envelope(_held_tags_fixture_state(state)))
+    out = capsys.readouterr().out
+    assert "held tags (pending): Foil Tag" in out
+
+
+def test_filter_layer1_includes_held_tags() -> None:
+    raw = {
+        "state": "BLIND_SELECT",
+        "money": 4,
+        "held_tags": [{"name": "Foil Tag", "effect": "..."}],
+        "held_tags_ready": True,
+        "blinds": {"small": {"status": "SKIPPED"}},
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "cards": {"count": 52, "limit": 52},
+    }
+    filtered = filter_layer1(raw)
+    assert filtered.get("held_tags") == [{"name": "Foil Tag", "effect": "..."}]
 
 
 # --- view.card_label ---------------------------------------------------------

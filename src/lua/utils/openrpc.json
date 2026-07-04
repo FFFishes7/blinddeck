@@ -1209,6 +1209,17 @@
           "run": {
             "$ref": "#/components/schemas/RunCounters",
             "description": "Run-level counters for scoring (skips, deck size, …)"
+          },
+          "held_tags": {
+            "type": "array",
+            "description": "Pending untriggered tags (oldest first); stable when held_tags_ready is true",
+            "items": {
+              "$ref": "#/components/schemas/HeldTag"
+            }
+          },
+          "held_tags_ready": {
+            "type": "boolean",
+            "description": "True when held_tags snapshot is stable (no tag yep/trigger in flight)"
           }
         },
         "required": [
@@ -1216,6 +1227,24 @@
           "round_num",
           "ante_num",
           "money"
+        ]
+      },
+      "HeldTag": {
+        "type": "object",
+        "description": "A pending tag waiting to trigger",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the tag"
+          },
+          "effect": {
+            "type": "string",
+            "description": "Short effect description"
+          }
+        },
+        "required": [
+          "name",
+          "effect"
         ]
       },
       "RunCounters": {

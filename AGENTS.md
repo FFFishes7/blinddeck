@@ -77,6 +77,16 @@ pytest tests/cli -m "not integration"
 balatrobot --fast --debug
 ```
 
+### Live test seeds
+
+Lua tests that require a specific run setup (e.g. a blind skip tag) must use **fixed seeds** from [`tests/lua/tag_seeds.py`](tests/lua/tag_seeds.py), not random search loops at pytest time.
+
+1. Discover: `python scripts/find_<scenario>_seed.py` (one script per scenario; pair combos use `find_tag_pair_seed.py`).
+2. Record the constant in `tests/lua/tag_seeds.py`.
+3. In the test, assert the seed still produces the expected blinds/tags (`seed drifted` if the game RNG changes).
+
+See [`docs/contributing.md`](docs/contributing.md) for the finder table.
+
 ### Make Commands
 
 Available make targets:
