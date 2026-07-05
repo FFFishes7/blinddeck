@@ -1,12 +1,12 @@
 <div align="center">
   <h1>BlindDeck</h1>
   <div><img src="./docs/assets/balatrobot.svg" alt="BlindDeck" width="170" height="170"></div>
-  <p><em>Balatro play desk — API, glance, and verified knowledge</em></p>
+  <p><em>Play Balatro with your agent — glance, then act.</em></p>
 </div>
 
 ---
 
-**BlindDeck** is a Balatro play desk: a Steamodded mod, JSON-RPC HTTP API, and command-line helpers for reading run state and taking one action at a time—whether you play yourself or delegate to an agent.
+**BlindDeck** is a Balatro play desk for humans and AI agents: a Steamodded mod, JSON-RPC HTTP API, and command-line helpers so you (or your agent in Cursor, Codex, Claude, etc.) can read run state with `glance` and take one deliberate action per turn.
 
 BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (game-state API and launcher) with play helpers, a verified knowledge library, and additional API surface (e.g. `sort`, hidden-card masking, `reroll_boss`).
 
@@ -27,7 +27,6 @@ BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (gam
 - **`bot.ps1 query`** — detail queries (hand levels, deck, blinds, vouchers, seed) as tables or JSON
 - **Friendly actions** — `play`, `select`, `buy`, `pack`, … without PowerShell JSON quoting
 - **JSON-RPC API** — full game control for scripts; OpenRPC spec in `src/lua/utils/openrpc.json`
-- **Boss reroll** — `reroll_boss` when Director's Cut or Retcon is owned (see [PLAY.md](PLAY.md))
 
 ## Quick start (Windows)
 

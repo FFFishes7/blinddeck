@@ -471,7 +471,10 @@ curl -X POST http://127.0.0.1:12346 \
 
 ### `cash_out`
 
-Cash out round rewards and transition to shop.
+Cash out round rewards and transition to shop. The response waits until the shop
+has stable buyable items **and** the pending tag stack is settled (`held_tags_ready`
+is true), so shop-entry tags (Foil, Coupon, etc.) can finish applying before the
+snapshot is returned.
 
 **Returns:** [GameState](#gamestate-schema) (state will be `SHOP`)
 
@@ -835,9 +838,17 @@ The complete game state returned by most methods.
   "packs": { ... },
   "pack": { ... },
   "run": { ... },
-  "run_summary": { ... }
+  "run_summary": { ... },
+  "held_tags": [{ "name": "Foil Tag", "effect": "A random base Joker in the next shop is free with Foil edition." }],
+  "held_tags_ready": true
 }
 ```
+
+`held_tags` ([HeldTag](#heldtag)) lists **pending untriggered** skip tags (oldest
+first). Empty `[]` when none are held. `held_tags_ready: false` means a tag yep or
+trigger is still in flight — wait and poll again before trusting the stack.
+Skip-reward tags on blinds you have **not** skipped yet remain on
+`blinds.{small,big}.tag_name`, not in `held_tags`.
 
 `run_summary` is present on `GAME_OVER` (and omitted during an active run). See [RunSummary](#runsummary).
 
@@ -1065,6 +1076,28 @@ Structured scoring snapshot on joker `value.stats` (from `card.ability`, not UI 
 | `green_hand_add`                                         | Green Joker +Mult increment per hand played      |
 
 Machine-readable schema: `src/lua/utils/openrpc.json` → `JokerStats`.
+
+### HeldTag
+
+A pending skip tag waiting to trigger (already earned, not yet consumed).
+
+```json
+{
+  "name": "Foil Tag",
+  "effect": "A random base Joker in the next shop is free with Foil edition."
+}
+```
+
+| Field    | Type   | Description                    |
+| -------- | ------ | ------------------------------ |
+| `name`   | string | Display name (e.g. `Foil Tag`) |
+| `effect` | string | Short effect description       |
+
+`GameState.held_tags` is an array of HeldTag, oldest first. Omitted or empty when
+none are pending. Pair with `held_tags_ready` — when false, the stack snapshot may
+change on the next poll.
+
+Machine-readable schema: `src/lua/utils/openrpc.json` → `HeldTag`.
 
 ### Blind
 

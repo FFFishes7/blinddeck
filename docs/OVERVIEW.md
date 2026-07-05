@@ -6,7 +6,9 @@ Single-file map of the whole project: what it is, how the pieces connect, and wh
 
 ## 1. What This Project Is
 
-**BlindDeck** is a Balatro play desk: a mod and JSON-RPC API plus command-line helpers for reading run state and issuing actions—designed for human play, agent-assisted play, and automation.
+**BlindDeck** is a Balatro play desk for humans and AI agents: a Steamodded mod,
+JSON-RPC HTTP API, and command-line helpers so you (or your agent) can **glance**
+run state and act one deliberate command at a time.
 
 | Role              | Who                                          |
 | ----------------- | -------------------------------------------- |

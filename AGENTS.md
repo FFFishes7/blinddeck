@@ -5,6 +5,8 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 **Project**: **BlindDeck** — Balatro play desk (mod + API + play helpers).\
 **GitHub Repository**: [`FFFishes7/blinddeck`](https://github.com/FFFishes7/blinddeck)
 
+**Play Balatro with your agent — glance, then act.** If the user asks you to **play** (not develop), read [`PLAY.md`](./PLAY.md) first.
+
 ## Playing Balatro (read this first if asked to play)
 
 If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md`](./PLAY.md) for the full guide. The essentials:

@@ -1,6 +1,6 @@
 # Playing Balatro with BlindDeck — Quick Guide for AI Agents
 
-You are the player. The game runs on `127.0.0.1:12346` and exposes a JSON-RPC 2.0 API. You call endpoints; the game responds with the new state. This file tells you everything you need to run a full game without reading any source.
+You are the player. **Play Balatro with your human:** read state, reason each turn, and act through the API — one command at a time. The game runs on `127.0.0.1:12346` and exposes a JSON-RPC 2.0 API. You call endpoints; the game responds with the new state. This file tells you everything you need to run a full game without reading any source.
 
 **Read this if…**
 
@@ -86,9 +86,12 @@ When you don't know what to do, read `actions:`.
 
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and skip-reward tag; the selectable blind is marked `(current, select)`.
-    Defeated blinds omit skip-reward text. When Boss is on deck and you own
-    Director's Cut or Retcon, a **`reroll_boss=$10 [ok]`** / **`[need $N]`** /
-    **`[used this ante]`** line appears; `actions:` may include `reroll_boss`.
+    When the tag stack is stable, **`held tags (pending): …`** lists tags already
+    earned from earlier skips (oldest → newest) — not skip rewards on upcoming
+    blinds. See [Tag semantics](#tag-semantics-skip-rewards). Defeated blinds omit
+    skip-reward text. When Boss is on deck and you own Director's Cut or Retcon, a
+    **`reroll_boss=$10 [ok]`** / **`[need $N]`** / **`[used this ante]`** line
+    appears; `actions:` may include `reroll_boss`.
 - **SELECTING_HAND:** `score=X/target` includes **`need=N`** until you beat the
     blind, then **`beaten`**. Skip-reward tags are not repeated on the current blind
     line (you already chose to play).
