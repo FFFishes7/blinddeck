@@ -66,7 +66,7 @@ def _visible_cards(area: dict | None) -> list[dict]:
 
 def _consumable_needs_hand(card: dict) -> bool:
     effect = (card.get("value") or {}).get("effect") or ""
-    # Fallback: Death and tarots that mention "hand" in effect text need targets.
+    # Fallback: tarots (incl. Death) that mention "hand" in effect text need targets.
     key = card.get("key") or ""
     if key == "c_death":
         return True
@@ -88,8 +88,8 @@ def consumable_target_hint(card: dict) -> str | None:
     value = card.get("value") or {}
     if key == "c_death":
         return (
-            "needs 2 hand targets: left source → right target "
-            "(hand [N] indices, not ranks)"
+            "needs 2 hand targets: lower-index card becomes a copy of "
+            "the higher-index card (arg order irrelevant)"
         )
     if value.get("random_joker_effect") or key in _RANDOM_JOKER_KEYS:
         if key == "c_ectoplasm":
@@ -276,8 +276,9 @@ def _pack_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
             params["targets"] = _pack_target_example(card, hand_len)
             if card.get("key") == "c_death":
                 desc = (
-                    "Select Death — pack card uses hand [N] indices "
-                    "(SOURCE TARGET; left becomes right)"
+                    "Select Death — pack 0 I J: card at min(I,J) becomes a copy "
+                    "of card at max(I,J); order of I J doesn't matter "
+                    "(hand [N] indices)"
                 )
             else:
                 desc = f"{desc} — targets are hand [N] from hand: line"
@@ -308,15 +309,6 @@ def _selecting_hand_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
         _action("sort", "Sort hand by rank", example_params={"mode": "rank"}),
     ]
     actions.extend(_use_actions(state))
-    for idx, card in enumerate(state.get("consumables", {}).get("cards", [])):
-        if card.get("key") == "c_death":
-            actions.append(
-                _action(
-                    "death",
-                    "Use Death consumable (reorders hand automatically)",
-                    example_params={"consumable": idx, "source": 0, "target": 1},
-                )
-            )
     actions.extend(_rearrange_actions(state))
     actions.extend(_sell_actions(state))
     return actions

@@ -98,7 +98,7 @@ class TestSortEndpointStateRequirements:
         assert_error_response(
             api(client, "sort", {}),
             "INVALID_STATE",
-            "Method 'sort' requires one of these states: SELECTING_HAND, SMODS_BOOSTER_OPENED",
+            "Method 'sort' requires one of these states: SELECTING_HAND",
         )
 
     def test_sort_from_MENU(self, client: httpx.Client) -> None:
@@ -107,19 +107,23 @@ class TestSortEndpointStateRequirements:
         assert_error_response(
             api(client, "sort", {}),
             "INVALID_STATE",
-            "Method 'sort' requires one of these states: SELECTING_HAND, SMODS_BOOSTER_OPENED",
+            "Method 'sort' requires one of these states: SELECTING_HAND",
         )
 
     def test_sort_in_SMODS_BOOSTER_OPENED_arcana(self, client: httpx.Client) -> None:
-        """Test sort works while an Arcana pack is open and the hand is available."""
-        before = load_fixture(
+        """sort is rejected while a booster pack is open, even Arcana/Spectral.
+
+        Balatro's Rank/Suit hand-sort buttons are hidden by the pack overlay
+        (even when hand cards are visible for Tarot/Spectral targeting). The
+        API matches the UI: sort is SELECTING_HAND-only.
+        """
+        load_fixture(
             client,
             "pack",
             "seed-VEBROR8--state-SMODS_BOOSTER_OPENED--pack.key-p_arcana_mega_1",
         )
-        assert before["state"] == "SMODS_BOOSTER_OPENED"
-        if before["hand"]["count"] == 0:
-            pytest.skip("Arcana pack fixture has no hand cards available to sort")
-        response = api(client, "sort", {"mode": "rank-asc"})
-        after = assert_gamestate_response(response, state="SMODS_BOOSTER_OPENED")
-        _assert_rank_order(_hand_ranks(after), descending=False)
+        assert_error_response(
+            api(client, "sort", {"mode": "rank-asc"}),
+            "INVALID_STATE",
+            "Method 'sort' requires one of these states: SELECTING_HAND",
+        )

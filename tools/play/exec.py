@@ -8,7 +8,7 @@ from typing import Any
 
 from actions import build_actions
 from bot_client import APIError, rpc
-from commands import move_before, normalize_sort_mode
+from commands import normalize_sort_mode
 from envelope import build_error_envelope, build_play_envelope
 from layers import normalize_play_state
 from state import fetch_stable_gamestate
@@ -27,28 +27,7 @@ def parse_exec_payload(raw: str) -> tuple[str, dict[str, Any]]:
     return command, params
 
 
-def run_death(params: dict[str, Any]) -> None:
-    consumable = int(params["consumable"])
-    source = int(params["source"])
-    target = int(params["target"])
-    state = rpc("gamestate")
-    hand = state.get("hand", {}).get("cards", [])
-    if source < 0 or source >= len(hand) or target < 0 or target >= len(hand):
-        raise ValueError(f"death source/target out of range for hand size {len(hand)}")
-    if source == target:
-        raise ValueError("death source and target must be different cards")
-    order = move_before(list(range(len(hand))), source, target)
-    if order != list(range(len(hand))):
-        rpc("rearrange", {"hand": order})
-        source = order.index(source)
-        target = order.index(target)
-    rpc("use", {"consumable": consumable, "cards": [source, target]})
-
-
 def execute(command: str, params: dict[str, Any]) -> dict[str, Any]:
-    if command == "death":
-        run_death(params)
-        return fetch_stable_gamestate()
     if command == "sort":
         mode = normalize_sort_mode(str(params.get("mode", "rank")))
         rpc("sort", {"mode": mode})

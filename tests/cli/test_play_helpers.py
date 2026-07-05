@@ -442,8 +442,8 @@ def test_consumable_target_hint_death() -> None:
     card = {"key": "c_death", "value": {"effect": "copy left card into right"}}
     hint = consumable_target_hint(card)
     assert hint is not None
-    assert "hand [N] indices" in hint
-    assert "not ranks" in hint
+    assert "arg order irrelevant" in hint
+    assert "lower-index" in hint
 
 
 def test_build_actions_pack_death_includes_targets(selecting_hand_state: dict) -> None:
@@ -477,6 +477,24 @@ def test_build_actions_pack_death_includes_targets(selecting_hand_state: dict) -
     example = pack_actions[0]["example"]["params"]
     assert example["card"] == 0
     assert example["targets"] == [0, 1]
+
+
+def test_build_actions_pack_never_offers_sort(
+    selecting_hand_state: dict,
+) -> None:
+    """sort is SELECTING_HAND-only (matches Balatro UI); never in pack actions,
+    even when an Arcana/Spectral pack has hand cards visible for targeting."""
+    pack_state = {
+        **selecting_hand_state,
+        "state": "SMODS_BOOSTER_OPENED",
+        "pack": {
+            "count": 1,
+            "limit": 1,
+            "cards": [{"label": "The Magician", "key": "c_magician"}],
+        },
+    }
+    commands = {a["command"] for a in build_actions(pack_state)}
+    assert "sort" not in commands
 
 
 def test_poll_until_stable_waits_for_held_tags() -> None:
@@ -1029,6 +1047,59 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
     assert "actions: play discard sort rearrange" in out
 
 
+def test_print_summary_consumables_without_jokers(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Consumables line must appear even when the joker slot is empty."""
+    raw = {
+        "state": "SELECTING_HAND",
+        "money": 4,
+        "round_num": 1,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {"hands_left": 3, "discards_left": 4, "chips": 0, "reroll_cost": 5},
+        "blinds": {
+            "small": {
+                "status": "CURRENT",
+                "name": "Small Blind",
+                "type": "SMALL",
+                "score": 300,
+            },
+        },
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {
+            "count": 1,
+            "limit": 2,
+            "cards": [
+                {
+                    "label": "Death",
+                    "key": "c_death",
+                    "value": {
+                        "effect": "Select 2 cards, convert the left card into the right card"
+                    },
+                }
+            ],
+        },
+        "cards": {"count": 44, "limit": 52},
+        "hand": {
+            "count": 2,
+            "limit": 8,
+            "cards": [
+                {"label": "7♣", "value": {"rank": "7", "suit": "C"}},
+                {"label": "K♠", "value": {"rank": "K", "suit": "S"}},
+            ],
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "jokers" not in out
+    assert "consumables (1/2):" in out
+    assert "[0] Death" in out
+    assert "arg order irrelevant" in out
+    assert "use" in out
+
+
 def test_print_summary_selecting_hand_no_passive_economy(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
@@ -1270,9 +1341,8 @@ def test_print_summary_pack_death_hint(capsys: pytest.CaptureFixture[str]) -> No
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "Death" in out
-    assert "hand [N] indices" in out
-    assert "targets: use hand indices [0] [1]" in out
-    assert "note: Death" in out
+    assert "arg order irrelevant" in out
+    assert "note: Death" not in out
 
 
 def test_print_summary_shop(capsys: pytest.CaptureFixture[str]) -> None:

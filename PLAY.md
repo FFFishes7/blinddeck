@@ -8,7 +8,7 @@ You are the player. Read **§1–§6** top to bottom before your first move, the
 | **Scripting the API** | [docs/api.md](docs/api.md), `bot.ps1 state --json`           |
 | **Changing the mod**  | [AGENTS.md](AGENTS.md), [docs/OVERVIEW.md](docs/OVERVIEW.md) |
 
-Install / launch: [README.md](README.md). **Glance field details:** [tools/play/README.md](tools/play/README.md#what-glance-shows).
+Install / launch: [README.md](README.md). Glance field details: [tools/play/README.md](tools/play/README.md#what-glance-shows).
 
 ---
 
@@ -16,7 +16,7 @@ Install / launch: [README.md](README.md). **Glance field details:** [tools/play/
 
 - Read live state from **`bot.ps1 glance`** (compact summary + **`actions:`** line).
 - Reason each turn; send **one friendly subcommand** per request.
-- Balatro card facts: **`know`** / **`query`** — or the scoring rules in **§3** for hand math.
+- Card facts: **`know`** / **`query`** — or the scoring rules in **§3** for hand math.
 - **`estimate` is optional and not recommended** for normal play (dev/regression only).
 
 ---
@@ -50,8 +50,6 @@ until GAME_OVER → menu → start DECK STAKE SEED   # SEED from summary restart
 | `SELECTING_HAND` / `SHOP` / pack / `ROUND_EVAL` | deck · stake · owned jokers · owned consumables · boss             |
 | `GAME_OVER`                                     | deck · stake only                                                  |
 
-Does **not** include shop cards or `held tags` — read **`glance`** for those.
-
 ---
 
 ## 3. Scoring essentials
@@ -63,13 +61,13 @@ Final score = **Chips × Mult**, built **left to right**:
 3. **Per scoring card** — rank chips (**A=11**, **2–10 face**, **J/Q/K=10**) + enhancement / edition / seal when that card scores.
 4. **Jokers left → right** — each adds +Chips, +Mult, or **×Mult** to the running totals.
 
-**Order rule:** stack **+Mult before ×Mult** — put +Mult jokers (and +Mult cards) **left** of ×Mult jokers (Ramen, Polychrome, Glass, …). Joker slot order matters (`rearrange jokers`).
+**Order rule:** stack **+Mult before ×Mult** — put +Mult jokers (and +Mult cards/editions) **left** of ×Mult jokers and ×Mult editions (Ramen, Polychrome, …). Joker slot order matters (`rearrange jokers`).
 
 Example (40 chips, base mult 4, +4 Mult joker + ×2 Ramen): joker **left** of Ramen → 40×((4+4)×2)=**640**; reversed → 40×((4×2)+4)=**480**.
 
 **Kicker trap (#1 estimate mistake):** Three Kings + two kickers scores **only the three Kings’ chips** plus the Three-of-a-Kind base — **not** all five cards.
 
-**Held in hand:** **Steel** = ×1.5 Mult while held — **do not play** Steel for scoring. Baron, Raised Fist, and Gold enhancement also use cards left in hand.
+**Held in hand:** **Steel** = ×1.5 Mult while held — **do not play** Steel for scoring. Baron, Raised Fist, and Gold enhancement also use cards left in hand. (Glass cards, by contrast, score when **played** — they are not held-mult.)
 
 More rules: `know check rule scoring_formula` · `know list rules`
 
@@ -77,38 +75,80 @@ More rules: `know check rule scoring_formula` · `know list rules`
 
 ## 4. State → command
 
-| State                  | Command                                                                                                             |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `MENU`                 | `start DECK STAKE [SEED]` — deck/stake lists in `glance`                                                            |
-| `BLIND_SELECT`         | `select` · `skip` (Small/Big only) · `reroll_boss` (Boss, $10, Director's Cut / Retcon)                             |
-| `SELECTING_HAND`       | `play …` · `discard …` · `use …` · `death …` · `sort rank` — repeat until summary shows **`beaten`**, then `glance` |
-| `ROUND_EVAL`           | See bullets below                                                                                                   |
-| `SHOP`                 | `buy card\|pack …` · `reroll` · `sell …` · `rearrange jokers\|consumables …` · `next_round`                         |
-| `SMODS_BOOSTER_OPENED` | See bullets below                                                                                                   |
-| `GAME_OVER`            | `menu` then `start DECK STAKE SEED` (seed in summary restart hint)                                                  |
+### Quick reference
 
-**`ROUND_EVAL`**
+The primary command for each state. Full syntax and index rules below.
 
-- Read **`pending:`** rows and **`total +$N`** before cashing out.
-- If **`victory_overlay`**: `endless` or `menu` first — **not** `cash_out` until dismissed.
-- Otherwise: `cash_out`.
+| State                  | Primary command                                                 |
+| ---------------------- | --------------------------------------------------------------- |
+| `MENU`                 | `start DECK STAKE [SEED]` (or `load PATH`)                      |
+| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)       |
+| `SELECTING_HAND`       | `play N…` · `discard N…` · `use 0 [1 2]` · `sort rank`          |
+| `ROUND_EVAL`           | `cash_out` (or `endless` / `menu` if `victory_overlay`)         |
+| `SHOP`                 | `buy card\|voucher\|pack N` · `reroll` · `next_round`           |
+| `SMODS_BOOSTER_OPENED` | `pack N [hand…]` while `choices remaining: N > 0` · `pack skip` |
+| `GAME_OVER`            | `menu` → then `start DECK STAKE SEED`                           |
 
-**`SMODS_BOOSTER_OPENED`**
+### Common syntax (wherever the items exist)
 
-- While **`choices remaining: N` > 0**: `pack IDX [hand indices…]` or `pack skip` (forfeit remaining picks — not “next blind”).
-- **`pack` targets** = **0-based hand `[N]`** from the `hand:` line (not rank values).
-- Tarot/Spectral only for targets; **Ankh / Hex / Ectoplasm** = random joker (targets ignored).
-- Booster choices are **free picks** — not shop prices.
+**Indices are 0-based and per-area.** `hand:`, `jokers:`, `consumables:` each have their own `[N]` lists. `hand [N]` is for `play` / `discard` / `use` targets / `pack` targets. `jokers [N]` and `consumables [N]` are for `sell` and `rearrange`. They do **not** cross over (`sell joker 0` ≠ `sell consumable 0`).
 
-**Scoring a hand:** `query hands` + mental math from **§3**.
+| Action    | Syntax                                        | Notes                                                                                                                                                                                  |
+| --------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sell      | `sell joker N` / `sell consumable N`          | Type keyword required (not `sell 0` alone).                                                                                                                                            |
+| Use       | `use 0 1 2`                                   | Consumable `[0]` from `consumables:` + hand targets `[1]` `[2]` from `hand:`. Death same form (2 targets; lower-index card becomes a copy of the higher-index one — order irrelevant). |
+| Rearrange | `rearrange hand\|jokers\|consumables I J K …` | **Full** new left-to-right order, every index once. e.g. `rearrange jokers 1 0` puts former `[1]` left of former `[0]`. Needs ≥2 cards.                                                |
+| Sort      | `sort rank`                                   | Modes: `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`/`rd`/`ra`/`s`/`sd`/`sa`).                                                                    |
+| Save      | `save PATH`                                   | Any in-run state (not `MENU`). e.g. `save run.jkr`.                                                                                                                                    |
+
+**Where each inventory action is allowed:**
+
+| Action      | Allowed states                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------- |
+| `sell`      | `BLIND_SELECT` · `SELECTING_HAND` · `ROUND_EVAL` · `SHOP` · `SMODS_BOOSTER_OPENED`                        |
+| `use`       | `BLIND_SELECT` · `SELECTING_HAND` · `ROUND_EVAL` · `SHOP` · `SMODS_BOOSTER_OPENED`                        |
+| `rearrange` | `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED` (hand only in `SELECTING_HAND` + Tarot/Spectral packs) |
+| `sort`      | `SELECTING_HAND`                                                                                          |
+
+### Per-state details
+
+**`MENU`** — `start DECK STAKE [SEED]` (deck/stake lists in `glance`); `load PATH` when `actions:` offers it.
+
+**`BLIND_SELECT`** — `select` · `skip` (Small/Big only) · `reroll_boss` (Boss + Director's Cut / Retcon, $10). Inventory: `sell` and `use` only. `save PATH` allowed.
+
+**`SELECTING_HAND`** — `play N…` (1–5 cards from `hand:`) · `discard N…` · `sort rank` · `use 0 [1 2]`. Repeat until **`beaten`**, then `glance`. Scoring: `query hands` + §3. `estimate` is optional dev only.
+
+**`ROUND_EVAL`** — `cash_out` (default; read `pending:` / `total +$N` first). If **`victory_overlay`**: `endless` (continue) or `menu` (end run) **before** `cash_out`. Inventory: `sell`/`use` only; `save PATH` allowed.
+
+**`SHOP`** — `buy card N` / `buy voucher N` / `buy pack N` · `reroll` · `next_round` (leave shop). Full inventory (`sell`/`use`/`rearrange`); `save PATH` allowed.
+
+**`SMODS_BOOSTER_OPENED`** — `pack N [hand…]` while glance shows **`choices remaining: N > 0`** (free pick); `pack skip` only to forfeit remaining picks. Targets = `hand:` `[N]` (Tarot/Spectral/Death; not ranks). Ankh/Hex/Ectoplasm: random joker, targets ignored. Inventory: `sell`/`use`/`rearrange`; `save PATH` allowed.
+
+**`GAME_OVER`** — `menu`, then at `MENU`: `start DECK STAKE SEED` (seed from summary restart hint). `save PATH` allowed.
+
+**Transient** (`HAND_PLAYED` / `DRAW_TO_HAND` / `NEW_ROUND` / …) — no play commands; **`glance`** until a stable state above.
+
+### Save / load / screenshot (not in `actions:`)
+
+| Command           | When                                                | Notes                               |
+| ----------------- | --------------------------------------------------- | ----------------------------------- |
+| `save PATH`       | Active run (rows above; not `MENU`)                 | e.g. `save run.jkr`                 |
+| `load PATH`       | `MENU` (also in `actions:` when a save is detected) | Continue instead of `start`         |
+| `screenshot PATH` | When the API allows                                 | Utility; e.g. `screenshot shot.png` |
 
 ---
 
 ## 5. Read glance
 
-Every summary ends with **`actions:`**. Per-state line meanings: [tools/play/README.md § What glance shows](tools/play/README.md#what-glance-shows).
+Every summary ends with **`actions:`** — command **names only** (e.g. `sell`, `use`), not full args like `sell joker 0`. Use **§4** for syntax; run **`bot.ps1 help`** for a formatted catalog, **`bot.ps1 help --now`** for valid-now examples, or [tools/play/README.md § Friendly action subcommands](tools/play/README.md#friendly-action-subcommands). **`state --json`** → `actions[].example` for scripting.
 
-**Hand line:** `[N] rank+suit[tags]` — **`[N]`** is the index for `play`, `discard`, `use`, and pack targets.
+Per-state line meanings: [tools/play/README.md § What glance shows](tools/play/README.md#what-glance-shows).
+
+**Hand line:** `[N] rank+suit[tags]` — **`[N]`** is the index for `play`, `discard`, `use` targets, and pack targets.
+
+**Jokers / consumables:** each has its own **0-based `[N]`**, separate from `hand:`.
+
+**Modifier tags on hand cards:**
 
 | Prefix | Meaning                                                                    |
 | ------ | -------------------------------------------------------------------------- |
@@ -138,10 +178,9 @@ Every summary ends with **`actions:`**. Per-state line meanings: [tools/play/REA
 - Boss blinds hide card faces (`??`).
 - **Tags on blind lines** = reward for **`skip`** only (not defeating the blind). **`held tags (pending):`** = already earned, not yet triggered.
 - **`pack skip`** is not “advance to next blind”.
-- **Ankh / Hex / Ectoplasm:** random joker — to keep one joker, **sell every other joker first** so only the keeper remains.
-- **`rearrange jokers`** changes scoring order only — not consumable/pack targeting.
-- Joker/consumable slots full → **`sell`** first; **`pack` target count** must match the card or you get `BAD_REQUEST`.
-- **`skip` only on Small/Big.** Some tags open a pack immediately after skip → `SMODS_BOOSTER_OPENED`; Double Tag can mean **two packs back-to-back** — read summary after each `pack`.
+- **Ankh / Hex / Ectoplasm:** random joker — to keep one joker, **sell every other joker first** (`sell joker N` per slot) so only the keeper remains.
+- Joker/consumable slots full → **`sell joker|consumable`** first
+- **`pack` target count** must match the card or you get `BAD_REQUEST`.
 - **`reroll_boss`:** Boss `BLIND_SELECT` only; $10; unrelated to shop `reroll`.
 - **`won` on `GAME_OVER`** means you beat Ante 8 Boss (can stay true in endless). Read **`run_summary.result`** for the actual outcome.
 - Connection blip during transitions → retry `glance` once.
@@ -163,18 +202,6 @@ Open only when the play sheet is not enough.
 
 **If health fails:** wait 30–60s after launch; kill zombie `balatrobot` processes; restart `.\tools\play\serve.ps1 --fast --debug`; try `--port 12347` if busy. Do not “fix” game state — restart the server only. Details: [README.md](README.md).
 
-### Command cheatsheet
-
-- `start DECK STAKE [SEED]` · `play` / `discard` (max 5) · `buy card|voucher|pack IDX`
-- `pack IDX [TARGETS…]` · `use CONSUMABLE [CARDS…]` · `death CONSUMABLE SOURCE TARGET` (Spectral Death) · `sort rank` / `suit` / …
-- `sell joker|consumable IDX` · `rearrange hand|jokers|consumables ORDER`
-- Debug (not normal play; `$env:BALATROBOT_ALLOW_CHEATS=1`): `add` · `set` · `debuff` — [tools/play/README.md](tools/play/README.md#debug-add--set-estimate-testing-only)
-
-### Tag edge cases
-
-- **`blinds.{small,big}.tag_name`** = skip reward if you **`skip`** that blind. Boss has no tag.
-- Pack-on-skip tags → `SMODS_BOOSTER_OPENED` immediately; check **`choices remaining: N`** after each pick.
-
 ### Minimal trace
 
 ```powershell
@@ -191,4 +218,4 @@ Each action prints the new summary + `actions:` — you rarely need a separate `
 
 ### Further commands
 
-Full **`query` / `know` / `state`** table and friendly subcommand notes: [tools/play/README.md](tools/play/README.md).
+Full **`query` / `know` / `state`** table, friendly subcommand notes, and debug `add` / `set` / `debuff` (`BALATROBOT_ALLOW_CHEATS=1`): [tools/play/README.md](tools/play/README.md).

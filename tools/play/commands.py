@@ -164,11 +164,6 @@ def format_friendly_action(action: dict) -> str | None:
         if cards:
             return "use " + " ".join(str(x) for x in [idx, *cards])
         return f"use {idx}"
-    if cmd == "death":
-        parts = [params.get("consumable"), params.get("source"), params.get("target")]
-        if all(p is not None for p in parts):
-            return "death " + " ".join(str(p) for p in parts)
-        return "death CONSUMABLE SOURCE TARGET"
     if cmd == "rearrange":
         for area in ("hand", "jokers", "consumables"):
             order = params.get(area)

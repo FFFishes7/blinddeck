@@ -16,7 +16,7 @@
 #   .\bot.ps1 query deck                  # detail query (deck, hands, blinds, …)
 #   .\bot.ps1 know preflight              # phase-aware verified facts (see PLAY.md §2)
 #   .\bot.ps1 exec '{\"command\":\"play\",\"params\":{\"cards\":[0,1,2,3,4]}}'
-#   .\bot.ps1 help
+#   .\bot.ps1 help [--now] [--json]        # command catalog + descriptions; --now = valid in current state
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$BotArgs
@@ -38,7 +38,7 @@ if ($BotArgs.Count -eq 0) {
     Write-Host '  .\bot.ps1 start DECK STAKE [SEED]     (e.g. start RED WHITE; glance lists decks/stakes)'
     Write-Host '  .\bot.ps1 play 0 1 2 3 4'
     Write-Host '  .\bot.ps1 buy card 0'
-    Write-Host '  .\bot.ps1 state | query | know | exec | help   (JSON / advanced)'
+    Write-Host '  .\bot.ps1 state | query | know | exec | help [--now] [--json]'
     exit 2
 }
 

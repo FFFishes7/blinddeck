@@ -26,7 +26,11 @@ return {
     },
   },
 
-  requires_state = { G.STATES.SELECTING_HAND, G.STATES.SMODS_BOOSTER_OPENED },
+  -- Balatro's Rank/Suit hand-sort buttons are only shown during hand selection;
+  -- the overlay hides them while a booster pack is open (even Arcana/Spectral,
+  -- where hand cards are visible for targeting). Keep the API in lockstep with
+  -- the UI: sort is SELECTING_HAND-only.
+  requires_state = { G.STATES.SELECTING_HAND },
 
   ---@param args Request.Endpoint.Sort.Params
   ---@param send_response fun(response: Response.Endpoint)
@@ -36,15 +40,6 @@ return {
     if not G.hand or not G.hand.cards or #G.hand.cards == 0 then
       send_response({
         message = "No hand available to sort",
-        name = BB_ERROR_NAMES.NOT_ALLOWED,
-      })
-      return
-    end
-
-    -- In SMODS_BOOSTER_OPENED, hand is only available in Arcana/Spectral packs.
-    if G.STATE == G.STATES.SMODS_BOOSTER_OPENED and #G.hand.cards == 0 then
-      send_response({
-        message = "No cards to sort. You can only sort hand in Arcana and Spectral packs.",
         name = BB_ERROR_NAMES.NOT_ALLOWED,
       })
       return
@@ -79,7 +74,7 @@ return {
       trigger = "condition",
       blocking = false,
       func = function()
-        local done = (G.STATE == G.STATES.SELECTING_HAND or G.STATE == G.STATES.SMODS_BOOSTER_OPENED) and G.hand ~= nil
+        local done = G.STATE == G.STATES.SELECTING_HAND and G.hand ~= nil
         if done then
           sendDebugMessage("Return sort()", "BB.ENDPOINTS")
           send_response(BB_GAMESTATE.get_gamestate())

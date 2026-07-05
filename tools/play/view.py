@@ -143,6 +143,15 @@ def _joker_line(idx: int, card: dict[str, Any]) -> str:
     return f"{prefix} {name} — {effect}" if effect else f"{prefix} {name}"
 
 
+def _consumable_line(idx: int, card: dict[str, Any]) -> str:
+    """Like ``_joker_line`` but appends ``consumable_target_hint`` when present."""
+    base = _joker_line(idx, card)
+    hint = consumable_target_hint(card)
+    if hint:
+        return f"{base} ({hint})"
+    return base
+
+
 def _blind_line(blind: dict[str, Any], *, show_skip_tag: bool = True) -> str:
     name = blind.get("name") or "?"
     status = blind.get("status") or "?"
@@ -459,19 +468,19 @@ def print_summary(envelope: dict[str, Any]) -> None:
 
 
 def _joker_lines(state: dict[str, Any]) -> list[str]:
+    out: list[str] = []
     jokers_area = state.get("jokers") or {}
     jokers = jokers_area.get("cards") or []
-    if not jokers:
-        return []
-    jcount = jokers_area.get("count", len(jokers))
-    jlimit = jokers_area.get("limit")
-    slot = f" ({jcount}/{jlimit})" if jlimit is not None else ""
-    out = [
-        "jokers"
-        + slot
-        + ": "
-        + "  ".join(_joker_line(i, c) for i, c in enumerate(jokers))
-    ]
+    if jokers:
+        jcount = jokers_area.get("count", len(jokers))
+        jlimit = jokers_area.get("limit")
+        slot = f" ({jcount}/{jlimit})" if jlimit is not None else ""
+        out.append(
+            "jokers"
+            + slot
+            + ": "
+            + "  ".join(_joker_line(i, c) for i, c in enumerate(jokers))
+        )
     cons_area = state.get("consumables") or {}
     consumables = cons_area.get("cards") or []
     if consumables:
@@ -482,7 +491,7 @@ def _joker_lines(state: dict[str, Any]) -> list[str]:
             "consumables"
             + cslot
             + ": "
-            + "  ".join(_joker_line(i, c) for i, c in enumerate(consumables))
+            + "  ".join(_consumable_line(i, c) for i, c in enumerate(consumables))
         )
     return out
 
@@ -533,8 +542,6 @@ def _pack_block(state: dict[str, Any]) -> str:
     if isinstance(choices, int) and choices > 0:
         parts.append(f"  choices remaining: {choices}")
     has_random_joker = False
-    has_death = False
-    needs_hand_targets = False
     for i, c in enumerate(cards):
         label = card_label(c)
         effect = (c.get("value") or {}).get("effect", "")
@@ -543,20 +550,7 @@ def _pack_block(state: dict[str, Any]) -> str:
         parts.append(f"  pack[{i}] {label} — {effect}{hint_suffix}")
         if is_random_joker_consumable(c):
             has_random_joker = True
-        if c.get("key") == "c_death":
-            has_death = True
-        if hint and "hand" in hint.lower():
-            needs_hand_targets = True
     block = "pack:\n" + "\n".join(parts) if parts else "pack: (empty)"
-    hand_cards = (state.get("hand") or {}).get("cards") or []
-    if hand_cards and needs_hand_targets:
-        indices = " ".join(f"[{i}]" for i in range(len(hand_cards)))
-        block += f"\n  targets: use hand indices {indices} (not rank values)"
-    if has_death:
-        block += (
-            "\n  note: Death — pack IDX SOURCE TARGET copies left card into right "
-            "(hand [N] from hand: line)"
-        )
     if has_random_joker:
         block += "\n  note: random-joker spectral — pack targets are hand-only"
     return block

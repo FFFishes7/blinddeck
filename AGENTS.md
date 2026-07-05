@@ -14,13 +14,14 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 - **Scoring:** read [PLAY.md §3 Scoring essentials](./PLAY.md#3-scoring-essentials); use `query hands` + §3 for hand math (not `estimate`).
 - **All indices are 0-based.** One request at a time (server is single-client).
 - **Use friendly subcommands, never `exec '{...}'`** — PowerShell strips unescaped double quotes from JSON args.
+- **Command syntax:** `bot.ps1 help` (formatted catalog + descriptions); `bot.ps1 help --now` when the game is running; `state --json` → `actions[].example` for scripting.
 - State → command:
 
 | State                  | Command                                                                                                                                        |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `MENU`                 | `bot.ps1 start DECK STAKE [SEED]` (e.g. `start RED WHITE`; `glance` lists decks/stakes)                                                        |
 | `BLIND_SELECT`         | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                               |
-| `SELECTING_HAND`       | `bot.ps1 play 0 1 2 3 4` · `discard 0 1` · `use 0 [1 2]` · `sort rank` · *(optional)* `estimate`                                               |
+| `SELECTING_HAND`       | `bot.ps1 play 0 1 2 3 4` (1-5 cards) · `discard 0 1` · `use 0 [1 2]` · `sort rank` · *(optional)* `estimate`                                   |
 | `ROUND_EVAL`           | `bot.ps1 cash_out` · after Ante 8 win with victory overlay: `bot.ps1 endless` first                                                            |
 | `SHOP`                 | `bot.ps1 buy card 0` · `buy pack 0` · `reroll` · `sell joker 0` · `rearrange jokers 1 0` · `next_round`                                        |
 | `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` while glance shows **`choices remaining: N`** · `pack skip` only to forfeit picks · `rearrange jokers …` when 2+ jokers |

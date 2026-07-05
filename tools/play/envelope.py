@@ -12,7 +12,7 @@ from start_options import build_decks, build_stakes
 PLAY_FORMAT = "balatrobot-play-v1"
 QUERY_FORMAT = "balatrobot-query-v1"
 KNOW_FORMAT = "balatrobot-know-v1"
-HELP_FORMAT = "balatrobot-help-v1"
+HELP_FORMAT = "balatrobot-help-v2"
 
 
 def detect_save_path() -> str | None:
@@ -66,9 +66,19 @@ def build_know_envelope(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "format": KNOW_FORMAT, **payload}
 
 
-def build_help_envelope(hidden_actions: list[dict[str, Any]]) -> dict[str, Any]:
-    return {
+def build_help_envelope(
+    catalog: list[dict[str, Any]],
+    *,
+    valid_now: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> dict[str, Any]:
+    payload: dict[str, Any] = {
         "ok": True,
         "format": HELP_FORMAT,
-        "hidden_actions": hidden_actions,
+        "catalog": catalog,
     }
+    if valid_now is not None:
+        payload["valid_now"] = valid_now
+    if error:
+        payload["valid_now_error"] = error
+    return payload
