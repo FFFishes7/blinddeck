@@ -753,9 +753,13 @@ local function extract_card_value(card)
   if center_key then
     local req = consumable.get_consumable_target_requirements(center_key)
     if req then
-      if req.requires_joker then
-        value.requires_joker = true
-      elseif req.min and req.max then
+      if req.random_joker_effect then
+        value.random_joker_effect = true
+      end
+      if req.requires_jokers_min then
+        value.requires_jokers_min = req.requires_jokers_min
+      end
+      if req.min and req.max then
         value.target_min = req.min
         value.target_max = req.max
       end

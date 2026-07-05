@@ -271,7 +271,7 @@ class TestPackEndpointTargets:
         assert_error_response(
             api(client, "pack", {"card": 0}),
             "NOT_ALLOWED",
-            "Card 'c_ankh' requires at least 1 joker. Current: 0",
+            "Card 'c_ankh' requires at least 1 joker",
         )
 
     def test_pack_ankh_with_joker(self, client: httpx.Client) -> None:
@@ -284,6 +284,49 @@ class TestPackEndpointTargets:
         result = api(client, "pack", {"card": 0})
         gamestate = assert_gamestate_response(result, state="SHOP")
         assert gamestate["jokers"]["count"] == 2  # Original + copy
+
+    def test_pack_ankh_sole_joker_copies_that_joker(self, client: httpx.Client) -> None:
+        """With only one joker, Ankh must duplicate that joker."""
+        load_fixture(
+            client,
+            "pack",
+            "state-SMODS_BOOSTER_OPENED--pack.cards[0].key-c_ankh--jokers.key-j_jolly--jokers.count-1",
+        )
+        before = api(client, "gamestate")["result"]
+        keeper_key = before["jokers"]["cards"][0]["key"]
+        result = api(client, "pack", {"card": 0})
+        after = assert_gamestate_response(result, state="SHOP")
+        assert after["jokers"]["count"] == 2
+        keys = [j["key"] for j in after["jokers"]["cards"]]
+        assert keys == [keeper_key, keeper_key]
+
+    def test_pack_ankh_hand_targets_ignored(self, client: httpx.Client) -> None:
+        """Hand targets on Ankh do not change outcome (same as no targets)."""
+        fixture = "state-SMODS_BOOSTER_OPENED--pack.cards[0].key-c_ankh--jokers.key-j_jolly--jokers.count-1"
+        load_fixture(client, "pack", fixture)
+        without = assert_gamestate_response(api(client, "pack", {"card": 0}))
+        load_fixture(client, "pack", fixture)
+        with_target = assert_gamestate_response(
+            api(client, "pack", {"card": 0, "targets": [0]})
+        )
+        assert [j["key"] for j in without["jokers"]["cards"]] == [
+            j["key"] for j in with_target["jokers"]["cards"]
+        ]
+
+    def test_pack_ankh_two_jokers_rearrange_does_not_aim(
+        self, client: httpx.Client
+    ) -> None:
+        """Joker reorder before Ankh does not make the effect target a slot."""
+        fixture = "state-SMODS_BOOSTER_OPENED--pack.cards[0].key-c_ankh--jokers.count-2"
+        load_fixture(client, "pack", fixture)
+        baseline = assert_gamestate_response(api(client, "pack", {"card": 0}))
+        copied_key = baseline["jokers"]["cards"][0]["key"]
+
+        load_fixture(client, "pack", fixture)
+        api(client, "rearrange", {"jokers": [1, 0]})
+        after = assert_gamestate_response(api(client, "pack", {"card": 0}))
+        assert after["jokers"]["count"] == 2
+        assert all(j["key"] == copied_key for j in after["jokers"]["cards"])
 
 
 # =============================================================================

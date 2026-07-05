@@ -96,8 +96,11 @@ When you don't know what to do, read `actions:`.
     blind, then **`beaten`**. Skip-reward tags are not repeated on the current blind
     line (you already chose to play).
 - **SHOP:** prices show **`[ok]`**, **`[need $N]`**, or **`[slots full]`**; header
-    adds **`buy_power=`** when Credit Card raises `bankrupt_at`.
-- **Pack open:** Tarot/Spectral candidates show **`(needs 1-2 targets)`** etc.
+    adds **`buy_power=`** when Credit Card raises `bankrupt_at`. With 2+ jokers or
+    consumables, `actions:` includes **`rearrange`**.
+- **Pack open:** Tarot/Spectral hand-target cards show **`(needs 1-2 targets)`**.
+    Ankh / Hex / Ectoplasm show **`(random joker — pack targets ignored)`** plus a
+    **`note:`** that pack targets are hand-only.
 - **GAME_OVER:** **`→ menu  then  start RED WHITE [SEED]`** uses the run's deck/stake.
 - **ROUND_EVAL:** pending round-end money (hands left, interest, Delayed
     Gratification) before **`→ cash_out`**. After beating Ante 8 Boss, if
@@ -116,23 +119,23 @@ When you don't know what to do, read `actions:`.
 
 ## 2. State → Friendly Command Table
 
-| State                  | What to do                                      | Command                                                                                                                          |
-| ---------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `MENU`                 | Start a run                                     | `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`; optional seed: `start DECK STAKE SEED`)                                      |
-| `BLIND_SELECT`         | Play or skip the blind                          | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                 |
-| `SELECTING_HAND`       | Play / discard / use / sort (estimate optional) | `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` · *(optional)* `bot.ps1 estimate` |
-| `HAND_PLAYED`          | Transient — just poll                           | `bot.ps1 glance`                                                                                                                 |
-| `ROUND_EVAL`           | Collect rewards                                 | `bot.ps1 cash_out` · if `victory_overlay`: `bot.ps1 endless` first, then `cash_out`                                              |
-| `SHOP`                 | Buy / reroll / sell / leave                     | `bot.ps1 buy card 0` · `bot.ps1 buy pack 0` · `bot.ps1 reroll` · `bot.ps1 sell joker 0` · `bot.ps1 next_round`                   |
-| `SMODS_BOOSTER_OPENED` | Pick or skip                                    | `bot.ps1 pack 0` (or `pack 0 1 2` with targets) · `bot.ps1 pack skip`                                                            |
-| `GAME_OVER`            | Run ended                                       | `bot.ps1 menu` then `start`                                                                                                      |
+| State                  | What to do                                      | Command                                                                                                                                         |
+| ---------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MENU`                 | Start a run                                     | `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`; optional seed: `start DECK STAKE SEED`)                                                     |
+| `BLIND_SELECT`         | Play or skip the blind                          | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                                |
+| `SELECTING_HAND`       | Play / discard / use / sort (estimate optional) | `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` · *(optional)* `bot.ps1 estimate`                |
+| `HAND_PLAYED`          | Transient — just poll                           | `bot.ps1 glance`                                                                                                                                |
+| `ROUND_EVAL`           | Collect rewards                                 | `bot.ps1 cash_out` · if `victory_overlay`: `bot.ps1 endless` first, then `cash_out`                                                             |
+| `SHOP`                 | Buy / reroll / sell / rearrange / leave         | `bot.ps1 buy card 0` · `bot.ps1 buy pack 0` · `bot.ps1 reroll` · `bot.ps1 sell joker 0` · `bot.ps1 rearrange jokers 1 0` · `bot.ps1 next_round` |
+| `SMODS_BOOSTER_OPENED` | Pick or skip                                    | `bot.ps1 pack 0` (or `pack 0 1 2` with targets) · `bot.ps1 pack skip`                                                                           |
+| `GAME_OVER`            | Run ended                                       | `bot.ps1 menu` then `start`                                                                                                                     |
 
 Command arg cheatsheet:
 
 - `start DECK STAKE [SEED]` — `DECK` ∈ {RED, BLUE, YELLOW, GREEN, BLACK, MAGIC, NEBULA, GHOST, ABANDONED, CHECKERED, ZODIAC, PAINTED, ANAGLYPH, PLASMA, ERRATIC}; `STAKE` ∈ {WHITE, RED, GREEN, BLACK, BLUE, PURPLE, ORANGE, GOLD}.
 - `play` / `discard` — card indices, max 5 for `play`.
 - `buy card|voucher|pack IDX` — 0-based index into the shop / vouchers / packs area.
-- `pack IDX [TARGETS...]` — `TARGETS` only for Tarot/Spectral-style cards acting on hand cards. `pack skip` closes the pack.
+- `pack IDX [TARGETS...]` — hand-card targets only (Tarot/Spectral with `target_min/max`). Not for Ankh/Hex/Ectoplasm (`random_joker_effect`). `pack skip` closes the pack.
 - `use CONSUMABLE [CARDS...]` — `CARDS` only for consumables that target hand cards.
 - `sort MODE` — `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`,`s`,`rd`...).
 - `sell joker|consumable IDX` · `rearrange hand|jokers|consumables FULL_ORDER` (e.g. `rearrange hand 2 0 1 3`).
@@ -208,7 +211,8 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 - **0-based indices.** First hand card is `0`. `play 0 1 2 3 4` plays the first five.
 - **One request at a time.** The server is single-client, serial. Wait for each response before sending the next.
 - **PowerShell eats JSON quotes.** Never call `bot.ps1 exec '{"command":...}'` with bare `"` — PowerShell strips them. Use the friendly subcommands ([State → command table](#2-state--friendly-command-table), [Minimal trace](#3-minimal-full-game-trace)), or escape as `\"` if you must use `exec`.
-- **`pack` `targets` only for Tarot/Spectral.** Buffoon/Celestial/Standard packs don't need targets. The endpoint validates target count against the card's requirement and returns `BAD_REQUEST` if wrong.
+- **`pack` `targets` only for hand cards (Tarot/Spectral).** Trailing indices highlight **hand** cards, not jokers. Buffoon/Celestial/Standard packs don't need targets. The endpoint validates target count against the card's requirement and returns `BAD_REQUEST` if wrong.
+- **Ankh / Hex / Ectoplasm pick a random joker.** `glance` shows `(random joker — pack targets ignored)`. The API cannot aim these at a joker slot — **`rearrange jokers` is for scoring order only**, not consumable targeting.
 - **Boss blinds hide card faces.** Cards with `state.hidden == true` return no rank/suit (shown as `??` in `glance`) — do not try to "read" them; decide based on what's visible.
 - **`buy` / `reroll` affordability is `money - bankrupt_at`**, not raw `money` (Credit Card raises `bankrupt_at`). `glance` shows `[ok]` / `[need $N]` on shop rows; if a buy still fails with `BAD_REQUEST`, slots may be full or cost changed after reroll.
 - **Joker/consumable slots can be full.** `buy` returns `BAD_REQUEST` when slots are full — `sell` something first or skip.
@@ -228,7 +232,7 @@ Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
 - **Beat the blind target, not maximize score.** `round.chips` is your current score; the current blind's `score` is the target. Once you've passed it, you can stop playing hands to bank unused hands ($1 each) and discards.
 - **Don't burn discards for no reason.** Each unused hand pays $1 interest at round end (interest capped at $5). Discard only to improve a hand you intend to play.
 - **Economy early, scaling late.** In early antes, money compounds. Don't reroll aggressively. Buy jokers that scale (Mult+) or generate economy.
-- **Joker order matters.** Put chips and `+Mult` jokers before `×Mult` jokers when possible; after buying Hologram, Polychrome, Card Sharp, etc., consider `bot.ps1 rearrange jokers ...` so multiplicative effects fire late.
+- **Joker order matters (scoring).** Put chips and `+Mult` jokers before `×Mult` jokers when possible; in `SELECTING_HAND` or **SHOP** (2+ jokers), use `bot.ps1 rearrange jokers ...` so multiplicative effects fire late. This does **not** control random-joker Spectrals (Ankh, Hex, Ectoplasm).
 - **Boss-blind awareness.** Before `select`ing a boss, run `know preflight` and check the boss effect — some bosses invalidate strategies (e.g. "The Flint" halves base chips/mult, "The Psychic" forces 5-card plays and hides cards). Adjust which cards you play.
 - **Vouchers persist for the run.** Buying a voucher is usually higher value than a single joker if it matches your direction.
 - **When in doubt in shop:** buy a pack > reroll > skip to next round. Packs give selection among multiple cards.

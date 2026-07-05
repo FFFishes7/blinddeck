@@ -199,9 +199,56 @@ def test_build_actions_shop(selecting_hand_state: dict) -> None:
             "limit": 2,
             "cards": [{"label": "The Hermit", "key": "c_hermit"}],
         },
+        "jokers": {
+            "count": 2,
+            "limit": 5,
+            "cards": [
+                {"label": "Joker", "key": "j_joker"},
+                {"label": "Jolly Joker", "key": "j_jolly"},
+            ],
+        },
     }
     commands = {a["command"] for a in build_actions(shop_state)}
-    assert {"buy", "reroll", "next_round", "sell", "use"}.issubset(commands)
+    assert {"buy", "reroll", "next_round", "sell", "use", "rearrange"}.issubset(
+        commands
+    )
+
+
+def test_build_actions_pack_open_rearrange_random_joker(
+    selecting_hand_state: dict,
+) -> None:
+    pack_state = {
+        **selecting_hand_state,
+        "state": "SMODS_BOOSTER_OPENED",
+        "pack": {
+            "count": 2,
+            "limit": 2,
+            "cards": [
+                {
+                    "label": "Ankh",
+                    "key": "c_ankh",
+                    "value": {"effect": "Create a copy of a random Joker"},
+                },
+                {
+                    "label": "Ectoplasm",
+                    "key": "c_ectoplasm",
+                    "value": {"effect": "..."},
+                },
+            ],
+        },
+        "jokers": {
+            "count": 2,
+            "limit": 5,
+            "cards": [
+                {"label": "Joker", "key": "j_joker"},
+                {"label": "Jolly Joker", "key": "j_jolly"},
+            ],
+        },
+    }
+    commands = {a["command"] for a in build_actions(pack_state)}
+    assert "rearrange" in commands
+    pack_actions = [a for a in build_actions(pack_state) if a["command"] == "pack"]
+    assert any("random joker" in a["description"].lower() for a in pack_actions)
 
 
 def test_build_actions_blind_select(selecting_hand_state: dict) -> None:
@@ -764,8 +811,16 @@ def test_pack_target_hint_range() -> None:
         == "needs 1 target"
     )
     assert (
-        consumable_target_hint({"value": {"requires_joker": True}})
-        == "needs joker target"
+        consumable_target_hint(
+            {"key": "c_ankh", "value": {"random_joker_effect": True}}
+        )
+        == "random joker — pack targets ignored"
+    )
+    assert (
+        consumable_target_hint(
+            {"key": "c_ectoplasm", "value": {"random_joker_effect": True}}
+        )
+        == "random joker Negative — pack targets ignored"
     )
 
 

@@ -384,7 +384,7 @@ After buying a pack with [`buy`](#buy), this method allows you to select a card 
 - **Standard packs**: Selected playing cards are added to your deck
 - **Arcana/Celestial/Spectral packs**: Selected consumables are **used immediately**
 
-Some Tarot and Spectral cards require you to select target cards from your hand (e.g., The Magician enhances 1-2 cards to Lucky).
+Some Tarot and Spectral cards require you to select target cards from your hand (e.g., The Magician enhances 1-2 cards to Lucky). **Ankh, Hex, and Ectoplasm** (`random_joker_effect` on the card `value`) pick a **random** joker — `targets` only highlight hand cards and do not select a joker slot. See `requires_jokers_min` on Ankh/Hex (at least one joker must be present).
 
 **Parameters:** (exactly one required)
 
@@ -964,7 +964,7 @@ All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, 
 
 `value.stats` fields vary by joker (e.g. `x_mult`, `chips`, `loyalty_remaining`, `caino_xmult`). See [JokerStats](#jokerstats). `value.rarity` is one of `COMMON`, `UNCOMMON`, `RARE`, `LEGENDARY`.
 
-Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.target_max` (hand cards required when using or selecting from a pack) or `value.requires_joker` (e.g. Ankh). Derived from game `G.P_CENTERS` config — same rules as the [`pack`](#pack) endpoint.
+Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.target_max` (hand cards required when using or selecting from a pack), `value.requires_jokers_min` (must own at least N jokers — Ankh, Hex), and `value.random_joker_effect` (Ankh, Hex, Ectoplasm: picks a random joker; **not** targetable via `pack` indices). Derived from game config — same rules as the [`pack`](#pack) endpoint.
 
 **Hidden (face-down) card example:**
 

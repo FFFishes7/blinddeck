@@ -863,6 +863,37 @@ class TestGamestateCards:
             assert tarot["value"].get("target_min") == 1
             assert tarot["value"].get("target_max") == 2
 
+        def test_card_value_random_joker_consumables(
+            self, client: httpx.Client
+        ) -> None:
+            """Ankh/Hex/Ectoplasm expose random_joker_effect (not requires_joker)."""
+            expectations = {
+                "c_ankh": {"requires_jokers_min": 1},
+                "c_hex": {"requires_jokers_min": 1},
+                "c_ectoplasm": {},
+            }
+            for key, extra in expectations.items():
+                load_fixture(client, "gamestate", "state-SELECTING_HAND")
+                response = api(client, "add", {"key": key})
+                card = response["result"]["consumables"]["cards"][0]
+                assert card["value"].get("random_joker_effect") is True
+                assert "requires_joker" not in card["value"]
+                for field, value in extra.items():
+                    assert card["value"].get(field) == value
+
+        def test_pack_card_ankh_random_joker_effect(self, client: httpx.Client) -> None:
+            """Pack-open Ankh card includes random_joker_effect in gamestate."""
+            gamestate = load_fixture(
+                client,
+                "pack",
+                "state-SMODS_BOOSTER_OPENED--pack.cards[0].key-c_ankh--jokers.count-1",
+            )
+            ankh = gamestate["pack"]["cards"][0]
+            assert ankh["key"] == "c_ankh"
+            assert ankh["value"].get("random_joker_effect") is True
+            assert "requires_joker" not in ankh["value"]
+            assert ankh["value"].get("requires_jokers_min") == 1
+
     class TestGamestateCardModifier:
         """Test gamestate card modifier."""
 

@@ -73,11 +73,23 @@ def _consumable_needs_hand(card: dict) -> bool:
     return "select" in effect.lower() and "hand" in effect.lower()
 
 
+_RANDOM_JOKER_KEYS = frozenset({"c_ankh", "c_hex", "c_ectoplasm"})
+
+
+def is_random_joker_consumable(card: dict) -> bool:
+    key = card.get("key") or ""
+    value = card.get("value") or {}
+    return bool(value.get("random_joker_effect") or key in _RANDOM_JOKER_KEYS)
+
+
 def consumable_target_hint(card: dict) -> str | None:
     """Human hint for pack glance lines."""
+    key = card.get("key") or ""
     value = card.get("value") or {}
-    if value.get("requires_joker"):
-        return "needs joker target"
+    if value.get("random_joker_effect") or key in _RANDOM_JOKER_KEYS:
+        if key == "c_ectoplasm":
+            return "random joker Negative — pack targets ignored"
+        return "random joker — pack targets ignored"
     tmin = value.get("target_min")
     tmax = value.get("target_max")
     if isinstance(tmin, int) and isinstance(tmax, int):
@@ -159,6 +171,46 @@ def _use_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     return actions
 
 
+def _rearrange_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    hand_cards = state.get("hand", {}).get("cards", [])
+    if len(hand_cards) >= 2:
+        actions.append(
+            _action(
+                "rearrange",
+                "Reorder hand cards",
+                example_params={"hand": list(range(len(hand_cards)))},
+            )
+        )
+    jokers = state.get("jokers", {}).get("cards", [])
+    if len(jokers) >= 2:
+        actions.append(
+            _action(
+                "rearrange",
+                "Reorder jokers",
+                example_params={"jokers": list(range(len(jokers)))},
+            )
+        )
+    consumables = state.get("consumables", {}).get("cards", [])
+    if len(consumables) >= 2:
+        actions.append(
+            _action(
+                "rearrange",
+                "Reorder consumables",
+                example_params={"consumables": list(range(len(consumables)))},
+            )
+        )
+    return actions
+
+
+def _pack_card_description(card: dict, idx: int) -> str:
+    key = card.get("key") or ""
+    if key in _RANDOM_JOKER_KEYS:
+        label = card.get("label") or key
+        return f"Select {label} (random joker; pack targets ignored)"
+    return f"Select pack card {idx}"
+
+
 def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
     for idx, _item in enumerate(state.get("shop", {}).get("cards", [])):
@@ -174,6 +226,7 @@ def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
             _action("buy", f"Buy booster pack {idx}", example_params={"pack": idx})
         )
     actions.extend(_sell_actions(state))
+    actions.extend(_rearrange_actions(state))
     actions.append(_action("reroll", "Reroll shop offers", example_params={}))
     actions.append(
         _action("next_round", "Leave shop for blind select", example_params={})
@@ -184,12 +237,17 @@ def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _pack_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    for idx, _card in enumerate(state.get("pack", {}).get("cards", [])):
+    for idx, card in enumerate(state.get("pack", {}).get("cards", [])):
         actions.append(
-            _action("pack", f"Select pack card {idx}", example_params={"card": idx})
+            _action(
+                "pack",
+                _pack_card_description(card, idx),
+                example_params={"card": idx},
+            )
         )
     actions.append(_action("pack", "Skip pack", example_params={"skip": True}))
     actions.extend(_sell_actions(state))
+    actions.extend(_rearrange_actions(state))
     actions.extend(_use_actions(state))
     return actions
 
@@ -216,23 +274,7 @@ def _selecting_hand_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
                     example_params={"consumable": idx, "source": 0, "target": 1},
                 )
             )
-    hand_cards = state.get("hand", {}).get("cards", [])
-    if len(hand_cards) >= 2:
-        actions.append(
-            _action(
-                "rearrange",
-                "Reorder hand cards",
-                example_params={"hand": list(range(len(hand_cards)))},
-            )
-        )
-    if len(state.get("jokers", {}).get("cards", [])) >= 2:
-        actions.append(
-            _action(
-                "rearrange",
-                "Reorder jokers",
-                example_params={"jokers": [0, 1]},
-            )
-        )
+    actions.extend(_rearrange_actions(state))
     actions.extend(_sell_actions(state))
     return actions
 

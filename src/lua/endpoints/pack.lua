@@ -130,12 +130,17 @@ return {
       if card_key then
         local req = consumable.get_consumable_target_requirements(card_key)
         if req then
-          -- Check joker requirement for cards like Ankh
-          if req.requires_joker then
+          -- Check joker requirement for cards like Ankh / Hex
+          if req.requires_jokers_min then
             local joker_count = G.jokers and G.jokers.config and G.jokers.config.card_count or 0
-            if joker_count == 0 then
+            if joker_count < req.requires_jokers_min then
               send_response({
-                message = string.format("Card '%s' requires at least 1 joker. Current: %d", card_key, joker_count),
+                message = string.format(
+                  "Card '%s' requires at least %d joker(s). Current: %d",
+                  card_key,
+                  req.requires_jokers_min,
+                  joker_count
+                ),
                 name = BB_ERROR_NAMES.NOT_ALLOWED,
               })
               return true

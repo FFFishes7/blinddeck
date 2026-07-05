@@ -1586,9 +1586,13 @@
             "type": "integer",
             "description": "Maximum hand cards to target when using/selecting this consumable"
           },
-          "requires_joker": {
+          "requires_jokers_min": {
+            "type": "integer",
+            "description": "Minimum jokers that must be present (e.g. Ankh, Hex); does not make the effect targetable"
+          },
+          "random_joker_effect": {
             "type": "boolean",
-            "description": "Consumable targets a joker slot instead of hand cards (e.g. Ankh)"
+            "description": "Effect picks a random joker (Ankh, Hex, Ectoplasm); pack targets apply to hand cards only"
           }
         },
         "required": [

@@ -192,5 +192,15 @@
       "Balatro Wiki — Planet cards (level up a poker hand for the run): https://balatrowiki.org/w/Planet_cards",
       "Balatro Wiki — Poker hands (level via Planet cards): https://balatrowiki.org/w/Poker_hands"
     ]
+  },
+  "ankh_random_joker": {
+    "title": "Ankh / Hex / Ectoplasm pick a random joker (not API-targetable)",
+    "category": "consumable",
+    "rule": "Ankh and Hex require at least one joker but copy or Polychrome a RANDOM joker and destroy the rest. Ectoplasm adds Negative to a random joker. BlindDeck `pack` trailing indices only highlight HAND cards — they do not select a joker slot. `rearrange jokers` changes scoring order only; it does not aim these effects. To guarantee Ankh/Hex keeps a specific joker, sell every other joker first so only the keeper remains.",
+    "source": [
+      "Balatro Wiki — Ankh: https://balatrowiki.org/w/Ankh",
+      "Balatro Wiki — Hex: https://balatrowiki.org/w/Hex",
+      "Balatro Wiki — Ectoplasm: https://balatrowiki.org/w/Ectoplasm"
+    ]
   }
 }

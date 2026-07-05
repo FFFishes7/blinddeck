@@ -23,11 +23,11 @@ If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md
 | `BLIND_SELECT`         | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10) |
 | `SELECTING_HAND`       | `bot.ps1 play 0 1 2 3 4` · `discard 0 1` · `use 0 [1 2]` · `sort rank` · *(optional)* `estimate`                 |
 | `ROUND_EVAL`           | `bot.ps1 cash_out` · after Ante 8 win with victory overlay: `bot.ps1 endless` first                              |
-| `SHOP`                 | `bot.ps1 buy card 0` · `buy pack 0` · `reroll` · `sell joker 0` · `next_round`                                   |
-| `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` · `pack skip`                                                                             |
+| `SHOP`                 | `bot.ps1 buy card 0` · `buy pack 0` · `reroll` · `sell joker 0` · `rearrange jokers 1 0` · `next_round`          |
+| `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` · `pack skip` · `rearrange jokers …` when 2+ jokers                                       |
 | `GAME_OVER`            | `bot.ps1 menu` then `start`                                                                                      |
 
-Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). Common pitfalls (full list in `PLAY.md`): boss blinds hide card faces (`??`), `pack` targets only for Tarot/Spectral, `buy` checks `dollars - bankrupt_at`, tags are skip rewards not defeat rewards, zombie `balatrobot serve` processes need `Stop-Process` before restarting `serve.ps1`.
+Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). Common pitfalls (full list in `PLAY.md`): boss blinds hide card faces (`??`), `pack` targets are hand cards only (Ankh/Hex/Ectoplasm are random joker — not targetable), `buy` checks `dollars - bankrupt_at`, tags are skip rewards not defeat rewards, zombie `balatrobot serve` processes need `Stop-Process` before restarting `serve.ps1`.
 
 ## Overview
 

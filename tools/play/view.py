@@ -14,6 +14,7 @@ from actions import (
     buy_blocked_by_slots,
     buy_power,
     consumable_target_hint,
+    is_random_joker_consumable,
 )
 from bot_client import APIError
 from envelope import build_error_envelope, build_play_envelope
@@ -541,13 +542,19 @@ def _shop_block(state: dict[str, Any]) -> str:
 def _pack_block(state: dict[str, Any]) -> str:
     cards = (state.get("pack") or {}).get("cards") or []
     parts: list[str] = []
+    has_random_joker = False
     for i, c in enumerate(cards):
         label = card_label(c)
         effect = (c.get("value") or {}).get("effect", "")
         hint = consumable_target_hint(c)
         hint_suffix = f" ({hint})" if hint else ""
         parts.append(f"  pack[{i}] {label} — {effect}{hint_suffix}")
-    return "pack:\n" + "\n".join(parts) if parts else "pack: (empty)"
+        if is_random_joker_consumable(c):
+            has_random_joker = True
+    block = "pack:\n" + "\n".join(parts) if parts else "pack: (empty)"
+    if has_random_joker:
+        block += "\n  note: random-joker spectral — pack targets are hand-only"
+    return block
 
 
 def main() -> int:
