@@ -25,11 +25,9 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(_, send_response)
     sendDebugMessage("Init cash_out()", "BB.ENDPOINTS")
-    if BB_GAMESTATE.has_victory_overlay() then
-      send_response({
-        message = "Victory overlay is showing — call endless or menu first",
-        name = BB_ERROR_NAMES.NOT_ALLOWED,
-      })
+    local overlay_error = BB_GAMESTATE.victory_overlay_response()
+    if overlay_error then
+      send_response(overlay_error)
       return
     end
     G.FUNCS.cash_out({ config = {} })

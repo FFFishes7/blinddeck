@@ -48,6 +48,11 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(args, send_response)
     sendDebugMessage("Init use()", "BB.ENDPOINTS")
+    local overlay_error = BB_GAMESTATE.victory_overlay_response()
+    if overlay_error then
+      send_response(overlay_error)
+      return
+    end
 
     -- Step 1: Consumable Index Validation
     if args.consumable < 0 or args.consumable >= #G.consumeables.cards then

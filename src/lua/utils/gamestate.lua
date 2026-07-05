@@ -1422,6 +1422,17 @@ function gamestate.has_victory_overlay()
   return G.OVERLAY_MENU ~= nil
 end
 
+---Error response when the post-win overlay blocks other ROUND_EVAL actions
+---@return Response.Endpoint.Error?
+function gamestate.victory_overlay_response()
+  if gamestate.has_victory_overlay() then
+    return {
+      message = "Victory overlay is showing — call endless or menu first",
+      name = BB_ERROR_NAMES.NOT_ALLOWED,
+    }
+  end
+end
+
 ---Extracts the simplified game state according to the new specification
 ---@return GameState gamestate The complete simplified game state
 function gamestate.get_gamestate()

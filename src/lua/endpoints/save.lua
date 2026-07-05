@@ -54,6 +54,11 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(args, send_response)
     sendDebugMessage("Init save()", "BB.ENDPOINTS")
+    local overlay_error = BB_GAMESTATE.victory_overlay_response()
+    if overlay_error then
+      send_response(overlay_error)
+      return
+    end
     local path = args.path
 
     -- Validate we're in a run

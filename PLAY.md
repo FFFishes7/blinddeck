@@ -118,7 +118,7 @@ The primary command for each state. Full syntax and index rules below.
 
 **`SELECTING_HAND`** — `play N…` (1–5 cards from `hand:`) · `discard N…` · `sort rank` · `use 0 [1 2]`. Repeat until **`beaten`**, then `glance`. Scoring: `query hands` + §3. `estimate` is optional dev only.
 
-**`ROUND_EVAL`** — `cash_out` (default; read `pending:` / `total +$N` first). If **`victory_overlay`**: `endless` (continue) or `menu` (end run) **before** `cash_out`. Inventory: `sell`/`use` only; `save PATH` allowed.
+**`ROUND_EVAL`** — `cash_out` (default; read `pending:` / `total +$N` first). If **`victory_overlay`**: **only** `endless` (continue) or `menu` (end run) — no `cash_out`, `sell`, `use`, or `save` until the overlay is dismissed. Otherwise inventory: `sell`/`use` only; `save PATH` allowed.
 
 **`SHOP`** — `buy card N` / `buy voucher N` / `buy pack N` · `reroll` · `next_round` (leave shop). Full inventory (`sell`/`use`/`rearrange`); `save PATH` allowed.
 

@@ -91,7 +91,7 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../P
     **`→ menu  then  start RED WHITE ABC123`**.
 
 - **ROUND_EVAL:** `round won, score=…` plus **`pending:`** (income rows + **`total +$N`**).
-    If **`victory_overlay`**, **`→ endless`** then **`→ menu`** (no **`→ cash_out`** until overlay dismissed). Example:
+    If **`victory_overlay`**, **`→ endless`** then **`→ menu`** only — **`actions:`** and API allow **`endless`** / **`menu`** only (no **`cash_out`**, **`sell`**, **`use`**, or **`save`** until overlay dismissed). Example:
 
     ```text
     round won, score=500

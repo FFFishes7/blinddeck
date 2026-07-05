@@ -45,6 +45,21 @@ class TestEndlessEndpoint:
             "NOT_ALLOWED",
             "Victory overlay is showing",
         )
+        assert_error_response(
+            api(client, "sell", {"joker": 0}),
+            "NOT_ALLOWED",
+            "Victory overlay is showing",
+        )
+        assert_error_response(
+            api(client, "use", {"consumable": 0}),
+            "NOT_ALLOWED",
+            "Victory overlay is showing",
+        )
+        assert_error_response(
+            api(client, "save", {"path": "balatrobot_victory_overlay_test.jkr"}),
+            "NOT_ALLOWED",
+            "Victory overlay is showing",
+        )
 
         endless_response = api(client, "endless", {})
         after_endless = assert_gamestate_response(

@@ -245,7 +245,7 @@ Save the current run to a file.
 
 **Returns:** `{ "success": true, "path": "..." }`
 
-**Errors:** `INVALID_STATE`, `INTERNAL_ERROR`
+**Errors:** `INVALID_STATE`, `INTERNAL_ERROR`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
 
 **Example:**
 
@@ -436,7 +436,7 @@ Sell a joker or consumable.
 
 **Returns:** [GameState](#gamestate-schema)
 
-**Errors:** `BAD_REQUEST`, `NOT_ALLOWED`
+**Errors:** `BAD_REQUEST`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
 
 **Example:**
 
@@ -664,7 +664,7 @@ Use a consumable card.
 
 **Returns:** [GameState](#gamestate-schema)
 
-**Errors:** `BAD_REQUEST`, `INVALID_STATE`, `NOT_ALLOWED`
+**Errors:** `BAD_REQUEST`, `INVALID_STATE`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
 
 **Example:**
 

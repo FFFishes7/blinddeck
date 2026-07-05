@@ -285,12 +285,15 @@ def test_build_actions_round_eval_victory_overlay(selecting_hand_state: dict) ->
         "state": "ROUND_EVAL",
         "won": True,
         "victory_overlay": True,
+        "consumables": {
+            "count": 1,
+            "limit": 2,
+            "cards": [{"label": "The Hermit", "key": "c_hermit"}],
+        },
     }
     actions = build_actions(round_eval_state)
     commands = [a["command"] for a in actions]
-    assert commands[0] == "endless"
-    assert "menu" in commands
-    assert "cash_out" not in commands
+    assert commands == ["endless", "menu"]
 
 
 def test_build_actions_pack_open(selecting_hand_state: dict) -> None:
@@ -1252,8 +1255,16 @@ def test_print_summary_round_eval_victory_overlay(
         "deck": "RED",
         "stake": "WHITE",
         "round": {"hands_left": 0, "discards_left": 0, "chips": 1000000},
-        "jokers": {"count": 0, "limit": 5, "cards": []},
-        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "jokers": {
+            "count": 1,
+            "limit": 5,
+            "cards": [{"label": "Joker", "key": "j_joker"}],
+        },
+        "consumables": {
+            "count": 1,
+            "limit": 2,
+            "cards": [{"label": "The Hermit", "key": "c_hermit"}],
+        },
         "cards": {"count": 44, "limit": 52},
         "won": True,
         "victory_overlay": True,
@@ -1263,6 +1274,11 @@ def test_print_summary_round_eval_victory_overlay(
     assert "→ endless" in out
     assert "→ menu" in out
     assert "→ cash_out" not in out
+    assert "actions: endless menu" in out
+    actions_line = out.split("actions:", 1)[1].strip()
+    assert "sell" not in actions_line
+    assert "use" not in actions_line
+    assert "cash_out" not in actions_line
 
 
 def test_print_summary_round_eval_investment_tag(

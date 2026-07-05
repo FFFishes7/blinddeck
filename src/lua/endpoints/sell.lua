@@ -44,6 +44,11 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(args, send_response)
     sendDebugMessage("Init sell()", "BB.ENDPOINTS")
+    local overlay_error = BB_GAMESTATE.victory_overlay_response()
+    if overlay_error then
+      send_response(overlay_error)
+      return
+    end
 
     -- Validate exactly one parameter is provided
     local param_count = (args.joker and 1 or 0) + (args.consumable and 1 or 0)
