@@ -12,18 +12,18 @@ BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (gam
 
 ## Documentation
 
-| Document                                         | Audience              | Contents                                        |
-| ------------------------------------------------ | --------------------- | ----------------------------------------------- |
-| [**PLAY.md**](PLAY.md)                           | Players and AI agents | Quick start loop, pitfalls, Reference on demand |
-| [**tools/play/README.md**](tools/play/README.md) | Play-helper users     | `bot.ps1` commands, glance output, `--json`     |
-| [**docs/api.md**](docs/api.md)                   | Integrators           | JSON-RPC methods, schemas, errors               |
-| [**docs/OVERVIEW.md**](docs/OVERVIEW.md)         | Developers            | Architecture map and doc index                  |
-| [**docs/cli.md**](docs/cli.md)                   | Operators             | `balatrobot serve` / `api`, env vars, paths     |
+| Document                                         | Audience              | Contents                                    |
+| ------------------------------------------------ | --------------------- | ------------------------------------------- |
+| [**PLAY.md**](PLAY.md)                           | Players and AI agents | Play sheet (§1–§6): loop, scoring, pitfalls |
+| [**tools/play/README.md**](tools/play/README.md) | Play-helper users     | `bot.ps1` commands, glance output, `--json` |
+| [**docs/api.md**](docs/api.md)                   | Integrators           | JSON-RPC methods, schemas, errors           |
+| [**docs/OVERVIEW.md**](docs/OVERVIEW.md)         | Developers            | Architecture map and doc index              |
+| [**docs/cli.md**](docs/cli.md)                   | Operators             | `balatrobot serve` / `api`, env vars, paths |
 
 ## Features
 
 - **`bot.ps1 glance`** — compact multi-line state summary, **`choices remaining: N`** on open packs, and an `actions:` line for valid next commands
-- **`bot.ps1 know`** — source-backed joker, boss, tag, stake, and rule lookups (`preflight` before big decisions)
+- **`bot.ps1 know`** — wiki-backed lookups (joker, boss, tag, stake, **deck**, planet, tarot, voucher, spectral, rules); **`know preflight`** prints a phase-aware verified-facts table at blind/skip
 - **`bot.ps1 query`** — detail queries (hand levels, deck, blinds, vouchers, seed) as tables or JSON
 - **Friendly actions** — `play`, `select`, `buy`, `pack`, … without PowerShell JSON quoting
 - **JSON-RPC API** — full game control for scripts; OpenRPC spec in `src/lua/utils/openrpc.json`
@@ -99,7 +99,7 @@ In a **second terminal**, with the game running:
 
 `bot.ps1` calls the API via `.venv\Scripts\python.exe`. Prefer **friendly subcommands** (`glance`, `play`, `select`, `buy`, …). `estimate` is optional and not recommended for normal play — see [PLAY.md](PLAY.md). Use `state` / `exec` for scripting.
 
-**AI agents:** follow [PLAY.md Quick start](PLAY.md#quick-start-play-sheet) for the loop and pitfalls; [tools/play/README.md](tools/play/README.md) for glance field details.
+**AI agents:** read [PLAY.md §1–§6](PLAY.md#1-what-you-are-doing) before the first move; [tools/play/README.md](tools/play/README.md) for glance field details.
 
 If connection fails, confirm `serve.ps1` is still running and the game finished loading.
 

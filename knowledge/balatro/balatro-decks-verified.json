@@ -1,0 +1,62 @@
+{
+  "RED": {
+    "effect": "+1 discard every round",
+    "wiki": "https://balatrowiki.org/w/Red_Deck"
+  },
+  "BLUE": {
+    "effect": "+1 hand every round",
+    "wiki": "https://balatrowiki.org/w/Blue_Deck"
+  },
+  "YELLOW": {
+    "effect": "Start with extra $10",
+    "wiki": "https://balatrowiki.org/w/Yellow_Deck"
+  },
+  "GREEN": {
+    "effect": "$2 per remaining Hand, $1 per remaining Discard, no interest",
+    "wiki": "https://balatrowiki.org/w/Green_Deck"
+  },
+  "BLACK": {
+    "effect": "+1 Joker slot, -1 hand every round",
+    "wiki": "https://balatrowiki.org/w/Black_Deck"
+  },
+  "MAGIC": {
+    "effect": "Start with Crystal Ball voucher and 2 copies of The Fool",
+    "wiki": "https://balatrowiki.org/w/Magic_Deck"
+  },
+  "NEBULA": {
+    "effect": "Start with Telescope voucher, -1 consumable slot",
+    "wiki": "https://balatrowiki.org/w/Nebula_Deck"
+  },
+  "GHOST": {
+    "effect": "Spectral cards may appear in shop, start with Hex card",
+    "wiki": "https://balatrowiki.org/w/Ghost_Deck"
+  },
+  "ABANDONED": {
+    "effect": "Start with no Face Cards in deck",
+    "wiki": "https://balatrowiki.org/w/Abandoned_Deck"
+  },
+  "CHECKERED": {
+    "effect": "Start with 26 Spades and 26 Hearts in deck",
+    "wiki": "https://balatrowiki.org/w/Checkered_Deck"
+  },
+  "ZODIAC": {
+    "effect": "Start with Tarot Merchant, Planet Merchant, and Overstock",
+    "wiki": "https://balatrowiki.org/w/Zodiac_Deck"
+  },
+  "PAINTED": {
+    "effect": "+2 hand size, -1 Joker slot",
+    "wiki": "https://balatrowiki.org/w/Painted_Deck"
+  },
+  "ANAGLYPH": {
+    "effect": "Gain Double Tag after each Boss Blind",
+    "wiki": "https://balatrowiki.org/w/Anaglyph_Deck"
+  },
+  "PLASMA": {
+    "effect": "Balance Chips and Mult when calculating score; 2X base Blind size",
+    "wiki": "https://balatrowiki.org/w/Plasma_Deck"
+  },
+  "ERRATIC": {
+    "effect": "All Ranks and Suits in deck are randomized",
+    "wiki": "https://balatrowiki.org/w/Erratic_Deck"
+  }
+}

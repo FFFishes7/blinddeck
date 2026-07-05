@@ -309,3 +309,14 @@ uvx balatrobot serve --platform native --balatro-path /path/to/balatro/source
 **Port in use**: Change the port with `--port` or set `BALATROBOT_PORT` to a different value.
 
 **Game crashes**: Try disabling shaders with `--no-shaders` or running in headless mode with `--headless`.
+
+## Play helper environment variables
+
+Used by `tools/play/bot.ps1` helpers (not the `balatrobot serve` launcher itself):
+
+| Variable                   | Default                      | Purpose                                                         |
+| -------------------------- | ---------------------------- | --------------------------------------------------------------- |
+| `BALATROBOT_KNOWLEDGE_DIR` | `knowledge/balatro/` in repo | Override path for `know` lookup JSON files                      |
+| `BALATROBOT_ALLOW_CHEATS`  | unset                        | Set to `1` to enable debug `add` / `set` / `debuff` subcommands |
+
+See [tools/play/README.md](../tools/play/README.md) for cheat gating and [knowledge/balatro/README.md](../knowledge/balatro/README.md) for the knowledge library layout.

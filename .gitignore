@@ -356,8 +356,9 @@ saves/
 *.jkr
 !tests/fixtures/**/*.jkr
 
-# Local agent/app state
+# Local agent/app state (do not commit — keep machine-local)
 .codex/
+.claude
 .claude/
 .agents/
 .mux/

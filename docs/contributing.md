@@ -319,7 +319,9 @@ return {
 
 - Update `docs/api.md` with the new method
 
-- If the method is player-facing, also update `tools/play/commands.py`, `actions.py`, `view.py`, `bot.ps1`, `PLAY.md`, and `AGENTS.md`
+- If the method is player-facing, also update `tools/play/commands.py`, `actions.py`, `view.py`, `bot.ps1`, [`tools/play/README.md`](../tools/play/README.md), `PLAY.md`, and `AGENTS.md`
+
+- If the change touches the knowledge library or `know` CLI, also update `tools/play/know.py`, `tools/play/know_lib.py`, `knowledge/balatro/*.json`, and [`knowledge/balatro/README.md`](../knowledge/balatro/README.md)
 
 ## Code Quality
 

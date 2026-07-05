@@ -43,34 +43,42 @@ def play_game():
     while state["state"] != "GAME_OVER":
         match state["state"]:
             case "BLIND_SELECT":
-                # Always select the current blind
                 state = rpc("select")
 
             case "SELECTING_HAND":
-                # Play the first 5 cards (simple strategy)
                 num_cards = min(5, len(state["hand"]["cards"]))
                 cards = list(range(num_cards))
                 state = rpc("play", {"cards": cards})
 
             case "ROUND_EVAL":
-                # Collect rewards and go to shop
-                state = rpc("cash_out")
+                if state.get("victory_overlay"):
+                    state = rpc("endless")
+                else:
+                    state = rpc("cash_out")
 
             case "SHOP":
-                # Skip the shop and proceed to next round
                 state = rpc("next_round")
 
+            case "SMODS_BOOSTER_OPENED":
+                # Simplest path: forfeit remaining pack picks
+                state = rpc("pack", {"skip": True})
+
             case _:
-                # Handle any transitional states
+                # Transient states (HAND_PLAYED, DRAW_TO_HAND, …)
                 state = rpc("gamestate")
 
-    # Game ended
-    if state["won"]:
+    # Game ended — use run_summary.result when present (won alone can stay
+    # true after an endless-mode death; see docs/api.md).
+    summary = state.get("run_summary") or {}
+    result = summary.get("result")
+    if result:
+        print(result)
+    elif state.get("won"):
         print(f"Victory! Final ante: {state['ante_num']}")
     else:
         print(f"Game over at ante {state['ante_num']}, round {state['round_num']}")
 
-    return state["won"]
+    return bool(result and "Victory" in result) if result else state.get("won", False)
 
 
 if __name__ == "__main__":
@@ -79,10 +87,18 @@ if __name__ == "__main__":
 
 ## Running the Bot
 
-1. Start Balatro with the mod:
+1. Start Balatro with the mod (from the repository root):
+
+    **Windows (recommended):**
+
+    ```powershell
+    .\tools\play\serve.ps1 --fast
+    ```
+
+    **Cross-platform:**
 
     ```bash
-    uvx balatrobot serve
+    balatrobot serve --fast
     ```
 
 2. In another terminal, run the bot:
@@ -93,4 +109,4 @@ if __name__ == "__main__":
 
 The bot will automatically start a new game and play until it wins or loses.
 
-For local manual or LLM-assisted play, see [Play Helpers](../tools/play/README.md).
+For local manual or LLM-assisted play, see [Play Helpers](../tools/play/README.md) and [PLAY.md](../PLAY.md).

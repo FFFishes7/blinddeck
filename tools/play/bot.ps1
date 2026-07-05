@@ -14,7 +14,7 @@
 # JSON / advanced:
 #   .\bot.ps1 state                       # full JSON envelope
 #   .\bot.ps1 query deck                  # detail query (deck, hands, blinds, …)
-#   .\bot.ps1 know preflight              # verified facts
+#   .\bot.ps1 know preflight              # phase-aware verified facts (see PLAY.md §2)
 #   .\bot.ps1 exec '{\"command\":\"play\",\"params\":{\"cards\":[0,1,2,3,4]}}'
 #   .\bot.ps1 help
 param(

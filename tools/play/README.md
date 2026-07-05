@@ -7,7 +7,7 @@ Command-line helpers on top of the BlindDeck JSON-RPC API.
 - **Compact commands** (default) — positional args (`glance`, `play 0 1 2 3 4`, `select`). No JSON quoting.
 - **JSON commands** — `state`, `exec`, `query … --json`, `know … --json` for structured output and scripting.
 
-See [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for the play loop and [PLAY.md §1](../../PLAY.md#1-reading-state) for when to use compact summaries, queries, `know`, and JSON.
+See [PLAY.md §1–§6](../../PLAY.md#1-what-you-are-doing) for the play loop, scoring essentials, and pitfalls; this file for glance field details and command args.
 
 ## Workflow
 
@@ -15,7 +15,7 @@ See [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for the play loo
 2. **Launch:** `.\tools\play\serve.ps1` — starts Balatro with the mod and the API on port 12346.
 3. **Play:** in another terminal, use `.\tools\play\bot.ps1 ...`.
 
-See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for the play guide.
+See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../PLAY.md#1-what-you-are-doing) for the play guide.
 
 ## Commands
 
@@ -23,11 +23,19 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick st
 .\tools\play\bot.ps1 glance              # compact summary (default state read)
 .\tools\play\bot.ps1 estimate            # top playable hands + score estimate
 .\tools\play\bot.ps1 state               # full JSON state + actions + queries
-.\tools\play\bot.ps1 know preflight      # verified joker/boss/stake/tag facts (table; --json for raw)
+.\tools\play\bot.ps1 know preflight      # phase-aware verified facts table (deck/stake/jokers/…; --json for raw)
+.\tools\play\bot.ps1 know check joker "Baron"
+.\tools\play\bot.ps1 know check rule scoring_formula
+.\tools\play\bot.ps1 know list jokers    # aliases: joker, rules → rule
+.\tools\play\bot.ps1 know stats
 .\tools\play\bot.ps1 query hands         # detail query: poker hand level table
 .\tools\play\bot.ps1 query blinds        # detail query: three-blind summary
 .\tools\play\bot.ps1 help                # state-aware command list
 ```
+
+`know check`, `know list`, and `know stats` always print JSON. `know preflight` prints a compact table by default; add `--json` for the raw envelope.
+
+**Environment:** `BALATROBOT_KNOWLEDGE_DIR` overrides the default `knowledge/balatro/` lookup path (see [knowledge/balatro/README.md](../../knowledge/balatro/README.md)).
 
 ### What `glance` shows
 
@@ -92,7 +100,7 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick st
 - **Transient states** (`HAND_PLAYED`, `DRAW_TO_HAND`, `NEW_ROUND`, `PLAY_TAROT`):
     **`→ transient: wait for stable state, then glance again`** and `actions: (none)`.
 
-- **Card modifier tags** on hand cards and pack rows — abbreviations in [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) (`e:`/`d:`/`s:`). Example: `4♦[e:Mult,s:Red]`. Debuffed cards: `(7♣)`.
+- **Card modifier tags** on hand cards and pack rows — abbreviations in [PLAY.md §5](../../PLAY.md#5-read-glance) (`e:`/`d:`/`s:`). Example: `4♦[e:Mult,s:Red]`. Debuffed cards: `(7♣)`.
 
 - **Joker / consumable stickers** inline: `[0] (perishable 3r) (rental -$1/round)   (+10 mult) Holographic Jolly Joker — ...`. Shop rows use the same sticker
     prefix when a card has edition/perishable/rental.
@@ -193,16 +201,16 @@ Anything else → `unmodeled` (treat score as lower bound only).
 
 ## AI loop
 
+Follow [PLAY.md §2 Loop and hard rules](../../PLAY.md#2-loop-and-hard-rules). Scoring math: [PLAY.md §3 Scoring essentials](../../PLAY.md#3-scoring-essentials) + `query hands` — not `estimate`.
+
 1. `glance` → compact summary + `actions:` line (valid next commands)
-2. `know preflight` → verified joker/boss/stake/tag effects (before non-trivial decisions)
-3. (optional) `query hands` / `query deck` / … — **use `query hands` for scoring math**
+2. `know preflight` at blind select / skip decision (phase-aware table — see PLAY.md §2)
+3. `query hands` when estimating a play in `SELECTING_HAND`
 4. friendly action subcommand → prints the new compact summary automatically
 5. Repeat until `state == GAME_OVER`, then `menu` + `start DECK STAKE SEED` (seed from summary restart hint)
 
-*(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
-
 Every `glance` / action output ends with an `actions:` line listing **command
-names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for argument syntax.
+names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or [PLAY.md §4–§5](../../PLAY.md#4-state--command) for argument syntax.
 
 For full JSON state (`state`, `exec`, or `<action> --json`), the same commands appear in an `actions[]` array with `example` payloads for each.
 

@@ -71,17 +71,17 @@ balatrobot/
 
 ## 4. Where to Read What
 
-| Topic                                                                                     | Document                                                                                                                  |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| **Playing a run** (loop, state→command table, pitfalls)                                   | [`PLAY.md` Quick start](../PLAY.md#quick-start-play-sheet); commands in [`tools/play/README.md`](../tools/play/README.md) |
-| **Installing / launching** (one-time setup, `serve.ps1`)                                  | [`README.md`](../README.md)                                                                                               |
-| **AI dev guidance** (make rules, architecture summary, play quick-start inline)           | [`AGENTS.md`](../AGENTS.md)                                                                                               |
-| **API reference** (every method, params, schemas, enums, errors)                          | [`api.md`](api.md)                                                                                                        |
-| **CLI reference** (all `serve` flags, env vars, platform paths, troubleshooting)          | [`cli.md`](cli.md)                                                                                                        |
-| **Contributing / dev setup** (direnv, Lua LSP, adding an endpoint, tests, CI, PR rules)   | [`contributing.md`](contributing.md)                                                                                      |
-| **Play helpers** (`bot.ps1` commands, compact summary vs detail queries vs JSON)          | [`../tools/play/README.md`](../tools/play/README.md)                                                                      |
-| **Estimate scoring model** (joker registry, live-test checklist)                          | [`../tools/play/estimate_registry.md`](../tools/play/estimate_registry.md)                                                |
-| **Knowledge library** (verified joker/boss/tag/tarot/planet/voucher/spectral/rule tables) | [`../knowledge/balatro/README.md`](../knowledge/balatro/README.md)                                                        |
+| Topic                                                                                                    | Document                                                                                                          |
+| -------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Playing a run** (loop, scoring, state→command, pitfalls)                                               | [`PLAY.md` §1–§6](../PLAY.md#1-what-you-are-doing); commands in [`tools/play/README.md`](../tools/play/README.md) |
+| **Installing / launching** (one-time setup, `serve.ps1`)                                                 | [`README.md`](../README.md)                                                                                       |
+| **AI dev guidance** (make rules, architecture summary, play quick-start inline)                          | [`AGENTS.md`](../AGENTS.md)                                                                                       |
+| **API reference** (every method, params, schemas, enums, errors)                                         | [`api.md`](api.md)                                                                                                |
+| **CLI reference** (all `serve` flags, env vars, platform paths, troubleshooting)                         | [`cli.md`](cli.md)                                                                                                |
+| **Contributing / dev setup** (direnv, Lua LSP, adding an endpoint, tests, CI, PR rules)                  | [`contributing.md`](contributing.md)                                                                              |
+| **Play helpers** (`bot.ps1` commands, compact summary vs detail queries vs JSON)                         | [`../tools/play/README.md`](../tools/play/README.md)                                                              |
+| **Estimate scoring model** (joker registry, live-test checklist)                                         | [`../tools/play/estimate_registry.md`](../tools/play/estimate_registry.md)                                        |
+| **Knowledge library** (verified joker/boss/tag/stake/**deck**/tarot/planet/voucher/spectral/rule tables) | [`../knowledge/balatro/README.md`](../knowledge/balatro/README.md)                                                |
 
 ---
 
@@ -108,7 +108,7 @@ These one-line descriptions are enough to orient you; read the linked doc for be
 
 ### Game states
 
-Eight states drive the play loop: `MENU`, `BLIND_SELECT`, `SELECTING_HAND`, `HAND_PLAYED`, `ROUND_EVAL`, `SHOP`, `SMODS_BOOSTER_OPENED`, `GAME_OVER`. The state→command mapping is in [`PLAY.md` Quick start](../PLAY.md#quick-start-play-sheet); the per-method contracts are in [`api.md`](api.md).
+Primary loop states: `MENU`, `BLIND_SELECT`, `SELECTING_HAND`, `ROUND_EVAL`, `SHOP`, `SMODS_BOOSTER_OPENED`, `GAME_OVER`. **Transient** states (`HAND_PLAYED`, `DRAW_TO_HAND`, `NEW_ROUND`, `PLAY_TAROT`) require re-polling with `glance` until stable — see [`PLAY.md` §2](../PLAY.md#2-loop-and-hard-rules) and the transient line in [`tools/play/README.md`](../tools/play/README.md#what-glance-shows). The state→command mapping is in [`PLAY.md` §4](../PLAY.md#4-state--command); the per-method contracts are in [`api.md`](api.md).
 
 ### Error codes
 

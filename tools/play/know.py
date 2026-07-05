@@ -12,13 +12,12 @@ import sys
 from bot_client import APIError, rpc
 from envelope import KNOW_FORMAT, build_error_envelope, build_know_envelope
 from know_lib import (
-    ALIASES,
-    KNOWLEDGE_DIR,
     LIBRARIES,
+    collect_preflight_checks,
+    knowledge_dir,
     load_library,
-    relevant_boss,
+    resolve_kind,
     resolve_name,
-    upcoming_tags,
 )
 
 JSON_FLAG = "--json"
@@ -45,8 +44,9 @@ def cmd_list(kind: str, substring: str | None = None) -> dict:
 
 def cmd_stats() -> dict:
     libraries: dict[str, dict] = {}
+    base = knowledge_dir()
     for kind, fname in LIBRARIES.items():
-        path = KNOWLEDGE_DIR / fname
+        path = base / fname
         if path.is_file():
             libraries[kind] = {
                 "count": len(json.loads(path.read_text(encoding="utf-8"))),
@@ -54,46 +54,23 @@ def cmd_stats() -> dict:
             }
         else:
             libraries[kind] = {"count": 0, "file": fname, "missing": True}
-    return {"dir": str(KNOWLEDGE_DIR), "libraries": libraries}
+    return {"dir": str(base), "libraries": libraries}
 
 
 def cmd_preflight() -> dict:
     state = rpc("gamestate")
-    checks: list[dict] = []
-    passed = True
-
+    checks, passed, phase = collect_preflight_checks(state, check_kind=check_kind)
     stake = (state.get("stake") or "WHITE").upper()
-    ok, entry = check_kind("stake", stake)
-    checks.append({"kind": "stake", "name": stake, "passed": ok, "entry": entry})
-    passed = passed and ok
-
-    joker_lib = load_library("joker")
-    jokers = [c["label"] for c in state.get("jokers", {}).get("cards", [])]
-    for label in jokers:
-        ok, entry = check_kind("joker", label, joker_lib)
-        checks.append({"kind": "joker", "name": label, "passed": ok, "entry": entry})
-        passed = passed and ok
-
-    boss = relevant_boss(state)
-    if boss:
-        ok, entry = check_kind("boss", boss)
-        checks.append({"kind": "boss", "name": boss, "passed": ok, "entry": entry})
-        passed = passed and ok
-
-    tag_lib = load_library("tag")
-    for slot, tag in upcoming_tags(state):
-        ok, entry = check_kind("tag", tag, tag_lib)
-        checks.append(
-            {"kind": "tag", "name": tag, "slot": slot, "passed": ok, "entry": entry}
-        )
-        passed = passed and ok
-
+    deck = (state.get("deck") or "RED").upper()
     return {
         "preflight": {
             "passed": passed,
+            "phase": phase,
             "context": {
                 "state": state.get("state"),
+                "phase": phase,
                 "ante_num": state.get("ante_num"),
+                "deck": deck,
                 "stake": stake,
                 "money": state.get("money"),
             },
@@ -104,15 +81,18 @@ def cmd_preflight() -> dict:
 
 def _format_preflight(payload: dict) -> str:
     pre = payload.get("preflight") or {}
+    checks = pre.get("checks") or []
+    if not checks:
+        return ""
     ctx = pre.get("context") or {}
     lines = [
-        f"preflight passed={pre.get('passed')} "
-        f"state={ctx.get('state')} ante={ctx.get('ante_num')} stake={ctx.get('stake')} money={ctx.get('money')}"
+        f"preflight state={ctx.get('state')} ante={ctx.get('ante_num')} "
+        f"deck={ctx.get('deck')} stake={ctx.get('stake')} money={ctx.get('money')}"
     ]
     lines.append("kind     name                     passed  effect")
     for c in pre.get("checks") or []:
         entry = c.get("entry") or {}
-        effect = (entry.get("effect") or "")[:60]
+        effect = entry.get("effect") or ""
         lines.append(
             f"{c.get('kind', ''):<9s}{c.get('name', '')[:24]:<25s}"
             f"{str(c.get('passed')):<8s}{effect}"
@@ -161,9 +141,7 @@ def main() -> int:
         if cmd == "list":
             if len(args) < 2:
                 raise ValueError("list needs a library kind")
-            kind = ALIASES.get(args[1].lower())
-            if not kind:
-                raise ValueError(f"unknown library: {args[1]}")
+            kind = resolve_kind(args[1])
             substring = args[2] if len(args) > 2 else None
             print(
                 json.dumps(
@@ -176,9 +154,7 @@ def main() -> int:
                 raise ValueError(
                     'check needs kind and name, e.g. check joker "Mad Joker"'
                 )
-            kind = ALIASES.get(args[1].lower(), args[1].lower())
-            if kind not in LIBRARIES:
-                raise ValueError(f"unknown kind: {args[1]}")
+            kind = resolve_kind(args[1])
             name = " ".join(args[2:])
             ok, entry = check_kind(kind, name)
             if not ok:

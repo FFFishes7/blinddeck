@@ -5,12 +5,13 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 **Project**: **BlindDeck** — Balatro play desk (mod + API + play helpers).\
 **GitHub Repository**: [`FFFishes7/blinddeck`](https://github.com/FFFishes7/blinddeck)
 
-**Play Balatro with your agent — glance, then act.** If the user asks you to **play** (not develop), read [`PLAY.md` Quick start](./PLAY.md#quick-start-play-sheet) first; open Reference only when needed.
+**Play Balatro with your agent — glance, then act.** If the user asks you to **play** (not develop), read [`PLAY.md` §1–§6](./PLAY.md#1-what-you-are-doing) top to bottom before the first move; [Appendix](./PLAY.md#appendix-on-demand) only when stuck.
 
 ## Playing Balatro (read this first if asked to play)
 
 - The game serves JSON-RPC 2.0 on `http://127.0.0.1:12346`. Health-check first.
-- **Loop:** `bot.ps1 glance` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start DECK STAKE SEED` (seed from summary restart hint; e.g. `start RED WHITE ABC123`). **`estimate` is optional / not recommended** — see `PLAY.md`.
+- **Loop:** `bot.ps1 glance` → (optional `bot.ps1 know preflight` at blind/skip — see PLAY.md §2) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start DECK STAKE SEED` (seed from summary restart hint; e.g. `start RED WHITE ABC123`). **`estimate` is optional / not recommended** — see `PLAY.md`.
+- **Scoring:** read [PLAY.md §3 Scoring essentials](./PLAY.md#3-scoring-essentials); use `query hands` + §3 for hand math (not `estimate`).
 - **All indices are 0-based.** One request at a time (server is single-client).
 - **Use friendly subcommands, never `exec '{...}'`** — PowerShell strips unescaped double quotes from JSON args.
 - State → command:
@@ -25,7 +26,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 | `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` while glance shows **`choices remaining: N`** · `pack skip` only to forfeit picks · `rearrange jokers …` when 2+ jokers |
 | `GAME_OVER`            | `bot.ps1 menu` then `start DECK STAKE SEED` (from summary restart hint)                                                                        |
 
-Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). **Pitfalls and API gotchas:** see [PLAY.md Quick start](./PLAY.md#quick-start-play-sheet) and [§4 Pitfalls](./PLAY.md#4-pitfalls).
+Each `glance`/action output ends with an `actions:` line listing valid next commands. **Pitfalls and API gotchas:** [PLAY.md §6](./PLAY.md#6-pitfalls). State→command table and glance abbreviations: [PLAY.md §4–§5](./PLAY.md#4-state--command).
 
 ## Overview
 
@@ -203,6 +204,10 @@ Full checklist and scoring pipeline map: **`tools/play/estimate_registry.md`**. 
 - **Python**:
     - `src/balatrobot/cli.py`: Main entry point.
     - `src/balatrobot/manager.py`: Game process logic.
+- **Play helpers** (`tools/play/`):
+    - `know.py` / `know_lib.py`: Knowledge lookups and phase-aware preflight.
+    - `view.py`: Compact `glance` summary.
+    - `act.py`: Friendly action dispatcher.
 - **Lua**:
     - `balatrobot.lua`: Mod entry point.
     - `src/lua/core/server.lua`: HTTP/TCP handling.
