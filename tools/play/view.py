@@ -112,6 +112,18 @@ JOKER_EDITION_LABEL = {
 }
 
 
+def _sell_price_prefix(card: dict[str, Any]) -> str:
+    """Sell value for owned jokers/consumables; omitted for eternal (unsellable)."""
+    mod = card.get("modifier") or {}
+    if isinstance(mod, dict) and mod.get("eternal"):
+        return ""
+    cost = card.get("cost") or {}
+    sell = cost.get("sell") if isinstance(cost, dict) else None
+    if isinstance(sell, int) and sell > 0:
+        return f"(+${sell} sell)"
+    return ""
+
+
 def _sticker_prefix(mod: dict[str, Any]) -> str:
     """Edition + sticker tags for jokers/consumables/shop cards."""
     parts: list[str] = []
@@ -132,6 +144,9 @@ def _joker_line(idx: int, card: dict[str, Any]) -> str:
     name = card.get("label") or "?"
     effect = (card.get("value") or {}).get("effect") or ""
     prefix = f"[{idx}]"
+    sell_tag = _sell_price_prefix(card)
+    if sell_tag:
+        prefix += f" {sell_tag}"
     mod = card.get("modifier") or {}
     if isinstance(mod, dict):
         sticker = _sticker_prefix(mod)

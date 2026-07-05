@@ -41,6 +41,7 @@ from start_options import (  # noqa: E402  # type: ignore[unresolved-import]
 from view import (  # noqa: E402  # type: ignore[unresolved-import]
     _blind_line,
     _blinds_block,
+    _consumable_line,
     _header,
     _joker_line,
     _round_line,
@@ -787,6 +788,7 @@ def test_joker_line_perishable_rental() -> None:
         {
             "label": "Jolly Joker",
             "value": {"effect": "+8 Mult if played hand contains a Pair"},
+            "cost": {"sell": 99},
             "modifier": {
                 "edition": "HOLO",
                 "perishable": 3,
@@ -795,11 +797,44 @@ def test_joker_line_perishable_rental() -> None:
             },
         },
     )
+    assert "(+$99 sell)" not in line
     assert "(perishable 3r)" in line
     assert "(rental -$1/round)" in line
     assert "(+10 mult)" in line
     assert "(eternal)" in line
     assert "Jolly Joker" in line
+
+
+def test_joker_line_sell_price_before_stickers() -> None:
+    line = _joker_line(
+        0,
+        {
+            "label": "Jolly Joker",
+            "value": {"effect": "+8 Mult"},
+            "cost": {"sell": 3, "buy": 5},
+            "modifier": {"edition": "HOLO", "rental": True},
+        },
+    )
+    assert line.startswith("[0] (+$3 sell) (rental -$1/round) (+10 mult) Jolly Joker")
+
+
+def test_joker_line_sell_price_omitted_when_zero() -> None:
+    line = _joker_line(0, {"label": "Joker", "cost": {"sell": 0}})
+    assert "(+$" not in line
+    assert "sell)" not in line
+
+
+def test_consumable_line_includes_sell_price() -> None:
+    line = _consumable_line(
+        0,
+        {
+            "label": "The Hermit",
+            "cost": {"sell": 1},
+            "value": {"effect": "Doubles money"},
+        },
+    )
+    assert "(+$1 sell)" in line
+    assert "The Hermit" in line
 
 
 # --- view.print_summary (one per state) -------------------------------------
