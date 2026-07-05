@@ -30,21 +30,21 @@ until GAME_OVER → menu → start DECK STAKE
 
 **`estimate` is optional and not recommended** for normal play.
 
-| State                  | Command                                                                                   |
-| ---------------------- | ----------------------------------------------------------------------------------------- |
-| `MENU`                 | `start DECK STAKE [SEED]`                                                                 |
-| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)                                 |
-| `SELECTING_HAND`       | `play …` · `discard …` · `use …` · `sort rank` — repeat until **`beaten`**, then `glance` |
-| `ROUND_EVAL`           | read **`pending:` `total +$N`**, then `cash_out` (if `victory_overlay`: `endless` first)  |
-| `SHOP`                 | `buy card\|pack …` · `reroll` · `sell …` · `next_round`                                   |
-| `SMODS_BOOSTER_OPENED` | `pack IDX` while **`choices remaining: N` > 0**; `pack skip` = forfeit picks              |
-| `GAME_OVER`            | `menu` then `start`                                                                       |
+| State                  | Command                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `MENU`                 | `start DECK STAKE [SEED]`                                                                                               |
+| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)                                                               |
+| `SELECTING_HAND`       | `play …` · `discard …` · `use …` · `sort rank` — repeat until **`beaten`**, then `glance`                               |
+| `ROUND_EVAL`           | read **`pending:` `total +$N`**; if **`victory_overlay`**: **`endless`** or **`menu`** (not `cash_out` until dismissed) |
+| `SHOP`                 | `buy card\|pack …` · `reroll` · `sell …` · `next_round`                                                                 |
+| `SMODS_BOOSTER_OPENED` | `pack IDX [hand indices…]` while **`choices remaining: N` > 0**; targets = **`hand:` `[N]`**, not ranks                 |
+| `GAME_OVER`            | `menu` then `start`                                                                                                     |
 
 **Pitfalls (top hits)** — extras in [§4 Pitfalls](#4-pitfalls):
 
 - Read **`actions:`** when unsure what to do next.
 - Boss hides card faces (`??`). **`buy` / shop** use `money - bankrupt_at` (`[ok]` / `[need $N]` on rows).
-- **`pack skip`** is not “next blind”; **`pack` targets** are hand cards only (Ankh/Hex/Ectoplasm = random joker).
+- **`pack skip`** is not “next blind”; **`pack` targets** are **hand `[N]` indices** from the `hand:` line (not rank values); Ankh/Hex/Ectoplasm = random joker.
 - **Tags on blinds** = skip rewards only (not defeat rewards). **`held tags (pending):`** = already earned, not yet triggered.
 - **`ROUND_EVAL`:** use **`pending:` `total +$N`** before `cash_out`.
 - Transient states (`HAND_PLAYED`, …): **`glance`** again until stable.

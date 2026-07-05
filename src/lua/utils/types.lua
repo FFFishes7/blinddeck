@@ -34,9 +34,12 @@
 ---@field run_summary RunSummary? Run statistics (GAME_OVER only)
 ---@field held_tags HeldTag[] Pending untriggered tags (oldest first); read when held_tags_ready
 ---@field held_tags_ready boolean? True when held_tags snapshot is stable (no tag yep in flight)
+---@field pack_ready boolean? Open booster has selectable cards (SMODS_BOOSTER_OPENED only)
+---@field pack_hand_ready boolean? Hand dealt for Arcana/Spectral pack targeting (when pack_ready)
 
 ---@class HeldTag
----@field name string
+---@field key string Stable tag id (e.g. tag_foil); use for logic, not name
+---@field name string Display name (may be localized)
 ---@field effect string
 
 ---@class RunSummary
@@ -91,7 +94,8 @@
 ---@field name string Name of the blind (e.g., "Small", "Big" or the Boss name)
 ---@field effect string Description of the blind's effect
 ---@field score integer Score requirement to beat this blind
----@field tag_name string? Name of the tag associated with this blind (Small/Big only)
+---@field tag_name string? Display name of the tag associated with this blind (Small/Big only)
+---@field tag_key string? Stable tag id (Small/Big only); use for logic, not tag_name
 ---@field tag_effect string? Description of the tag's effect (Small/Big only)
 
 ---@class Area

@@ -13,7 +13,8 @@
 ---@field BOSS_REROLL_COST integer
 ---@field pack_is_open fun(): boolean
 ---@field pack_open_ready fun(): boolean
----@field is_pack_skip_tag fun(tag_name: string|nil): boolean
+---@field pack_hand_ready fun(): boolean
+---@field is_pack_skip_tag fun(tag_key: string|nil): boolean
 ---@field skip_settled fun(blind_key: string, opts?: { expect_pack?: boolean }): boolean
 ---@field tags_stack_stable fun(): boolean
 ---@field extract_held_tags fun(): table[]
@@ -83,20 +84,20 @@ end
 
 ---Skip tags that open a booster immediately (game.lua config.type = new_blind_choice;
 ---see tag.lua Charm/Meteor/Ethereal/Standard/Buffoon — Boss Tag is excluded).
-local PACK_SKIP_TAG_NAMES = {
-  ["Charm Tag"] = true,
-  ["Buffoon Tag"] = true,
-  ["Ethereal Tag"] = true,
-  ["Meteor Tag"] = true,
-  ["Standard Tag"] = true,
+local PACK_SKIP_TAG_KEYS = {
+  tag_charm = true,
+  tag_buffoon = true,
+  tag_ethereal = true,
+  tag_meteor = true,
+  tag_standard = true,
 }
 
-local function is_pack_skip_tag(tag_name)
-  return tag_name ~= nil and PACK_SKIP_TAG_NAMES[tag_name] == true
+local function is_pack_skip_tag(tag_key)
+  return tag_key ~= nil and PACK_SKIP_TAG_KEYS[tag_key] == true
 end
 
-function gamestate.is_pack_skip_tag(tag_name)
-  return is_pack_skip_tag(tag_name)
+function gamestate.is_pack_skip_tag(tag_key)
+  return is_pack_skip_tag(tag_key)
 end
 
 ---Untriggered pack tag still on the stack (oldest-first apply on skip).
@@ -106,7 +107,7 @@ local function has_pending_pack_skip_tag()
     return false
   end
   for _, tag in ipairs(G.GAME.tags) do
-    if not tag.triggered and is_pack_skip_tag(tag.name) then
+    if not tag.triggered and is_pack_skip_tag(tag.key) then
       return true
     end
   end
@@ -137,6 +138,25 @@ function gamestate.pack_open_ready()
     return true
   end
   return false
+end
+
+---Arcana/Spectral packs need a dealt hand before glance/actions are stable.
+---@return boolean
+function gamestate.pack_hand_ready()
+  if not gamestate.pack_open_ready() then
+    return false
+  end
+  local first_pack_card = G.pack_cards and G.pack_cards.cards and G.pack_cards.cards[1]
+  local pack_set = first_pack_card and first_pack_card.ability and first_pack_card.ability.set
+  local needs_hand = pack_set == "Tarot" or pack_set == "Spectral"
+  if not needs_hand then
+    return true
+  end
+  if G.hand == nil or G.hand.REMOVED or G.hand.cards == nil or #G.hand.cards == 0 then
+    return false
+  end
+  local first_hand = G.hand.cards[1]
+  return first_hand ~= nil and first_hand.T ~= nil and first_hand.T.x ~= nil
 end
 
 ---Whether skip/tag side effects have settled (blind skipped + stable screen)
@@ -237,6 +257,7 @@ function gamestate.extract_held_tags()
     if not tag.triggered and tag.key then
       local info = get_tag_info(tag.key, tag)
       out[#out + 1] = {
+        key = tag.key,
         name = info.name,
         effect = info.effect,
       }
@@ -1192,37 +1213,41 @@ get_tag_info = function(tag_key, tag_instance)
   end
 
   local tag_data = G.P_TAGS[tag_key]
-  result.name = tag_data.name or ""
+  local ok_name, localized_name = pcall(localize, { type = "name_text", set = "Tag", key = tag_key }) ---@diagnostic disable-line: undefined-global
+  if ok_name and type(localized_name) == "string" and localized_name ~= "" then
+    result.name = localized_name
+  else
+    result.name = tag_data.name or ""
+  end
 
-  -- Build loc_vars based on tag name (same logic as Tag:get_uibox_table in tag.lua:545-561)
+  -- Build loc_vars based on tag key (locale-independent; mirrors tag.lua)
   local loc_vars = {}
-  local name = tag_data.name
-  if name == "Investment Tag" then
+  if tag_key == "tag_investment" then
     loc_vars = { tag_data.config and tag_data.config.dollars or 0 }
-  elseif name == "Handy Tag" then
+  elseif tag_key == "tag_handy" then
     local dollars_per_hand = tag_data.config and tag_data.config.dollars_per_hand or 0
     local hands_played = (G.GAME and G.GAME.hands_played) or 0
     loc_vars = { dollars_per_hand, dollars_per_hand * hands_played }
-  elseif name == "Garbage Tag" then
+  elseif tag_key == "tag_garbage" then
     local dollars_per_discard = tag_data.config and tag_data.config.dollars_per_discard or 0
     local unused_discards = (G.GAME and G.GAME.unused_discards) or 0
     loc_vars = { dollars_per_discard, dollars_per_discard * unused_discards }
-  elseif name == "Juggle Tag" then
+  elseif tag_key == "tag_juggle" then
     loc_vars = { tag_data.config and tag_data.config.h_size or 0 }
-  elseif name == "Top-up Tag" then
+  elseif tag_key == "tag_top_up" then
     loc_vars = { tag_data.config and tag_data.config.spawn_jokers or 0 }
-  elseif name == "Skip Tag" then
+  elseif tag_key == "tag_skip" then
     local skip_bonus = tag_data.config and tag_data.config.skip_bonus or 0
     local skips = (G.GAME and G.GAME.skips) or 0
     loc_vars = { skip_bonus, skip_bonus * (skips + 1) }
-  elseif name == "Orbital Tag" then
+  elseif tag_key == "tag_orbital" then
     local orbital_hand = "Poker Hand"
     if tag_instance and tag_instance.ability and tag_instance.ability.orbital_hand then
       orbital_hand = tag_instance.ability.orbital_hand
     end
     local levels = tag_data.config and tag_data.config.levels or 0
     loc_vars = { orbital_hand, levels }
-  elseif name == "Economy Tag" then
+  elseif tag_key == "tag_economy" then
     loc_vars = { tag_data.config and tag_data.config.max or 0 }
   end
 
@@ -1266,6 +1291,7 @@ function gamestate.get_blinds_info()
       effect = "",
       score = 0,
       tag_name = "",
+      tag_key = "",
       tag_effect = "",
     },
     big = {
@@ -1275,6 +1301,7 @@ function gamestate.get_blinds_info()
       effect = "",
       score = 0,
       tag_name = "",
+      tag_key = "",
       tag_effect = "",
     },
     boss = {
@@ -1284,6 +1311,7 @@ function gamestate.get_blinds_info()
       effect = "",
       score = 0,
       tag_name = "",
+      tag_key = "",
       tag_effect = "",
     },
   }
@@ -1321,6 +1349,7 @@ function gamestate.get_blinds_info()
     -- Get tag information
     local small_tag_key = G.GAME.round_resets.blind_tags and G.GAME.round_resets.blind_tags.Small
     if small_tag_key then
+      blinds.small.tag_key = small_tag_key
       local tag_info = get_tag_info(small_tag_key)
       blinds.small.tag_name = tag_info.name
       blinds.small.tag_effect = tag_info.effect
@@ -1345,6 +1374,7 @@ function gamestate.get_blinds_info()
     -- Get tag information
     local big_tag_key = G.GAME.round_resets.blind_tags and G.GAME.round_resets.blind_tags.Big
     if big_tag_key then
+      blinds.big.tag_key = big_tag_key
       local tag_info = get_tag_info(big_tag_key)
       blinds.big.tag_name = tag_info.name
       blinds.big.tag_effect = tag_info.effect
@@ -1383,7 +1413,13 @@ end
 ---Whether the post-win victory overlay (Endless / New Run) is visible
 ---@return boolean
 function gamestate.has_victory_overlay()
-  return G.GAME ~= nil and G.GAME.won and G.OVERLAY_MENU ~= nil and G.STATE == G.STATES.ROUND_EVAL
+  if not G.GAME or not G.GAME.won or G.STATE ~= G.STATES.ROUND_EVAL then
+    return false
+  end
+  if G.OVERLAY_MENU and G.OVERLAY_MENU.get_UIE_by_ID then
+    return G.OVERLAY_MENU:get_UIE_by_ID("from_game_won") ~= nil or G.OVERLAY_MENU:get_UIE_by_ID("from_deck_won") ~= nil
+  end
+  return G.OVERLAY_MENU ~= nil
 end
 
 ---Extracts the simplified game state according to the new specification
@@ -1495,6 +1531,11 @@ function gamestate.get_gamestate()
     if pack_choices and pack_choices > 0 then
       state_data.pack.choices_remaining = pack_choices
     end
+  end
+
+  if state_data.state == "SMODS_BOOSTER_OPENED" then
+    state_data.pack_ready = gamestate.pack_open_ready()
+    state_data.pack_hand_ready = state_data.pack_ready and gamestate.pack_hand_ready() or false
   end
 
   if G.GAME and (G.STATE == G.STATES.GAME_OVER or G.GAME.won) then

@@ -480,9 +480,9 @@ snapshot is returned.
 
 **Returns:** [GameState](#gamestate-schema) (state will be `SHOP`)
 
-**Errors:** `INVALID_STATE`
+**Errors:** `INVALID_STATE`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
 
-**Required State:** `ROUND_EVAL`
+**Required State:** `ROUND_EVAL` without `victory_overlay`
 
 **Example:**
 
@@ -841,7 +841,7 @@ The complete game state returned by most methods.
   "pack": { ... },
   "run": { ... },
   "run_summary": { ... },
-  "held_tags": [{ "name": "Foil Tag", "effect": "A random base Joker in the next shop is free with Foil edition." }],
+  "held_tags": [{ "key": "tag_foil", "name": "Foil Tag", "effect": "A random base Joker in the next shop is free with Foil edition." }],
   "held_tags_ready": true
 }
 ```
@@ -851,8 +851,14 @@ first). Empty `[]` when none are held. `held_tags_ready: false` means a tag yep 
 trigger is still in flight — wait and poll again before trusting the stack. On
 **`MENU`**, **`SPLASH`**, and **`GAME_OVER`**, `held_tags_ready` is always **`true`**
 (no active tag stack / not shown in play summary).
+
+When **`state`** is **`SMODS_BOOSTER_OPENED`**, **`pack_ready`** and **`pack_hand_ready`**
+tell play helpers when to snapshot: `glance` waits until both are true (avoids empty
+pack rows or missing `hand:` during Arcana/Spectral deal animations). Omitted in other states.
 Skip-reward tags on blinds you have **not** skipped yet remain on
-`blinds.{small,big}.tag_name`, not in `held_tags`.
+`blinds.{small,big}.tag_key` / `tag_name`, not in `held_tags`. Use **`tag_key`**
+and **`held_tags[].key`** for logic (locale-independent); `tag_name` / `name` are
+display strings and may be localized.
 
 `run_summary` is present on `GAME_OVER` (and omitted during an active run). See [RunSummary](#runsummary).
 
@@ -1028,7 +1034,7 @@ Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.targ
 
 Scoring-target fields (`ancient_suit`, `idol_rank`, `idol_suit`, `castle_suit`) appear when the corresponding joker is owned. Suit values: `H`, `D`, `C`, `S`. Rank values: `A`, `2`–`10`, `J`, `Q`, `K`.
 
-`cashout_preview` appears on **`ROUND_EVAL`** when the round was won. Lines mirror Balatro's `evaluate_round` cashout (blind → hands → discards → joker `calculate_dollar_bonus` → tag eval → interest). **`total`** matches `cash_out` (uses `G.GAME.current_round.dollars` when set). Tag eval includes **Investment Tag** on Boss defeat. Not included: mid-round economy jokers, Egg/Gift sell-value bumps, rental, or RNG.
+`cashout_preview` appears on **`ROUND_EVAL`** when the round was won. Lines mirror Balatro's `evaluate_round` cashout (blind → hands → discards → joker `calculate_dollar_bonus` → tag eval → interest). **`total`** matches `cash_out` (uses `G.GAME.current_round.dollars` when set). Tag eval includes **Investment Tag** on Boss defeat (matched by `tag.key == "tag_investment"`, not localized name). Not included: mid-round economy jokers, Egg/Gift sell-value bumps, rental, or RNG.
 
 Boss reroll fields (`boss_reroll_cost`, `boss_reroll_available`, `boss_rerolled`) appear in `BLIND_SELECT`. `boss_reroll_available` is true when the Boss blind is on deck, you own Director's Cut (unused this ante) or Retcon, and `money - bankrupt_at >= 10`.
 
@@ -1114,15 +1120,17 @@ A pending skip tag waiting to trigger (already earned, not yet consumed).
 
 ```json
 {
+  "key": "tag_foil",
   "name": "Foil Tag",
   "effect": "A random base Joker in the next shop is free with Foil edition."
 }
 ```
 
-| Field    | Type   | Description                    |
-| -------- | ------ | ------------------------------ |
-| `name`   | string | Display name (e.g. `Foil Tag`) |
-| `effect` | string | Short effect description       |
+| Field    | Type   | Description                                        |
+| -------- | ------ | -------------------------------------------------- |
+| `key`    | string | Stable tag id (e.g. `tag_foil`); **use for logic** |
+| `name`   | string | Display name (may be localized)                    |
+| `effect` | string | Short effect description                           |
 
 `GameState.held_tags` is an array of HeldTag, oldest first. Omitted or empty when
 none are pending. Pair with `held_tags_ready` — when false, the stack snapshot may
@@ -1139,10 +1147,14 @@ Machine-readable schema: `src/lua/utils/openrpc.json` → `HeldTag`.
   "name": "Small Blind",
   "effect": "No special effect",
   "score": 300,
+  "tag_key": "tag_uncommon",
   "tag_name": "Uncommon Tag",
   "tag_effect": "Shop has a free Uncommon Joker"
 }
 ```
+
+Blind skip-reward tags include **`tag_key`** (stable id) and **`tag_name`** (display;
+may be localized). Match tags by **`tag_key`**, not `tag_name`.
 
 ### Hand (Poker Hand Info)
 

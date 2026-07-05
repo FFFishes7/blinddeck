@@ -290,6 +290,12 @@ def is_gamestate_stable(raw: dict[str, Any]) -> bool:
         return False
     if state in HELD_TAGS_STATES and raw.get("held_tags_ready") is False:
         return False
+    play_state = effective_state(raw)
+    if play_state == "SMODS_BOOSTER_OPENED":
+        if not raw.get("pack_ready"):
+            return False
+        if raw.get("pack_hand_ready") is False:
+            return False
     return True
 
 
@@ -306,10 +312,18 @@ def poll_until_stable(
             return last
         if time.monotonic() >= deadline:
             state = last.get("state", "UNKNOWN")
+            play_state = effective_state(last)
             if state in TRANSITION_STATES:
                 reason = f"game state stuck in transition {state!r}"
             elif state in HELD_TAGS_STATES and last.get("held_tags_ready") is False:
                 reason = "held_tags not ready"
+            elif play_state == "SMODS_BOOSTER_OPENED" and not last.get("pack_ready"):
+                reason = "pack not ready"
+            elif (
+                play_state == "SMODS_BOOSTER_OPENED"
+                and last.get("pack_hand_ready") is False
+            ):
+                reason = "pack hand not ready"
             else:
                 reason = "game state not stable"
             raise TimeoutError(f"{reason} after {timeout}s")

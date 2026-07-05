@@ -37,6 +37,14 @@ class TestEndlessEndpoint:
         assert_gamestate_response(play_response, won=True)
         won_state = _wait_for_victory_overlay(client)
         assert won_state.get("won") is True
+        assert won_state.get("victory_overlay") is True
+        assert won_state.get("state") == "ROUND_EVAL"
+
+        assert_error_response(
+            api(client, "cash_out", {}),
+            "NOT_ALLOWED",
+            "Victory overlay is showing",
+        )
 
         endless_response = api(client, "endless", {})
         after_endless = assert_gamestate_response(

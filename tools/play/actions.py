@@ -86,6 +86,11 @@ def consumable_target_hint(card: dict) -> str | None:
     """Human hint for pack glance lines."""
     key = card.get("key") or ""
     value = card.get("value") or {}
+    if key == "c_death":
+        return (
+            "needs 2 hand targets: left source → right target "
+            "(hand [N] indices, not ranks)"
+        )
     if value.get("random_joker_effect") or key in _RANDOM_JOKER_KEYS:
         if key == "c_ectoplasm":
             return "random joker Negative — pack targets ignored"
@@ -235,14 +240,52 @@ def _shop_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     return actions
 
 
+def _pack_card_needs_targets(card: dict) -> bool:
+    if is_random_joker_consumable(card):
+        return False
+    value = card.get("value") or {}
+    tmin = value.get("target_min")
+    if isinstance(tmin, int) and tmin > 0:
+        return True
+    return _consumable_needs_hand(card)
+
+
+def _pack_target_example(card: dict, hand_len: int) -> list[int]:
+    value = card.get("value") or {}
+    if card.get("key") == "c_death":
+        return [0, 1] if hand_len >= 2 else [0]
+    tmin = value.get("target_min")
+    tmax = value.get("target_max")
+    if isinstance(tmin, int) and isinstance(tmax, int):
+        count = min(tmax, max(tmin, 1), hand_len)
+    elif isinstance(tmin, int):
+        count = min(max(tmin, 1), hand_len)
+    else:
+        count = min(1, hand_len)
+    return list(range(count))
+
+
 def _pack_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
+    hand_cards = _visible_cards(state.get("hand"))
+    hand_len = len(hand_cards)
     for idx, card in enumerate(state.get("pack", {}).get("cards", [])):
+        params: dict[str, Any] = {"card": idx}
+        desc = _pack_card_description(card, idx)
+        if _pack_card_needs_targets(card) and hand_len > 0:
+            params["targets"] = _pack_target_example(card, hand_len)
+            if card.get("key") == "c_death":
+                desc = (
+                    "Select Death — pack card uses hand [N] indices "
+                    "(SOURCE TARGET; left becomes right)"
+                )
+            else:
+                desc = f"{desc} — targets are hand [N] from hand: line"
         actions.append(
             _action(
                 "pack",
-                _pack_card_description(card, idx),
-                example_params={"card": idx},
+                desc,
+                example_params=params,
             )
         )
     actions.append(_action("pack", "Skip pack", example_params={"skip": True}))
@@ -318,7 +361,17 @@ def build_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
                     example_params={},
                 )
             )
-        actions.append(_action("cash_out", "Cash out round rewards", example_params={}))
+            actions.append(
+                _action(
+                    "menu",
+                    "Return to main menu (end run after victory)",
+                    example_params={},
+                )
+            )
+        else:
+            actions.append(
+                _action("cash_out", "Cash out round rewards", example_params={})
+            )
         actions.extend(_sell_actions(state))
         actions.extend(_use_actions(state))
         return actions

@@ -13,22 +13,22 @@
 -- Start Endpoint Utils
 -- ==========================================================================
 
-local DECK_ENUM_TO_NAME = {
-  RED = "Red Deck",
-  BLUE = "Blue Deck",
-  YELLOW = "Yellow Deck",
-  GREEN = "Green Deck",
-  BLACK = "Black Deck",
-  MAGIC = "Magic Deck",
-  NEBULA = "Nebula Deck",
-  GHOST = "Ghost Deck",
-  ABANDONED = "Abandoned Deck",
-  CHECKERED = "Checkered Deck",
-  ZODIAC = "Zodiac Deck",
-  PAINTED = "Painted Deck",
-  ANAGLYPH = "Anaglyph Deck",
-  PLASMA = "Plasma Deck",
-  ERRATIC = "Erratic Deck",
+local DECK_ENUM_TO_KEY = {
+  RED = "b_red",
+  BLUE = "b_blue",
+  YELLOW = "b_yellow",
+  GREEN = "b_green",
+  BLACK = "b_black",
+  MAGIC = "b_magic",
+  NEBULA = "b_nebula",
+  GHOST = "b_ghost",
+  ABANDONED = "b_abandoned",
+  CHECKERED = "b_checkered",
+  ZODIAC = "b_zodiac",
+  PAINTED = "b_painted",
+  ANAGLYPH = "b_anaglyph",
+  PLASMA = "b_plasma",
+  ERRATIC = "b_erratic",
 }
 
 local STAKE_ENUM_TO_NUMBER = {
@@ -91,8 +91,8 @@ return {
     end
 
     -- Validate and map deck enum
-    local deck_name = DECK_ENUM_TO_NAME[args.deck]
-    if not deck_name then
+    local deck_key = DECK_ENUM_TO_KEY[args.deck]
+    if not deck_key then
       sendDebugMessage("start() called with invalid deck enum: " .. tostring(args.deck), "BB.ENDPOINTS")
       send_response({
         message = "Invalid deck enum. Must be one of: RED, BLUE, YELLOW, GREEN, BLACK, MAGIC, NEBULA, GHOST, ABANDONED, CHECKERED, ZODIAC, PAINTED, ANAGLYPH, PLASMA, ERRATIC. Got: "
@@ -106,12 +106,12 @@ return {
     G.FUNCS.setup_run({ config = {} })
     G.FUNCS.exit_overlay_menu()
 
-    -- Find and set the deck using the mapped deck name
+    -- Find and set the deck by center key (locale-independent)
     local deck_found = false
     if G.P_CENTER_POOLS and G.P_CENTER_POOLS.Back then
       for _, deck_data in pairs(G.P_CENTER_POOLS.Back) do
-        if deck_data.name == deck_name then
-          sendDebugMessage("Setting deck to: " .. deck_data.name .. " (from enum: " .. args.deck .. ")", "BB.ENDPOINTS")
+        if deck_data.key == deck_key then
+          sendDebugMessage("Setting deck to: " .. deck_key .. " (from enum: " .. args.deck .. ")", "BB.ENDPOINTS")
           G.GAME.selected_back:change_to(deck_data)
           if G.GAME.viewed_back then
             G.GAME.viewed_back:change_to(deck_data)
@@ -123,9 +123,9 @@ return {
     end
 
     if not deck_found then
-      sendDebugMessage("start() deck not found in game data: " .. deck_name, "BB.ENDPOINTS")
+      sendDebugMessage("start() deck not found in game data: " .. deck_key, "BB.ENDPOINTS")
       send_response({
-        message = "Deck not found in game data: " .. deck_name,
+        message = "Deck not found in game data: " .. deck_key,
         name = BB_ERROR_NAMES.INTERNAL_ERROR,
       })
       return

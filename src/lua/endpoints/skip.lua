@@ -52,7 +52,7 @@ return {
     assert(skip_button ~= nil, "skip() skip button not found: " .. current_blind)
 
     -- Execute blind skip
-    local expect_pack = BB_GAMESTATE.is_pack_skip_tag(blind.tag_name)
+    local expect_pack = BB_GAMESTATE.is_pack_skip_tag(blind.tag_key)
     G.FUNCS.skip_blind(skip_button)
 
     -- Wait for the skip to complete and for tag side effects to settle. Some

@@ -1220,6 +1220,14 @@
           "held_tags_ready": {
             "type": "boolean",
             "description": "True when held_tags snapshot is stable (no tag yep/trigger in flight). Always true on MENU, SPLASH, and GAME_OVER."
+          },
+          "pack_ready": {
+            "type": "boolean",
+            "description": "When state is SMODS_BOOSTER_OPENED: true when pack cards are loaded and STATE_COMPLETE (glance waits when false)."
+          },
+          "pack_hand_ready": {
+            "type": "boolean",
+            "description": "When pack_ready: true when hand is dealt for Arcana/Spectral pack targeting (glance waits when false)."
           }
         },
         "required": [
@@ -1233,9 +1241,13 @@
         "type": "object",
         "description": "A pending tag waiting to trigger",
         "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable tag id (e.g. tag_foil); use for logic, not name"
+          },
           "name": {
             "type": "string",
-            "description": "Display name of the tag"
+            "description": "Display name of the tag (may be localized)"
           },
           "effect": {
             "type": "string",
@@ -1243,6 +1255,7 @@
           }
         },
         "required": [
+          "key",
           "name",
           "effect"
         ]
@@ -1514,7 +1527,11 @@
           },
           "tag_name": {
             "type": "string",
-            "description": "Name of the tag associated with this blind (Small/Big only)"
+            "description": "Display name of the tag associated with this blind (Small/Big only; may be localized)"
+          },
+          "tag_key": {
+            "type": "string",
+            "description": "Stable tag id (Small/Big only); use for logic, not tag_name"
           },
           "tag_effect": {
             "type": "string",

@@ -289,7 +289,8 @@ def test_build_actions_round_eval_victory_overlay(selecting_hand_state: dict) ->
     actions = build_actions(round_eval_state)
     commands = [a["command"] for a in actions]
     assert commands[0] == "endless"
-    assert "cash_out" in commands
+    assert "menu" in commands
+    assert "cash_out" not in commands
 
 
 def test_build_actions_pack_open(selecting_hand_state: dict) -> None:
@@ -424,6 +425,58 @@ def test_is_gamestate_stable_requires_held_tags_ready() -> None:
     assert not is_gamestate_stable({"state": "HAND_PLAYED", "held_tags_ready": True})
     assert is_gamestate_stable({"state": "MENU", "held_tags_ready": False})
     assert is_gamestate_stable({"state": "GAME_OVER", "held_tags_ready": False})
+
+
+def test_is_gamestate_stable_requires_pack_ready() -> None:
+    base = {"state": "SMODS_BOOSTER_OPENED", "held_tags_ready": True}
+    assert not is_gamestate_stable({**base, "pack_ready": False})
+    assert is_gamestate_stable({**base, "pack_ready": True})
+    assert not is_gamestate_stable(
+        {**base, "pack_ready": True, "pack_hand_ready": False}
+    )
+    assert is_gamestate_stable({**base, "pack_ready": True, "pack_hand_ready": True})
+    assert is_gamestate_stable({**base, "pack_ready": True, "pack_hand_ready": None})
+
+
+def test_consumable_target_hint_death() -> None:
+    card = {"key": "c_death", "value": {"effect": "copy left card into right"}}
+    hint = consumable_target_hint(card)
+    assert hint is not None
+    assert "hand [N] indices" in hint
+    assert "not ranks" in hint
+
+
+def test_build_actions_pack_death_includes_targets(selecting_hand_state: dict) -> None:
+    pack_state = {
+        **selecting_hand_state,
+        "state": "SMODS_BOOSTER_OPENED",
+        "pack": {
+            "count": 1,
+            "limit": 1,
+            "choices_remaining": 1,
+            "cards": [
+                {
+                    "label": "Death",
+                    "key": "c_death",
+                    "value": {"effect": "copy left card into right"},
+                }
+            ],
+        },
+        "hand": {
+            "count": 3,
+            "limit": 8,
+            "cards": [
+                {"label": "2♠", "value": {"rank": "2", "suit": "S"}},
+                {"label": "3♠", "value": {"rank": "3", "suit": "S"}},
+                {"label": "4♠", "value": {"rank": "4", "suit": "S"}},
+            ],
+        },
+    }
+    pack_actions = [a for a in build_actions(pack_state) if a["command"] == "pack"]
+    assert pack_actions
+    example = pack_actions[0]["example"]["params"]
+    assert example["card"] == 0
+    assert example["targets"] == [0, 1]
 
 
 def test_poll_until_stable_waits_for_held_tags() -> None:
@@ -1047,8 +1100,89 @@ def test_print_summary_round_eval_victory_overlay(
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "→ endless" in out
-    assert "→ cash_out" in out
-    assert out.index("→ endless") < out.index("→ cash_out")
+    assert "→ menu" in out
+    assert "→ cash_out" not in out
+
+
+def test_print_summary_round_eval_investment_tag(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw = {
+        "state": "ROUND_EVAL",
+        "money": 12,
+        "round_num": 24,
+        "ante_num": 8,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {
+            "hands_left": 0,
+            "discards_left": 0,
+            "chips": 500,
+            "cashout_preview": {
+                "lines": [
+                    {"kind": "blind", "label": "blind", "dollars": 3},
+                    {
+                        "kind": "tag",
+                        "label": "Investment Tag",
+                        "dollars": 25,
+                        "key": "tag_investment",
+                    },
+                    {"kind": "interest", "label": "interest", "dollars": 1},
+                ],
+                "total": 29,
+            },
+        },
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "cards": {"count": 44, "limit": 52},
+        "won": True,
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "Investment Tag" in out
+    assert "+$25" in out
+    assert "total +$29" in out
+
+
+def test_print_summary_pack_death_hint(capsys: pytest.CaptureFixture[str]) -> None:
+    raw = {
+        "state": "SMODS_BOOSTER_OPENED",
+        "money": 6,
+        "round_num": 1,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {"reroll_cost": 5},
+        "cards": {"count": 44, "limit": 52},
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "pack": {
+            "count": 1,
+            "limit": 1,
+            "choices_remaining": 1,
+            "cards": [
+                {
+                    "label": "Death",
+                    "key": "c_death",
+                    "value": {"effect": "copy left card into right"},
+                }
+            ],
+        },
+        "hand": {
+            "count": 2,
+            "limit": 8,
+            "cards": [
+                {"label": "7♣", "value": {"rank": "7", "suit": "C"}},
+                {"label": "K♠", "value": {"rank": "K", "suit": "S"}},
+            ],
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "Death" in out
+    assert "hand [N] indices" in out
+    assert "targets: use hand indices [0] [1]" in out
+    assert "note: Death" in out
 
 
 def test_print_summary_shop(capsys: pytest.CaptureFixture[str]) -> None:

@@ -28,14 +28,14 @@ end
 ---@param tag table
 ---@return string
 local function tag_label(tag)
-  if tag.name and tag.name ~= "" then
-    return tag.name
-  end
   if tag.key and localize then ---@diagnostic disable-line: undefined-global
     local ok, name = pcall(localize, { type = "name_text", set = "Tag", key = tag.key }) ---@diagnostic disable-line: undefined-global
     if ok and type(name) == "string" and name ~= "" then
       return name
     end
+  end
+  if tag.name and tag.name ~= "" then
+    return tag.name
   end
   return "Tag"
 end
@@ -43,15 +43,29 @@ end
 ---Investment Tag and other eval tags must not call Tag:apply_to_run (side effects).
 ---@param tag table
 ---@return integer|nil dollars
+local function is_boss_defeat()
+  if G.GAME.blind and G.GAME.blind.boss then
+    return true
+  end
+  if G.GAME.last_blind and G.GAME.last_blind.boss then
+    return true
+  end
+  return false
+end
+
+local function is_investment_tag(tag)
+  return tag.key == "tag_investment"
+end
+
 local function preview_tag_dollars(tag)
+  if tag.config == nil or tag.config.type ~= "eval" then
+    return nil
+  end
+  if is_investment_tag(tag) and is_boss_defeat() then
+    return tag.config.dollars
+  end
   if tag.triggered then
     return nil
-  end
-  if tag.config.type ~= "eval" then
-    return nil
-  end
-  if tag.name == "Investment Tag" and G.GAME.last_blind and G.GAME.last_blind.boss then
-    return tag.config.dollars
   end
   return nil
 end

@@ -258,6 +258,7 @@ class TestGamestateBlinds:
             assert isinstance(blind["effect"], str)
             assert isinstance(blind["score"], int) and blind["score"] > 0
             assert isinstance(blind["tag_name"], str)
+            assert isinstance(blind["tag_key"], str)
             assert isinstance(blind["tag_effect"], str)
             assert isinstance(blind["status"], str)
 
@@ -268,9 +269,10 @@ class TestGamestateBlinds:
         assert blinds["small"]["effect"] == ""
         assert blinds["big"]["effect"] == ""
         assert blinds["boss"]["tag_name"] == ""
+        assert blinds["boss"]["tag_key"] == ""
         assert blinds["boss"]["tag_effect"] == ""
-        assert blinds["small"]["tag_name"]
-        assert blinds["big"]["tag_name"]
+        assert blinds["small"]["tag_key"]
+        assert blinds["big"]["tag_key"]
 
     def test_blinds_zero_skip_extraction(self, client: httpx.Client) -> None:
         """Test initial blind extraction."""

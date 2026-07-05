@@ -334,7 +334,9 @@ def _round_eval_block(state: dict[str, Any]) -> list[str]:
             lines.append("  pending: " + " · ".join(pending))
     if state.get("won") and state.get("victory_overlay"):
         lines.append("→ endless")
-    lines.append("→ cash_out")
+        lines.append("→ menu")
+    else:
+        lines.append("→ cash_out")
     return lines
 
 
@@ -538,6 +540,8 @@ def _pack_block(state: dict[str, Any]) -> str:
     if isinstance(choices, int) and choices > 0:
         parts.append(f"  choices remaining: {choices}")
     has_random_joker = False
+    has_death = False
+    needs_hand_targets = False
     for i, c in enumerate(cards):
         label = card_label(c)
         effect = (c.get("value") or {}).get("effect", "")
@@ -546,7 +550,20 @@ def _pack_block(state: dict[str, Any]) -> str:
         parts.append(f"  pack[{i}] {label} — {effect}{hint_suffix}")
         if is_random_joker_consumable(c):
             has_random_joker = True
+        if c.get("key") == "c_death":
+            has_death = True
+        if hint and "hand" in hint.lower():
+            needs_hand_targets = True
     block = "pack:\n" + "\n".join(parts) if parts else "pack: (empty)"
+    hand_cards = (state.get("hand") or {}).get("cards") or []
+    if hand_cards and needs_hand_targets:
+        indices = " ".join(f"[{i}]" for i in range(len(hand_cards)))
+        block += f"\n  targets: use hand indices {indices} (not rank values)"
+    if has_death:
+        block += (
+            "\n  note: Death — pack IDX SOURCE TARGET copies left card into right "
+            "(hand [N] from hand: line)"
+        )
     if has_random_joker:
         block += "\n  note: random-joker spectral — pack targets are hand-only"
     return block

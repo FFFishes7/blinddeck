@@ -14,12 +14,23 @@ from tests.lua.tag_seeds import (
     FOIL_SMALL,
 )
 
-# Only Charm Tag can appear on ante 1; other pack tags need ante 2+ (game.lua min_ante).
+# Locale-independent tag keys (Balatro G.P_TAGS ids)
+CHARM_TAG_KEY = "tag_charm"
+FOIL_TAG_KEY = "tag_foil"
+ECONOMY_TAG_KEY = "tag_economy"
+DOUBLE_TAG_KEY = "tag_double"
+BOSS_TAG_KEY = "tag_boss"
+
+# Display names (English install; tag_key assertions are locale-safe)
 CHARM_TAG = "Charm Tag"
 FOIL_TAG = "Foil Tag"
 ECONOMY_TAG = "Economy Tag"
 DOUBLE_TAG = "Double Tag"
 BOSS_TAG = "Boss Tag"
+
+
+def _pending_tag_keys(gamestate: dict) -> list[str]:
+    return [t["key"] for t in gamestate.get("held_tags") or []]
 
 
 def _pending_tag_names(gamestate: dict) -> list[str]:
@@ -34,14 +45,14 @@ def _assert_held_tags_ready(gamestate: dict) -> None:
 
 def _assert_foil_held(gamestate: dict, *, seed: str) -> None:
     _assert_held_tags_ready(gamestate)
-    assert FOIL_TAG in _pending_tag_names(gamestate), (
+    assert FOIL_TAG_KEY in _pending_tag_keys(gamestate), (
         f"expected Foil in held_tags (seed={seed!r})"
     )
 
 
 def _assert_foil_not_held(gamestate: dict, *, seed: str) -> None:
     _assert_held_tags_ready(gamestate)
-    assert FOIL_TAG not in _pending_tag_names(gamestate), (
+    assert FOIL_TAG_KEY not in _pending_tag_keys(gamestate), (
         f"expected Foil consumed from held_tags (seed={seed!r})"
     )
 
@@ -58,10 +69,10 @@ def _start_blind_select(client: httpx.Client, seed: str) -> dict:
     )
 
 
-def _assert_small_tag(gamestate: dict, *, seed: str, tag_name: str) -> None:
-    actual = gamestate["blinds"]["small"]["tag_name"]
-    assert actual == tag_name, (
-        f"seed {seed!r} drifted: expected {tag_name!r} on small, got {actual!r}"
+def _assert_small_tag(gamestate: dict, *, seed: str, tag_key: str) -> None:
+    actual = gamestate["blinds"]["small"]["tag_key"]
+    assert actual == tag_key, (
+        f"seed {seed!r} drifted: expected {tag_key!r} on small, got {actual!r}"
     )
 
 
@@ -77,14 +88,22 @@ def _pack_pick_params(gamestate: dict, card_idx: int) -> dict:
 
 
 def _wait_for_open_pack(client: httpx.Client, *, timeout: float = 60) -> dict:
-    """Poll gamestate until a booster pack is open with choices_remaining set."""
+    """Poll gamestate until a booster pack is open and ready to snapshot."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         gamestate = assert_gamestate_response(api(client, "gamestate", {}))
         pack = gamestate.get("pack") or {}
-        if pack.get("cards") and pack.get("choices_remaining"):
+        if (
+            gamestate.get("pack_ready")
+            and pack.get("cards")
+            and pack.get("choices_remaining")
+        ):
+            if gamestate.get("pack_hand_ready") is False:
+                continue
             return gamestate
-    raise AssertionError("timed out waiting for open pack with choices_remaining")
+    raise AssertionError(
+        "timed out waiting for pack_ready open pack with choices_remaining"
+    )
 
 
 class TestSkipPackTag:
@@ -93,12 +112,12 @@ class TestSkipPackTag:
     def test_skip_charm_tag_reports_booster_opened(self, client: httpx.Client) -> None:
         seed = CHARM_SMALL
         gamestate = _start_blind_select(client, seed)
-        _assert_small_tag(gamestate, seed=seed, tag_name=CHARM_TAG)
+        _assert_small_tag(gamestate, seed=seed, tag_key=CHARM_TAG_KEY)
 
         response = api(client, "skip", {}, timeout=60)
         gamestate = assert_gamestate_response(response, state="SMODS_BOOSTER_OPENED")
         _assert_held_tags_ready(gamestate)
-        assert CHARM_TAG not in _pending_tag_names(gamestate)
+        assert CHARM_TAG_KEY not in _pending_tag_keys(gamestate)
         pack_cards = (gamestate.get("pack") or {}).get("cards") or []
         assert pack_cards, f"expected open pack cards after Charm skip (seed={seed!r})"
         # Charm Tag opens Mega Arcana (choose=2)
@@ -111,15 +130,15 @@ class TestSkipHeldTags:
     def test_skip_foil_tag_adds_pending_held_tag(self, client: httpx.Client) -> None:
         seed = FOIL_SMALL
         gamestate = _start_blind_select(client, seed)
-        _assert_small_tag(gamestate, seed=seed, tag_name=FOIL_TAG)
+        _assert_small_tag(gamestate, seed=seed, tag_key=FOIL_TAG_KEY)
 
         response = api(client, "skip", {}, timeout=60)
         gamestate = assert_gamestate_response(response, state="BLIND_SELECT")
         _assert_held_tags_ready(gamestate)
-        pending = _pending_tag_names(gamestate)
-        assert FOIL_TAG in pending, f"expected Foil in held_tags (seed={seed!r})"
+        pending = _pending_tag_keys(gamestate)
+        assert FOIL_TAG_KEY in pending, f"expected Foil in held_tags (seed={seed!r})"
         foil_entries = [
-            t for t in gamestate.get("held_tags") or [] if t.get("name") == FOIL_TAG
+            t for t in gamestate.get("held_tags") or [] if t.get("key") == FOIL_TAG_KEY
         ]
         assert len(foil_entries) == 1
         assert foil_entries[0].get("effect"), "expected non-empty tag effect"
@@ -133,7 +152,7 @@ class TestSkipHeldTags:
         """Foil stays held through SELECTING_HAND/ROUND_EVAL; consumed on SHOP entry."""
         seed = FOIL_SMALL
         gamestate = _start_blind_select(client, seed)
-        _assert_small_tag(gamestate, seed=seed, tag_name=FOIL_TAG)
+        _assert_small_tag(gamestate, seed=seed, tag_key=FOIL_TAG_KEY)
 
         gamestate = assert_gamestate_response(
             api(client, "skip", {}, timeout=60),
@@ -163,13 +182,13 @@ class TestSkipHeldTags:
     def test_skip_economy_tag_consumed_not_held(self, client: httpx.Client) -> None:
         seed = ECONOMY_SMALL
         gamestate = _start_blind_select(client, seed)
-        _assert_small_tag(gamestate, seed=seed, tag_name=ECONOMY_TAG)
+        _assert_small_tag(gamestate, seed=seed, tag_key=ECONOMY_TAG_KEY)
 
         money_before = gamestate["money"]
         response = api(client, "skip", {}, timeout=60)
         gamestate = assert_gamestate_response(response, state="BLIND_SELECT")
         _assert_held_tags_ready(gamestate)
-        assert ECONOMY_TAG not in _pending_tag_names(gamestate)
+        assert ECONOMY_TAG_KEY not in _pending_tag_keys(gamestate)
         assert gamestate["money"] == min(money_before * 2, 40), (
             f"Economy Tag should double money up to $40 "
             f"(before={money_before}, after={gamestate['money']}, seed={seed!r})"
@@ -182,13 +201,13 @@ class TestDoubleTagStack:
     def test_double_tag_copies_foil_on_second_skip(self, client: httpx.Client) -> None:
         seed = DOUBLE_THEN_FOIL
         gamestate = _start_blind_select(client, seed)
-        assert gamestate["blinds"]["small"]["tag_name"] == DOUBLE_TAG, (
+        assert gamestate["blinds"]["small"]["tag_key"] == DOUBLE_TAG_KEY, (
             f"seed {seed!r} drifted: expected Double on small, "
-            f"got {gamestate['blinds']['small']['tag_name']!r}"
+            f"got {gamestate['blinds']['small']['tag_key']!r}"
         )
-        assert gamestate["blinds"]["big"]["tag_name"] == FOIL_TAG, (
+        assert gamestate["blinds"]["big"]["tag_key"] == FOIL_TAG_KEY, (
             f"seed {seed!r} drifted: expected Foil on big, "
-            f"got {gamestate['blinds']['big']['tag_name']!r}"
+            f"got {gamestate['blinds']['big']['tag_key']!r}"
         )
 
         gamestate = assert_gamestate_response(
@@ -196,16 +215,16 @@ class TestDoubleTagStack:
             state="BLIND_SELECT",
         )
         _assert_held_tags_ready(gamestate)
-        assert DOUBLE_TAG in _pending_tag_names(gamestate)
+        assert DOUBLE_TAG_KEY in _pending_tag_keys(gamestate)
 
         gamestate = assert_gamestate_response(
             api(client, "skip", {}, timeout=60),
             state="BLIND_SELECT",
         )
         _assert_held_tags_ready(gamestate)
-        pending = _pending_tag_names(gamestate)
-        assert pending == [FOIL_TAG, FOIL_TAG], (
-            f"expected [Foil, Foil] oldest-first after Double copies Foil "
+        pending = _pending_tag_keys(gamestate)
+        assert pending == [FOIL_TAG_KEY, FOIL_TAG_KEY], (
+            f"expected [tag_foil, tag_foil] oldest-first after Double copies Foil "
             f"(seed={seed!r}, got={pending!r})"
         )
 
@@ -215,13 +234,13 @@ class TestDoubleTagStack:
         """Double Tag copies Charm → two consecutive Mega Arcana packs."""
         seed = DOUBLE_THEN_CHARM
         gamestate = _start_blind_select(client, seed)
-        assert gamestate["blinds"]["small"]["tag_name"] == DOUBLE_TAG, (
+        assert gamestate["blinds"]["small"]["tag_key"] == DOUBLE_TAG_KEY, (
             f"seed {seed!r} drifted: expected Double on small, "
-            f"got {gamestate['blinds']['small']['tag_name']!r}"
+            f"got {gamestate['blinds']['small']['tag_key']!r}"
         )
-        assert gamestate["blinds"]["big"]["tag_name"] == CHARM_TAG, (
+        assert gamestate["blinds"]["big"]["tag_key"] == CHARM_TAG_KEY, (
             f"seed {seed!r} drifted: expected Charm on big, "
-            f"got {gamestate['blinds']['big']['tag_name']!r}"
+            f"got {gamestate['blinds']['big']['tag_key']!r}"
         )
 
         gamestate = assert_gamestate_response(
@@ -229,7 +248,7 @@ class TestDoubleTagStack:
             state="BLIND_SELECT",
         )
         _assert_held_tags_ready(gamestate)
-        assert DOUBLE_TAG in _pending_tag_names(gamestate)
+        assert DOUBLE_TAG_KEY in _pending_tag_keys(gamestate)
 
         gamestate = assert_gamestate_response(
             api(client, "skip", {}, timeout=60),
@@ -247,6 +266,9 @@ class TestDoubleTagStack:
             api(client, "pack", _pack_pick_params(gamestate, 0), timeout=60),
         )
         gamestate = _wait_for_open_pack(client)
+        assert gamestate.get("pack_ready") is True
+        pack_cards = (gamestate.get("pack") or {}).get("cards") or []
+        assert pack_cards, "second pack must have cards when pack_ready"
         assert gamestate["pack"]["choices_remaining"] == 2
 
 
@@ -256,7 +278,7 @@ class TestSkipNonPackTag:
     def test_skip_non_pack_tag_stays_blind_select(self, client: httpx.Client) -> None:
         seed = BOSS_SMALL
         gamestate = _start_blind_select(client, seed)
-        _assert_small_tag(gamestate, seed=seed, tag_name=BOSS_TAG)
+        _assert_small_tag(gamestate, seed=seed, tag_key=BOSS_TAG_KEY)
 
         response = api(client, "skip", {}, timeout=15)
         gamestate = assert_gamestate_response(response, state="BLIND_SELECT")

@@ -87,8 +87,9 @@ class TestCashoutPreviewLive:
             "state-SELECTING_HAND--ante_num-8--blinds.boss.status-CURRENT--round.chips-1000000",
         )
         assert gamestate["blinds"]["boss"]["status"] == "CURRENT"
-        held = [t.get("name") for t in gamestate.get("held_tags") or []]
-        if "Investment Tag" not in held:
+        held = gamestate.get("held_tags") or []
+        has_investment = any(t.get("key") == "tag_investment" for t in held)
+        if not has_investment:
             pytest.skip("Investment Tag not held on this boss fixture path")
         gamestate = assert_gamestate_response(
             api(client, "play", {"cards": [0]}),
