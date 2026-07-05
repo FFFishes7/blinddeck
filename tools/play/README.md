@@ -52,8 +52,8 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick st
     **`need=N`** when below the blind target or **`beaten`** when at/above it; the
     current blind (boss `effect=` only — no skip-reward tag while playing), jokers
     and consumables with slot count `jokers (N/5)`, the hand (with modifier tags —
-    see below), an `economy:` line (**SELECTING_HAND only** — simplified interest /
-    Delayed Gratification / rental hint, not full cashout) and the `actions:` line.
+    see below), an `economy:` line when relevant (**SELECTING_HAND only** — Delayed
+    Gratification / rental hints, not passive interest) and the `actions:` line.
 
 - **SHOP:** each shop row shows price plus **`[ok]`**, **`[need $N]`**, or
     **`[slots full]`** (joker/consumable slots full — same check as `buy.lua`).
@@ -77,8 +77,8 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick st
     While **`choices remaining` > 0**, use **`pack 0`** / **`pack 1`** (with hand targets when shown). **`pack skip`** forfeits all remaining picks in the current pack — not “advance to the next blind”.
     `glance` waits for **`pack_ready`** and **`pack_hand_ready`** (Arcana/Spectral deal animation) before snapshotting — avoids empty `pack:` rows between consecutive pack tags.
 
-- **GAME_OVER:** restart hint uses the ended run's deck/stake, e.g.
-    **`→ menu  then  start RED WHITE [SEED]`**.
+- **GAME_OVER:** restart hint uses the ended run's deck/stake/seed, e.g.
+    **`→ menu  then  start RED WHITE ABC123`**.
 
 - **ROUND_EVAL:** `round won, score=…` plus **`pending:`** (income rows + **`total +$N`**).
     If **`victory_overlay`**, **`→ endless`** then **`→ menu`** (no **`→ cash_out`** until overlay dismissed). Example:
@@ -197,7 +197,7 @@ Anything else → `unmodeled` (treat score as lower bound only).
 2. `know preflight` → verified joker/boss/stake/tag effects (before non-trivial decisions)
 3. (optional) `query hands` / `query deck` / … — **use `query hands` for scoring math**
 4. friendly action subcommand → prints the new compact summary automatically
-5. Repeat until `state == GAME_OVER`, then `menu` + `start`
+5. Repeat until `state == GAME_OVER`, then `menu` + `start DECK STAKE SEED` (seed from summary restart hint)
 
 *(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
 

@@ -1029,6 +1029,96 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
     assert "actions: play discard sort rearrange" in out
 
 
+def test_print_summary_selecting_hand_no_passive_economy(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw = {
+        "state": "SELECTING_HAND",
+        "money": 4,
+        "round_num": 1,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {"hands_left": 3, "discards_left": 4, "chips": 180, "reroll_cost": 5},
+        "blinds": {
+            "big": {
+                "status": "CURRENT",
+                "name": "Big Blind",
+                "type": "BIG",
+                "score": 300,
+            },
+        },
+        "jokers": {"count": 0, "limit": 5, "cards": []},
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "cards": {"count": 44, "limit": 52},
+        "hand": {
+            "count": 2,
+            "limit": 8,
+            "cards": [
+                {"label": "K of S", "value": {"rank": "K", "suit": "S"}},
+                {"label": "K of H", "value": {"rank": "K", "suit": "H"}},
+            ],
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "state=SELECTING_HAND" in out
+    assert "economy:" not in out
+
+
+def test_print_summary_selecting_hand_delayed_grat_economy(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw = {
+        "state": "SELECTING_HAND",
+        "money": 4,
+        "round_num": 1,
+        "ante_num": 1,
+        "deck": "RED",
+        "stake": "WHITE",
+        "round": {
+            "hands_left": 3,
+            "discards_left": 4,
+            "discards_used": 0,
+            "chips": 180,
+            "reroll_cost": 5,
+        },
+        "blinds": {
+            "big": {
+                "status": "CURRENT",
+                "name": "Big Blind",
+                "type": "BIG",
+                "score": 300,
+            },
+        },
+        "jokers": {
+            "count": 1,
+            "limit": 5,
+            "cards": [
+                {
+                    "label": "Delayed Gratification",
+                    "key": "j_delayed_grat",
+                    "value": {"effect": "earn $2 per discard if none used"},
+                }
+            ],
+        },
+        "consumables": {"count": 0, "limit": 2, "cards": []},
+        "cards": {"count": 44, "limit": 52},
+        "hand": {
+            "count": 2,
+            "limit": 8,
+            "cards": [
+                {"label": "K of S", "value": {"rank": "K", "suit": "S"}},
+                {"label": "K of H", "value": {"rank": "K", "suit": "H"}},
+            ],
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "economy:" in out
+    assert "delayed_grat=" in out
+
+
 def test_print_summary_round_eval(capsys: pytest.CaptureFixture[str]) -> None:
     raw = {
         "state": "ROUND_EVAL",
@@ -1332,7 +1422,7 @@ def test_print_summary_game_over(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "GAME_OVER" in out
     assert "money=None" not in out
-    assert "→ menu  then  start RED WHITE [SEED]" in out
+    assert "→ menu  then  start RED WHITE ABC" in out
     assert "actions: menu" in out
 
 
@@ -1355,6 +1445,7 @@ def test_print_summary_game_over_endless_loss(
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "GAME_OVER: Lost to Small Blind" in out
+    assert "→ menu  then  start RED WHITE ABC" in out
     assert "Victory" not in out
 
 

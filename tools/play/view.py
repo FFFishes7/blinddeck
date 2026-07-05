@@ -271,10 +271,6 @@ def _round_line(state: dict[str, Any], target: int | None = None) -> str:
     return f"round: hands_left={hands} discards_left={discards} {score_part}"
 
 
-INTEREST_CAP_DEFAULT = 5
-INTEREST_PER = 5  # $1 per $5 held, capped
-
-
 def _format_cashout_dollars(dollars: int) -> str:
     if dollars >= 0:
         return f"+${dollars}"
@@ -297,13 +293,8 @@ def _cashout_pending_parts(preview: dict[str, Any]) -> list[str]:
 
 
 def _economy_line(state: dict[str, Any]) -> str | None:
-    """Pending interest + Delayed Gratification bonus, if any info to show."""
+    """Actionable economy hints during hand play (Delayed Gratification, rental)."""
     parts: list[str] = []
-    money = state.get("money", 0)
-    if money > 0:
-        interest = min(money // INTEREST_PER, INTEREST_CAP_DEFAULT)
-        if interest > 0:
-            parts.append(f"interest=+${interest} (cap ${INTEREST_CAP_DEFAULT})")
     jokers = (state.get("jokers") or {}).get("cards") or []
     has_dg = any((j.get("key") or "") == "j_delayed_grat" for j in jokers)
     if has_dg:
@@ -383,7 +374,9 @@ def _option_ids(envelope: dict[str, Any], key: str, fallback_fn) -> list[str]:
 def _game_over_hint(state: dict[str, Any]) -> str:
     deck = state.get("deck") or "DECK"
     stake = state.get("stake") or "STAKE"
-    return f"→ menu  then  start {deck} {stake} [SEED]"
+    seed = state.get("seed")
+    suffix = f" {seed}" if seed else ""
+    return f"→ menu  then  start {deck} {stake}{suffix}"
 
 
 def _menu_hint(envelope: dict[str, Any]) -> list[str]:

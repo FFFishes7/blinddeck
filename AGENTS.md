@@ -10,7 +10,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 ## Playing Balatro (read this first if asked to play)
 
 - The game serves JSON-RPC 2.0 on `http://127.0.0.1:12346`. Health-check first.
-- **Loop:** `bot.ps1 glance` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`). **`estimate` is optional / not recommended** — see `PLAY.md`.
+- **Loop:** `bot.ps1 glance` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start DECK STAKE SEED` (seed from summary restart hint; e.g. `start RED WHITE ABC123`). **`estimate` is optional / not recommended** — see `PLAY.md`.
 - **All indices are 0-based.** One request at a time (server is single-client).
 - **Use friendly subcommands, never `exec '{...}'`** — PowerShell strips unescaped double quotes from JSON args.
 - State → command:
@@ -23,7 +23,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 | `ROUND_EVAL`           | `bot.ps1 cash_out` · after Ante 8 win with victory overlay: `bot.ps1 endless` first                                                            |
 | `SHOP`                 | `bot.ps1 buy card 0` · `buy pack 0` · `reroll` · `sell joker 0` · `rearrange jokers 1 0` · `next_round`                                        |
 | `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` while glance shows **`choices remaining: N`** · `pack skip` only to forfeit picks · `rearrange jokers …` when 2+ jokers |
-| `GAME_OVER`            | `bot.ps1 menu` then `start`                                                                                                                    |
+| `GAME_OVER`            | `bot.ps1 menu` then `start DECK STAKE SEED` (from summary restart hint)                                                                        |
 
 Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). **Pitfalls and API gotchas:** see [PLAY.md Quick start](./PLAY.md#quick-start-play-sheet) and [§4 Pitfalls](./PLAY.md#4-pitfalls).
 

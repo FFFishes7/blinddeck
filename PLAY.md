@@ -25,7 +25,7 @@ repeat:
   bot.ps1 glance              → read summary + actions:
   (optional) know preflight   → boss / unfamiliar joker / skip tag
   bot.ps1 <one action>        → read new summary (includes next actions:)
-until GAME_OVER → menu → start DECK STAKE
+until GAME_OVER → menu → start DECK STAKE SEED   # SEED from summary restart hint
 ```
 
 **`estimate` is optional and not recommended** for normal play.
@@ -38,7 +38,7 @@ until GAME_OVER → menu → start DECK STAKE
 | `ROUND_EVAL`           | read **`pending:` `total +$N`**; if **`victory_overlay`**: **`endless`** or **`menu`** (not `cash_out` until dismissed) |
 | `SHOP`                 | `buy card\|pack …` · `reroll` · `sell …` · `next_round`                                                                 |
 | `SMODS_BOOSTER_OPENED` | `pack IDX [hand indices…]` while **`choices remaining: N` > 0**; targets = **`hand:` `[N]`**, not ranks                 |
-| `GAME_OVER`            | `menu` then `start`                                                                                                     |
+| `GAME_OVER`            | `menu` then `start DECK STAKE SEED` (seed shown in summary restart hint)                                              |
 
 **Pitfalls (top hits)** — extras in [§4 Pitfalls](#4-pitfalls):
 
@@ -166,7 +166,7 @@ JSON `actions[]` entries include `example` payloads — see [tools/play/README.m
 .\tools\play\bot.ps1 cash_out
 .\tools\play\bot.ps1 buy card 0
 .\tools\play\bot.ps1 next_round
-# ... until GAME_OVER → menu → start
+# ... until GAME_OVER → menu → start DECK STAKE SEED
 ```
 
 Each action prints the new summary + `actions:` — you rarely need a separate `glance` between actions.
@@ -182,7 +182,7 @@ Extra items not repeated in Quick start:
 - **Joker/consumable slots full** → `sell` first; shop rows may show `[slots full]`.
 - **`skip` only on Small/Big** — collects tag; pack tags should show `pack` actions after skip. Charm skip with no pack after mod update → restart game (stale Lua).
 - **`reroll_boss`:** Boss `BLIND_SELECT` only; $10; Director's Cut (once/ante) or Retcon; `money - bankrupt_at >= 10`. Unrelated to shop `reroll`.
-- **`won` on `GAME_OVER`** means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual outcome.
+- **`won` on `GAME_OVER`** means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual outcome. Summary shows **`→ menu  then  start DECK STAKE SEED`** with the ended run's seed for replay.
 - **Connection blip** during transitions → retry `glance` once.
 - **Errors:** `BAD_REQUEST` (bad params), `INVALID_STATE` (wrong state), `NOT_ALLOWED` (game rules), `INTERNAL_ERROR` (Lua crash). Read `error.message`.
 
