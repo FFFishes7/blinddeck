@@ -7,7 +7,7 @@ Command-line helpers on top of the BlindDeck JSON-RPC API.
 - **Compact commands** (default) — positional args (`glance`, `play 0 1 2 3 4`, `select`). No JSON quoting.
 - **JSON commands** — `state`, `exec`, `query … --json`, `know … --json` for structured output and scripting.
 
-See [PLAY.md](../../PLAY.md#three-ways-to-read-state) for when to use compact summaries, detail queries, full JSON state, and knowledge lookups.
+See [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for the play loop and [PLAY.md §1](../../PLAY.md#1-reading-state) for when to use compact summaries, queries, `know`, and JSON.
 
 ## Workflow
 
@@ -15,7 +15,7 @@ See [PLAY.md](../../PLAY.md#three-ways-to-read-state) for when to use compact su
 2. **Launch:** `.\tools\play\serve.ps1` — starts Balatro with the mod and the API on port 12346.
 3. **Play:** in another terminal, use `.\tools\play\bot.ps1 ...`.
 
-See the root [README](../../README.md#quick-start-windows) and [`PLAY.md`](../../PLAY.md) for the full play guide.
+See the root [README](../../README.md#quick-start-windows) and [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for the play guide.
 
 ## Commands
 
@@ -50,8 +50,8 @@ See the root [README](../../README.md#quick-start-windows) and [`PLAY.md`](../..
     **`need=N`** when below the blind target or **`beaten`** when at/above it; the
     current blind (boss `effect=` only — no skip-reward tag while playing), jokers
     and consumables with slot count `jokers (N/5)`, the hand (with modifier tags —
-    see below), an `economy:` line when interest / Delayed Gratification /
-    **rental** pending, and the `actions:` line.
+    see below), an `economy:` line (**SELECTING_HAND only** — simplified interest /
+    Delayed Gratification / rental hint, not full cashout) and the `actions:` line.
 
 - **SHOP:** each shop row shows price plus **`[ok]`**, **`[need $N]`**, or
     **`[slots full]`** (joker/consumable slots full — same check as `buy.lua`).
@@ -77,18 +77,19 @@ See the root [README](../../README.md#quick-start-windows) and [`PLAY.md`](../..
 - **GAME_OVER:** restart hint uses the ended run's deck/stake, e.g.
     **`→ menu  then  start RED WHITE [SEED]`**.
 
-- **ROUND_EVAL:** `round won, score=…` plus a **`pending:`** line (hands-left $,
-    interest, Delayed Gratification). When **`victory_overlay`** is set after
-    winning the run, **`→ endless`** then **`→ cash_out`**; otherwise **`→ cash_out`** only.
+- **ROUND_EVAL:** `round won, score=…` plus **`pending:`** (income rows + **`total +$N`**).
+    If **`victory_overlay`**, **`→ endless`** then **`→ cash_out`**. Example:
+
+    ```text
+    round won, score=500
+      pending: +$3 blind · +$3 hands · +$4 Golden Joker · +$2 interest · total +$12
+    → cash_out
+    ```
 
 - **Transient states** (`HAND_PLAYED`, `DRAW_TO_HAND`, `NEW_ROUND`, `PLAY_TAROT`):
     **`→ transient: wait for stable state, then glance again`** and `actions: (none)`.
 
-- **Card modifier tags** (so buffs are visible without a separate query):
-    `e:Mult`, `e:Bonus`, `e:Glass`, `e:Stone`, `e:Wild`, `e:Lucky`, `e:Gold`,
-    `e:Steel` (enhancement); `d:Foil`, `d:Holo`, `d:Poly`, `d:Neg` (edition);
-    `s:Red`, `s:Blue`, `s:Gold`, `s:Purple` (seal). Example: `4♦[e:Mult,s:Red]`.
-    Debuffed cards are wrapped in parentheses: `(7♣)`.
+- **Card modifier tags** on hand cards and pack rows — abbreviations in [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) (`e:`/`d:`/`s:`). Example: `4♦[e:Mult,s:Red]`. Debuffed cards: `(7♣)`.
 
 - **Joker / consumable stickers** inline: `[0] (perishable 3r) (rental -$1/round)   (+10 mult) Holographic Jolly Joker — ...`. Shop rows use the same sticker
     prefix when a card has edition/perishable/rental.
@@ -198,7 +199,7 @@ Anything else → `unmodeled` (treat score as lower bound only).
 *(Optional, not recommended: `estimate` — partial score model for dev/regression only.)*
 
 Every `glance` / action output ends with an `actions:` line listing **command
-names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or [PLAY.md](../../PLAY.md) for argument syntax.
+names** valid in the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`). Use `bot.ps1 help` or [PLAY.md Quick start](../../PLAY.md#quick-start-play-sheet) for argument syntax.
 
 For full JSON state (`state`, `exec`, or `<action> --json`), the same commands appear in an `actions[]` array with `example` payloads for each.
 

@@ -275,35 +275,24 @@ INTEREST_CAP_DEFAULT = 5
 INTEREST_PER = 5  # $1 per $5 held, capped
 
 
-def _economy_parts(state: dict[str, Any], *, include_hands: bool = False) -> list[str]:
-    """Pending round-end economy fragments (interest, DG, rental, unused hands)."""
+def _format_cashout_dollars(dollars: int) -> str:
+    if dollars >= 0:
+        return f"+${dollars}"
+    return f"-${-dollars}"
+
+
+def _cashout_pending_parts(preview: dict[str, Any]) -> list[str]:
+    """Format round.cashout_preview lines for glance pending block."""
     parts: list[str] = []
-    money = state.get("money", 0)
-    if money > 0:
-        interest = min(money // INTEREST_PER, INTEREST_CAP_DEFAULT)
-        if interest > 0:
-            parts.append(f"+${interest} interest (cap ${INTEREST_CAP_DEFAULT})")
-    jokers = (state.get("jokers") or {}).get("cards") or []
-    has_dg = any((j.get("key") or "") == "j_delayed_grat" for j in jokers)
-    if has_dg:
-        r = state.get("round") or {}
-        discards_left = r.get("discards_left", 0)
-        discards_used_total = r.get("discards_used", 0)
-        if discards_used_total == 0 and discards_left > 0:
-            parts.append(f"+${2 * discards_left} delayed_grat if 0 discards used")
-    if include_hands:
-        r = state.get("round") or {}
-        hands_left = r.get("hands_left", 0)
-        if hands_left > 0:
-            parts.append(f"+${hands_left} unused hands")
-    rental_count = sum(
-        1
-        for j in jokers
-        if isinstance((j.get("modifier") or {}), dict)
-        and (j.get("modifier") or {}).get("rental")
-    )
-    if rental_count > 0:
-        parts.append(f"-${rental_count}/round rental")
+    for line in preview.get("lines") or []:
+        if not isinstance(line, dict):
+            continue
+        dollars = line.get("dollars", 0)
+        label = line.get("label") or line.get("kind") or "bonus"
+        parts.append(f"{_format_cashout_dollars(int(dollars))} {label}")
+    total = preview.get("total")
+    if isinstance(total, int):
+        parts.append(f"total {_format_cashout_dollars(total)}")
     return parts
 
 
@@ -338,9 +327,11 @@ def _round_eval_block(state: dict[str, Any]) -> list[str]:
     r = state.get("round") or {}
     chips = r.get("chips", 0)
     lines = [f"round won, score={chips}"]
-    pending = _economy_parts(state, include_hands=True)
-    if pending:
-        lines.append("  pending: " + " · ".join(pending))
+    preview = r.get("cashout_preview")
+    if isinstance(preview, dict):
+        pending = _cashout_pending_parts(preview)
+        if pending:
+            lines.append("  pending: " + " · ".join(pending))
     if state.get("won") and state.get("victory_overlay"):
         lines.append("→ endless")
     lines.append("→ cash_out")

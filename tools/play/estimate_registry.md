@@ -219,7 +219,10 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 
 ## Verified no-op (economy / utility)
 
-Modeled as zero score impact so they do **not** appear in `unmodeled_jokers`:
+Modeled as zero **score** impact so they do **not** appear in `unmodeled_jokers`.
+Round-end **dollar** jokers (Golden, Rocket, Cloud 9, Satellite, Delayed Gratification)
+are **not** in `estimate` — see **`round.cashout_preview`** / `glance` **`pending:`**
+at **`ROUND_EVAL`** instead.
 
 `j_midas_mask`, `j_delayed_grat`, `j_egg`, `j_gift`, `j_golden`, `j_faceless`,
 `j_cartomancer`, `j_certificate`, `j_mail`,

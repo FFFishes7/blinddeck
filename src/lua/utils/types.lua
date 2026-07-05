@@ -73,6 +73,17 @@
 ---@field idol_rank Card.Value.Rank? Rank scored by The Idol this round
 ---@field idol_suit Card.Value.Suit? Suit scored by The Idol this round
 ---@field castle_suit Card.Value.Suit? Suit that Castle gains chips from when discarded
+---@field cashout_preview CashoutPreview? Round-end income preview (ROUND_EVAL, round won)
+
+---@class CashoutLine
+---@field kind string blind|hands|discards|joker|tag|interest|rental
+---@field label string
+---@field dollars integer signed (+ income, - cost)
+---@field key string? joker/tag key when relevant
+
+---@class CashoutPreview
+---@field lines CashoutLine[]
+---@field total integer
 
 ---@class Blind
 ---@field type Blind.Type Type of the blind
@@ -126,6 +137,8 @@
 ---@field obelisk_step number? Obelisk increment per non-dominant hand
 ---@field ride_the_bus_step integer? Ride the Bus increment per no-face hand
 ---@field green_hand_add integer? Green Joker +Mult per hand played
+---@field nine_tally integer? Nines in deck (Cloud 9 round-end payout)
+---@field rocket_dollars integer? Rocket current round-end payout
 
 ---@class RunCounters
 ---@field skips integer Blinds skipped this run

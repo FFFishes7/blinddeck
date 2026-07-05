@@ -17,12 +17,14 @@
 ---@field skip_settled fun(blind_key: string, opts?: { expect_pack?: boolean }): boolean
 ---@field tags_stack_stable fun(): boolean
 ---@field extract_held_tags fun(): table[]
+---@field extract_cashout_preview fun(): CashoutPreview|nil
 ---@field get_reported_state_name fun(): string
 local gamestate = {}
 
 gamestate.BOSS_REROLL_COST = 10
 
 local consumable = assert(SMODS.load_file("src/lua/utils/consumable.lua"))()
+local cashout_preview = assert(SMODS.load_file("src/lua/utils/cashout_preview.lua"))()
 
 ---@type fun(string, table|nil): { name: string, effect: string }
 local get_tag_info
@@ -617,6 +619,10 @@ local function extract_joker_stats(card)
     end
   elseif name == "Ice Cream" and type(a.extra) == "table" and type(a.extra.chips) == "number" then
     stats.chips = a.extra.chips
+  elseif name == "Cloud 9" and type(a.nine_tally) == "number" and a.nine_tally > 0 then
+    stats.nine_tally = a.nine_tally
+  elseif name == "Rocket" and type(a.extra) == "table" and type(a.extra.dollars) == "number" then
+    stats.rocket_dollars = a.extra.dollars
   elseif name == "Castle" and type(a.extra) == "table" and type(a.extra.chips) == "number" and a.extra.chips > 0 then
     stats.chips = a.extra.chips
   elseif name == "Popcorn" and type(a.mult) == "number" then
@@ -1105,7 +1111,21 @@ local function extract_round_info()
     end
   end
 
+  if G.STATE == G.STATES.ROUND_EVAL and G.GAME.blind then
+    local chips = G.GAME.chips or 0
+    local blind_chips = G.GAME.blind.chips or 0
+    if chips >= blind_chips then
+      round.cashout_preview = cashout_preview.extract()
+    end
+  end
+
   return round
+end
+
+---Round-end cashout preview (ROUND_EVAL, round won only).
+---@return CashoutPreview|nil
+function gamestate.extract_cashout_preview()
+  return cashout_preview.extract()
 end
 
 -- ==========================================================================

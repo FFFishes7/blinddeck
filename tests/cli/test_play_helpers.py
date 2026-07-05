@@ -982,7 +982,26 @@ def test_print_summary_round_eval(capsys: pytest.CaptureFixture[str]) -> None:
         "ante_num": 1,
         "deck": "RED",
         "stake": "WHITE",
-        "round": {"hands_left": 2, "discards_left": 3, "chips": 500, "reroll_cost": 5},
+        "round": {
+            "hands_left": 2,
+            "discards_left": 3,
+            "chips": 500,
+            "reroll_cost": 5,
+            "cashout_preview": {
+                "lines": [
+                    {"kind": "blind", "label": "blind", "dollars": 3},
+                    {"kind": "hands", "label": "hands", "dollars": 2},
+                    {
+                        "kind": "joker",
+                        "label": "Golden Joker",
+                        "dollars": 4,
+                        "key": "j_golden",
+                    },
+                    {"kind": "interest", "label": "interest", "dollars": 2},
+                ],
+                "total": 11,
+            },
+        },
         "blinds": {
             "big": {
                 "status": "DEFEATED",
@@ -1000,6 +1019,8 @@ def test_print_summary_round_eval(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert "state=ROUND_EVAL" in out
     assert "pending:" in out
+    assert "Golden Joker" in out
+    assert "total +$11" in out
     assert "→ cash_out" in out
     assert "cash_out" in out
 

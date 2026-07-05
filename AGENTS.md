@@ -5,11 +5,9 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 **Project**: **BlindDeck** — Balatro play desk (mod + API + play helpers).\
 **GitHub Repository**: [`FFFishes7/blinddeck`](https://github.com/FFFishes7/blinddeck)
 
-**Play Balatro with your agent — glance, then act.** If the user asks you to **play** (not develop), read [`PLAY.md`](./PLAY.md) first.
+**Play Balatro with your agent — glance, then act.** If the user asks you to **play** (not develop), read [`PLAY.md` Quick start](./PLAY.md#quick-start-play-sheet) first; open Reference only when needed.
 
 ## Playing Balatro (read this first if asked to play)
-
-If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md`](./PLAY.md) for the full guide. The essentials:
 
 - The game serves JSON-RPC 2.0 on `http://127.0.0.1:12346`. Health-check first.
 - **Loop:** `bot.ps1 glance` → (`bot.ps1 know preflight`) → one friendly action → read printed summary. Repeat until `GAME_OVER`, then `bot.ps1 menu` + `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`). **`estimate` is optional / not recommended** — see `PLAY.md`.
@@ -27,7 +25,7 @@ If the user asks you to **play** Balatro (not develop this repo), read [`PLAY.md
 | `SMODS_BOOSTER_OPENED` | `bot.ps1 pack 0 [1 2]` while glance shows **`choices remaining: N`** · `pack skip` only to forfeit picks · `rearrange jokers …` when 2+ jokers |
 | `GAME_OVER`            | `bot.ps1 menu` then `start`                                                                                                                    |
 
-Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). Common pitfalls (full list in `PLAY.md`): boss blinds hide card faces (`??`), open packs show **`choices remaining: N`** — pick with `pack IDX` while N > 0 (`pack skip` forfeits picks, not “next blind”), `pack` targets are hand cards only (Ankh/Hex/Ectoplasm are random joker — not targetable), `buy` checks `dollars - bankrupt_at`, tags are skip rewards not defeat rewards, zombie `balatrobot serve` processes need `Stop-Process` before restarting `serve.ps1`.
+Each `glance`/action output ends with an `actions:` line listing valid next commands. For scoring, use `query hands` + `know check rule scoring_formula`; `bot.ps1 estimate` is an incomplete optional helper (not recommended for normal play). **Pitfalls and API gotchas:** see [PLAY.md Quick start](./PLAY.md#quick-start-play-sheet) and [§4 Pitfalls](./PLAY.md#4-pitfalls).
 
 ## Overview
 

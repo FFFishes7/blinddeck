@@ -12,13 +12,13 @@ BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (gam
 
 ## Documentation
 
-| Document                                         | Audience              | Contents                                    |
-| ------------------------------------------------ | --------------------- | ------------------------------------------- |
-| [**PLAY.md**](PLAY.md)                           | Players and AI agents | Core loop, commands, pitfalls, strategy     |
-| [**tools/play/README.md**](tools/play/README.md) | Play-helper users     | `bot.ps1` commands, glance output, `--json` |
-| [**docs/api.md**](docs/api.md)                   | Integrators           | JSON-RPC methods, schemas, errors           |
-| [**docs/OVERVIEW.md**](docs/OVERVIEW.md)         | Developers            | Architecture map and doc index              |
-| [**docs/cli.md**](docs/cli.md)                   | Operators             | `balatrobot serve` / `api`, env vars, paths |
+| Document                                         | Audience              | Contents                                        |
+| ------------------------------------------------ | --------------------- | ----------------------------------------------- |
+| [**PLAY.md**](PLAY.md)                           | Players and AI agents | Quick start loop, pitfalls, Reference on demand |
+| [**tools/play/README.md**](tools/play/README.md) | Play-helper users     | `bot.ps1` commands, glance output, `--json`     |
+| [**docs/api.md**](docs/api.md)                   | Integrators           | JSON-RPC methods, schemas, errors               |
+| [**docs/OVERVIEW.md**](docs/OVERVIEW.md)         | Developers            | Architecture map and doc index                  |
+| [**docs/cli.md**](docs/cli.md)                   | Operators             | `balatrobot serve` / `api`, env vars, paths     |
 
 ## Features
 
@@ -99,7 +99,7 @@ In a **second terminal**, with the game running:
 
 `bot.ps1` calls the API via `.venv\Scripts\python.exe`. Prefer **friendly subcommands** (`glance`, `play`, `select`, `buy`, …). `estimate` is optional and not recommended for normal play — see [PLAY.md](PLAY.md). Use `state` / `exec` for scripting.
 
-**AI agents:** follow [PLAY.md](PLAY.md) for the full loop, command table, and pitfalls.
+**AI agents:** follow [PLAY.md Quick start](PLAY.md#quick-start-play-sheet) for the loop and pitfalls; [tools/play/README.md](tools/play/README.md) for glance field details.
 
 If connection fails, confirm `serve.ps1` is still running and the game finished loading.
 

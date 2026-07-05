@@ -220,6 +220,18 @@ class TestGamestateRound:
         assert response["result"]["round"]["reroll_cost"] == 6
 
 
+class TestCashoutPreview:
+    """Test round.cashout_preview on ROUND_EVAL."""
+
+    def test_cashout_preview_on_round_eval(self, client: httpx.Client) -> None:
+        gamestate = load_fixture(client, "cash_out", "state-ROUND_EVAL")
+        assert gamestate["state"] == "ROUND_EVAL"
+        preview = gamestate["round"].get("cashout_preview")
+        assert isinstance(preview, dict)
+        assert preview["total"] > 0
+        assert any(line["kind"] == "hands" for line in preview["lines"])
+
+
 class TestGamestateBlinds:
     """Test gamestate blind extraction."""
 

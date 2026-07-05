@@ -1011,13 +1011,35 @@ Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.targ
   "ancient_suit": "S",
   "idol_rank": "7",
   "idol_suit": "D",
-  "castle_suit": "H"
+  "castle_suit": "H",
+  "cashout_preview": {
+    "lines": [
+      { "kind": "blind", "label": "blind", "dollars": 3 },
+      { "kind": "hands", "label": "hands", "dollars": 3 },
+      { "kind": "joker", "label": "Golden Joker", "dollars": 4, "key": "j_golden" },
+      { "kind": "interest", "label": "interest", "dollars": 1 }
+    ],
+    "total": 11
+  }
 }
 ```
 
 Scoring-target fields (`ancient_suit`, `idol_rank`, `idol_suit`, `castle_suit`) appear when the corresponding joker is owned. Suit values: `H`, `D`, `C`, `S`. Rank values: `A`, `2`–`10`, `J`, `Q`, `K`.
 
+`cashout_preview` appears on **`ROUND_EVAL`** when the round was won. Lines mirror Balatro's `evaluate_round` cashout (blind → hands → discards → joker `calculate_dollar_bonus` → tag eval → interest). **`total`** matches `cash_out` (uses `G.GAME.current_round.dollars` when set). Tag eval includes **Investment Tag** on Boss defeat. Not included: mid-round economy jokers, Egg/Gift sell-value bumps, rental, or RNG.
+
 Boss reroll fields (`boss_reroll_cost`, `boss_reroll_available`, `boss_rerolled`) appear in `BLIND_SELECT`. `boss_reroll_available` is true when the Boss blind is on deck, you own Director's Cut (unused this ante) or Retcon, and `money - bankrupt_at >= 10`.
+
+### CashoutPreview
+
+Round-end income preview (`round.cashout_preview` on won `ROUND_EVAL`):
+
+| Field   | Type            | Description                                                           |
+| ------- | --------------- | --------------------------------------------------------------------- |
+| `lines` | `CashoutLine[]` | Income rows in cashout order                                          |
+| `total` | integer         | Dollars applied on `cash_out` (pre-`modify_final_cashout` SMODS hook) |
+
+**CashoutLine:** `kind` (`blind` | `hands` | `discards` | `joker` | `tag` | `interest` | `rental`), `label`, signed `dollars`, optional `key` (joker/tag id).
 
 ### RunCounters
 

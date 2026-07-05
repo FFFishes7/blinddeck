@@ -1371,6 +1371,63 @@
           "played_this_round"
         ]
       },
+      "CashoutLine": {
+        "type": "object",
+        "description": "One income row in round-end cashout preview",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "blind",
+              "hands",
+              "discards",
+              "joker",
+              "tag",
+              "interest",
+              "rental"
+            ],
+            "description": "Source category"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display label (joker/tag name or category)"
+          },
+          "dollars": {
+            "type": "integer",
+            "description": "Signed dollar amount (+ income, - cost)"
+          },
+          "key": {
+            "type": "string",
+            "description": "Joker or tag key when relevant"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "dollars"
+        ]
+      },
+      "CashoutPreview": {
+        "type": "object",
+        "description": "Read-only preview of ROUND_EVAL cashout (round won only)",
+        "properties": {
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CashoutLine"
+            },
+            "description": "Income rows in cashout order"
+          },
+          "total": {
+            "type": "integer",
+            "description": "Dollars applied on cash_out (pre-modifier; uses G.GAME.current_round.dollars when set)"
+          }
+        },
+        "required": [
+          "lines",
+          "total"
+        ]
+      },
       "Round": {
         "type": "object",
         "description": "Current round state",
@@ -1426,6 +1483,10 @@
           "castle_suit": {
             "$ref": "#/components/schemas/CardSuit",
             "description": "Suit that Castle Joker gains chips from when discarded"
+          },
+          "cashout_preview": {
+            "$ref": "#/components/schemas/CashoutPreview",
+            "description": "Round-end income preview when state is ROUND_EVAL and the round was won"
           }
         }
       },
@@ -1658,6 +1719,14 @@
           "green_hand_add": {
             "type": "integer",
             "description": "Green Joker +Mult increment per hand played"
+          },
+          "nine_tally": {
+            "type": "integer",
+            "description": "Nines in full deck (Cloud 9 round-end payout multiplier)"
+          },
+          "rocket_dollars": {
+            "type": "integer",
+            "description": "Rocket current round-end dollar payout"
           },
           "caino_xmult": {
             "type": "number",

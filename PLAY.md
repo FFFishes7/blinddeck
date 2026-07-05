@@ -1,14 +1,90 @@
 # Playing Balatro with BlindDeck — Quick Guide for AI Agents
 
-You are the player. **Play Balatro with your human:** read state, reason each turn, and act through the API — one command at a time. The game runs on `127.0.0.1:12346` and exposes a JSON-RPC 2.0 API. You call endpoints; the game responds with the new state. This file tells you everything you need to run a full game without reading any source.
+You are the player. **Play Balatro with your human:** read state, reason each turn, and act through the API — one command at a time. The game runs on `127.0.0.1:12346` (JSON-RPC 2.0).
 
-**Read this if…**
+**North star:** PLAY.md is the **operation contract** — loop, `glance`, pitfalls. Balatro facts: **live summary + `know` / `query`**.
 
-- **Playing a run** (human or agent) — follow the core loop and [Command reference](#6-command-reference) below.
-- **Writing a script** against the API — use `bot.ps1 state` or `--json`; see [docs/api.md](docs/api.md).
-- **Changing the mod or helpers** — see [AGENTS.md](AGENTS.md) and [docs/OVERVIEW.md](docs/OVERVIEW.md).
+**Each session:** read **[Quick start](#quick-start-play-sheet)** below, then **`glance` → one action → read summary**. Everything after [Reference (on demand)](#reference-on-demand) is for troubleshooting and edge cases — **do not read it before your first move**.
 
-For installation and launch, see [README.md](README.md). Command details: [tools/play/README.md](tools/play/README.md).
+| If you are…           | Start here                                                   |
+| --------------------- | ------------------------------------------------------------ |
+| **Playing a run**     | [Quick start](#quick-start-play-sheet)                       |
+| **Scripting the API** | [docs/api.md](docs/api.md), `bot.ps1 state --json`           |
+| **Changing the mod**  | [AGENTS.md](AGENTS.md), [docs/OVERVIEW.md](docs/OVERVIEW.md) |
+
+Install / launch: [README.md](README.md). **Glance field details:** [tools/play/README.md](tools/play/README.md#what-glance-shows).
+
+---
+
+## Quick start (play sheet)
+
+**Loop** — one request at a time; indices **0-based**; never `bot.ps1 exec '{"…"}'` (PowerShell strips quotes — use friendly subcommands).
+
+```
+repeat:
+  bot.ps1 glance              → read summary + actions:
+  (optional) know preflight   → boss / unfamiliar joker / skip tag
+  bot.ps1 <one action>        → read new summary (includes next actions:)
+until GAME_OVER → menu → start DECK STAKE
+```
+
+**`estimate` is optional and not recommended** for normal play.
+
+| State                  | Command                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| `MENU`                 | `start DECK STAKE [SEED]`                                                                 |
+| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)                                 |
+| `SELECTING_HAND`       | `play …` · `discard …` · `use …` · `sort rank` — repeat until **`beaten`**, then `glance` |
+| `ROUND_EVAL`           | read **`pending:` `total +$N`**, then `cash_out` (if `victory_overlay`: `endless` first)  |
+| `SHOP`                 | `buy card\|pack …` · `reroll` · `sell …` · `next_round`                                   |
+| `SMODS_BOOSTER_OPENED` | `pack IDX` while **`choices remaining: N` > 0**; `pack skip` = forfeit picks              |
+| `GAME_OVER`            | `menu` then `start`                                                                       |
+
+**Pitfalls (top hits)** — extras in [§4 Pitfalls](#4-pitfalls):
+
+- Read **`actions:`** when unsure what to do next.
+- Boss hides card faces (`??`). **`buy` / shop** use `money - bankrupt_at` (`[ok]` / `[need $N]` on rows).
+- **`pack skip`** is not “next blind”; **`pack` targets** are hand cards only (Ankh/Hex/Ectoplasm = random joker).
+- **Tags on blinds** = skip rewards only (not defeat rewards). **`held tags (pending):`** = already earned, not yet triggered.
+- **`ROUND_EVAL`:** use **`pending:` `total +$N`** before `cash_out`.
+- Transient states (`HAND_PLAYED`, …): **`glance`** again until stable.
+
+**Card modifiers in `glance`** — `hand:` lists **`[N] rank+suit[tags]`**; **`[N]`** is the 0-based index for `play`, `discard`, `use`, and pack targets (e.g. `[0] 4♦[e:Mult,s:Red]`):
+
+| Prefix | Meaning                                                                    |
+| ------ | -------------------------------------------------------------------------- |
+| `e:`   | Enhancement — `Mult` `Bonus` `Glass` `Stone` `Wild` `Lucky` `Gold` `Steel` |
+| `d:`   | Edition — `Foil` `Holo` `Poly` `Neg`                                       |
+| `s:`   | Seal — `Red` `Blue` `Gold` `Purple`                                        |
+
+`e:Wild` = all **suits**, rank unchanged (not all ranks). Debuffed cards: `(7♣)`. Joker stickers `(rental …)` / `(perishable …)` are on joker lines, not hand cards. Enhancement **scoring** → `know check rule enhancement_scoring`.
+
+**When to use `know` / `query`:**
+
+- **Score a hand:** `query hands` + `know check rule scoring_formula` (kickers, wild, editions → `know list rule`).
+- **Boss blind:** `know preflight` or `know check boss "Name"` before `select`.
+- **Unfamiliar joker in shop or hand:** `know check joker "Name"`.
+- **Skip / held tag:** read `tag_effect` on the blind or `know check tag "Name"`.
+- **Scripting / machine-readable state:** `state --json` or `query … --json` — see [tools/play/README.md](tools/play/README.md).
+
+**When to open Reference:** connection errors → [§0](#0-prerequisites); summary line unclear → [tools/play/README.md](tools/play/README.md#what-glance-shows); Double Tag + pack skip → [Tag edge cases](#tag-edge-cases); command args → [§2](#2-command-cheatsheet).
+
+---
+
+## Reference (on demand)
+
+Sections below are **reference only** — open the one you need; do not read end-to-end each turn.
+
+| Section                                        | Open when…                                         |
+| ---------------------------------------------- | -------------------------------------------------- |
+| [§0 Prerequisites](#0-prerequisites)           | Health check fails, port/zombie serve              |
+| [§1 Reading state](#1-reading-state)           | `query` / `know` / `--json` modes                  |
+| [§2 Command cheatsheet](#2-command-cheatsheet) | Arg syntax, sort modes, debug cheats               |
+| [Tag edge cases](#tag-edge-cases)              | Double Tag + consecutive packs, held vs blind tags |
+| [§3 Trace](#3-minimal-trace)                   | Example command sequence, `exec` quoting           |
+| [§4 Pitfalls](#4-pitfalls)                     | Errors, GAME_OVER `won`, `reroll_boss` detail      |
+| [§5 Decision assist](#5-decision-assist)       | Scoring, jokers, tags → `know`                     |
+| [§6 Further commands](#6-further-commands)     | Full `query` / `know` / `state` table              |
 
 ---
 
@@ -48,246 +124,77 @@ For installation and launch, see [README.md](README.md). Command details: [tools
 
 Do not try to "fix" the running game state — only restart the server process.
 
-## 1. The Core Loop
+## 1. Reading state
 
-```
-repeat:
-  1. bot.ps1 glance                    ← compact state summary (state, blinds, hand, jokers, actions)
-  2. (optional, not recommended) bot.ps1 estimate  ← score helper; incomplete joker model — prefer reasoning + query hands
-  3. (optional) bot.ps1 know preflight ← verify joker/boss/tag effects before deciding
-  4. bot.ps1 <action> [args]           ← see [State → command table](#2-state--friendly-command-table)
-  5. read the printed compact summary  ← the action prints the new state automatically
-until state == GAME_OVER
-```
+| Kind                | Commands                                                                         | When                        |
+| ------------------- | -------------------------------------------------------------------------------- | --------------------------- |
+| **Compact summary** | `glance`, any action (default)                                                   | Every turn                  |
+| **Detail queries**  | `query hands`, `query deck`, `query blinds`, `query used_vouchers`, `query seed` | Scoring, deck, blind detail |
+| **Knowledge**       | `know preflight`, `know check …`                                                 | Boss, jokers, tags, rules   |
+| **Full JSON**       | `state`, any action with `--json`                                                | Scripting                   |
 
-After `GAME_OVER`: `bot.ps1 menu`, then `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`).
+Every summary ends with **`actions:`** — valid command names for the current state. Per-state line meanings (BLIND_SELECT, SHOP, pack, ROUND_EVAL, …): **[tools/play/README.md § What glance shows](tools/play/README.md#what-glance-shows)**. Modifier abbreviations: [Quick start](#quick-start-play-sheet).
 
-### Three ways to read state
+JSON `actions[]` entries include `example` payloads — see [tools/play/README.md](tools/play/README.md).
 
-| Kind                  | Commands                                                                         | Output                                           | When to use                                             |
-| --------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ | ------------------------------------------------------- |
-| **Compact summary**   | `glance`, any action (default)                                                   | Multi-line text + `actions:`                     | Every turn — default                                    |
-| **Detail queries**    | `query hands`, `query deck`, `query blinds`, `query used_vouchers`, `query seed` | Table (default) or JSON (`--json`)               | Scoring math, deck tracking, extra blind/voucher detail |
-| **Full state (JSON)** | `state`, any action with `--json`                                                | JSON: `gamestate`, `actions`, optional `queries` | Scripting / structured parsing                          |
-| **Knowledge lookups** | `know preflight`, `know check …`                                                 | Verified joker/boss/tag/rule tables              | Before non-trivial decisions                            |
+## 2. Command cheatsheet
 
-**Rule of thumb:** `glance` first; use `query hands` for score math; use `state --json` only when you need machine-readable structure.
-
-### The `actions:` line is your navigation
-
-Every `glance` and action output ends with an `actions:` line listing valid
-command names for the current state (deduplicated, e.g. `actions: play discard sort buy reroll next_round`).
-
-For full JSON state (`bot.ps1 state`, `bot.ps1 exec ...`, or any action with `--json`), the same commands appear in an `actions[]` array; each entry includes a ready-to-use `example` payload with concrete indices when applicable.
-
-When you don't know what to do, read `actions:`.
-
-### What `glance` shows you (so you rarely need `state`)
-
-- **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
-    effect, and skip-reward tag; the selectable blind is marked `(current, select)`.
-    When the tag stack is stable, **`held tags (pending): …`** lists tags already
-    earned from earlier skips (oldest → newest) — not skip rewards on upcoming
-    blinds. See [Tag semantics](#tag-semantics-skip-rewards). Defeated blinds omit
-    skip-reward text. When Boss is on deck and you own Director's Cut or Retcon, a
-    **`reroll_boss=$10 [ok]`** / **`[need $N]`** / **`[used this ante]`** line
-    appears; `actions:` may include `reroll_boss`.
-- **SELECTING_HAND:** `score=X/target` includes **`need=N`** until you beat the
-    blind, then **`beaten`**. Skip-reward tags are not repeated on the current blind
-    line (you already chose to play).
-- **SHOP:** prices show **`[ok]`**, **`[need $N]`**, or **`[slots full]`**; header
-    adds **`buy_power=`** when Credit Card raises `bankrupt_at`. With 2+ jokers or
-    consumables, `actions:` includes **`rearrange`**.
-- **Pack open:** first line under `pack:` is **`choices remaining: N`** — picks still required from this booster. **Charm Tag** skip opens **Mega Arcana** (**2**, then **1** after first pick); shop normal packs are usually **1**. While N > 0, use **`pack IDX`**; avoid **`pack skip`** unless you want nothing. Tarot/Spectral hand-target cards show **`(needs 1-2 targets)`**.
-    Ankh / Hex / Ectoplasm show **`(random joker — pack targets ignored)`** plus a
-    **`note:`** that pack targets are hand-only.
-- **GAME_OVER:** **`→ menu  then  start RED WHITE [SEED]`** uses the run's deck/stake.
-- **ROUND_EVAL:** pending round-end money (hands left, interest, Delayed
-    Gratification) before **`→ cash_out`**. After beating Ante 8 Boss, if
-    **`victory_overlay`** is set, **`→ endless`** appears first — dismiss the
-    win screen, then **`cash_out`** → shop → **`next_round`** for Ante 9+.
-- **Transient states** (`HAND_PLAYED`, etc.): wait and **`glance`** again — no
-    actions until stable.
-- **Hand cards and eligible pack candidates carry modifier tags:** `4♦[e:Mult,s:Red]` = Mult enhancement + Red
-    seal. Legend: enhancement `e:Mult/Bonus/Glass/Stone/Wild/Lucky/Gold/Steel`
-    (`e:Wild` = all suits, **rank unchanged** — `know check rule wild_card_enhancement`),
-    edition `d:Foil/Holo/Poly/Neg`, seal `s:Red/Blue/Gold/Purple`. Debuffed cards
-    are wrapped `(7♣)`. So you can see buffs without a separate query.
-- **Joker & consumable slots:** `jokers (5/5)` / `consumables (1/2)`.
-- **Economy:** an `economy:` line shows pending interest, Delayed Gratification
-    bonus, and rental joker upkeep (`rental_due=-$N/round`) when relevant.
-
-## 2. State → Friendly Command Table
-
-| State                  | What to do                                                      | Command                                                                                                                                         |
-| ---------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MENU`                 | Start a run                                                     | `bot.ps1 start DECK STAKE` (e.g. `start RED WHITE`; optional seed: `start DECK STAKE SEED`)                                                     |
-| `BLIND_SELECT`         | Play or skip the blind                                          | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                                |
-| `SELECTING_HAND`       | Play / discard / use / sort (estimate optional)                 | `bot.ps1 play 0 1 2 3 4` · `bot.ps1 discard 0 1` · `bot.ps1 use 0 [1 2]` · `bot.ps1 sort rank` · *(optional)* `bot.ps1 estimate`                |
-| `HAND_PLAYED`          | Transient — just poll                                           | `bot.ps1 glance`                                                                                                                                |
-| `ROUND_EVAL`           | Collect rewards                                                 | `bot.ps1 cash_out` · if `victory_overlay`: `bot.ps1 endless` first, then `cash_out`                                                             |
-| `SHOP`                 | Buy / reroll / sell / rearrange / leave                         | `bot.ps1 buy card 0` · `bot.ps1 buy pack 0` · `bot.ps1 reroll` · `bot.ps1 sell joker 0` · `bot.ps1 rearrange jokers 1 0` · `bot.ps1 next_round` |
-| `SMODS_BOOSTER_OPENED` | Pick from open pack (`glance` shows **`choices remaining: N`**) | `bot.ps1 pack 0` (or `pack 0 1 2` with targets) · only use `pack skip` to forfeit all picks                                                     |
-| `GAME_OVER`            | Run ended                                                       | `bot.ps1 menu` then `start`                                                                                                                     |
-
-Command arg cheatsheet:
-
-- `start DECK STAKE [SEED]` — `DECK` ∈ {RED, BLUE, YELLOW, GREEN, BLACK, MAGIC, NEBULA, GHOST, ABANDONED, CHECKERED, ZODIAC, PAINTED, ANAGLYPH, PLASMA, ERRATIC}; `STAKE` ∈ {WHITE, RED, GREEN, BLACK, BLUE, PURPLE, ORANGE, GOLD}.
+- `start DECK STAKE [SEED]` — deck/stake lists appear in `glance` at MENU.
 - `play` / `discard` — card indices, max 5 for `play`.
-- `buy card|voucher|pack IDX` — 0-based index into the shop / vouchers / packs area.
-- `pack IDX [TARGETS...]` — hand-card targets only (Tarot/Spectral with `target_min/max`). Not for Ankh/Hex/Ectoplasm (`random_joker_effect`). While **`choices remaining` > 0** in glance, pick with `pack 0` / `pack 1`. **`pack skip`** forfeits all remaining picks in the current pack (does not mean “go to next blind”).
-- `use CONSUMABLE [CARDS...]` — `CARDS` only for consumables that target hand cards.
-- `sort MODE` — `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`,`s`,`rd`...).
-- `sell joker|consumable IDX` · `rearrange hand|jokers|consumables FULL_ORDER` (e.g. `rearrange hand 2 0 1 3`).
+- `buy card|voucher|pack IDX` — 0-based shop index.
+- `pack IDX [TARGETS...]` — hand targets for Tarot/Spectral only; not Ankh/Hex/Ectoplasm.
+- `use CONSUMABLE [CARDS...]` — target hand cards when required.
+- `sort MODE` — `rank` / `rank-desc` / `suit` / … (aliases `r`, `s`, `rd`, …).
+- `sell joker|consumable IDX` · `rearrange hand|jokers|consumables ORDER`.
 
-Debug (estimate testing only — not for normal play; requires `$env:BALATROBOT_ALLOW_CHEATS=1`):
+**Debug (not for normal play;** `$env:BALATROBOT_ALLOW_CHEATS=1` **):** `add joker …` · `set hands|discards|chips …` · `debuff`. See [tools/play/README.md](tools/play/README.md#debug-add--set-estimate-testing-only).
 
-- `add joker j_dusk` · `add card D_4 enhancement=MULT seal=RED` · `add consumable c_fool`
-- `set hands 1 discards 0 chips 0` — friendly `set` only accepts `hands` / `discards` / `chips` (money/ante/voucher debug via raw `exec` or API `set`)
-- `debuff 0` · `debuff clear 0` — debuff or clear hand cards (`SELECTING_HAND` only)
-- Not listed in normal `actions:`; see `tools/play/README.md` for restrictions
+### Tag edge cases
 
-### Tag semantics (skip rewards)
+- **`blinds.{small,big}.tag_name`** = skip reward if you **`skip`** that blind (not if you defeat it). Boss has no tag.
+- **`held tags (pending):`** = already earned, not yet triggered. Upcoming skip rewards stay on the blind line.
+- **Pack on skip:** some tags open a booster immediately → `SMODS_BOOSTER_OPENED` and `actions: pack`. Tag details → `know check tag "…"`.
+- **Double Tag + pack tag:** can open **two packs back-to-back** — after each `pack`, read summary again; check **`choices remaining: N`**; see [tools/play/README.md](tools/play/README.md#what-glance-shows) pack example.
 
-`blinds.{small,big}.tag_name` / `tag_effect` are **skip rewards** — they only trigger
-if you `skip` that blind, not if you defeat it. The boss blind has no tag. Read
-`tag_effect` before deciding to skip (e.g. a Foil Tag gives a free foil joker next
-shop; an Investment Tag gives money per skip this round). `know preflight` also
-lists pending tags with verified effects.
-
-**Five tags open a booster immediately on skip** (Charm / Meteor / Ethereal /
-Standard / Buffoon — see `know check tag "Charm Tag"` and `opens_pack_on_skip` in
-the tag library). After skip, `glance` should show `SMODS_BOOSTER_OPENED` and
-`actions: pack …`. Most other tags (Foil, Economy, Boss, …) stay on
-`BLIND_SELECT`. Buffoon/Meteor/Ethereal/Standard only appear from ante 2+; Charm
-is the only pack tag on ante 1. Tags stack oldest-first — an older Charm Tag can
-still open a pack when you skip a later blind with a non-pack tag.
-
-**Held tags (pending stack):** After tag animations settle, `glance` / action
-summaries may show `held tags (pending): …` — tags you already earned by
-skipping earlier blinds but have **not triggered yet** (oldest → newest). This
-is a **stable snapshot** only: `glance` waits for `held_tags_ready` (like
-transition states). It does **not** predict Double Tag copies or shop trigger
-order. For skip rewards on blinds you have **not** skipped yet, use
-`blinds.{small,big}.tag_name` instead.
-
-**Consecutive tag packs:** Double Tag copies the next tag (e.g. Charm). Skipping
-with Charm while Double is pending opens **two Mega Arcana packs** back-to-back
-(each starts with **`choices remaining: 2`**). After each `pack` action, read the
-summary again; do not use `pack skip` between packs unless you intentionally want
-no cards.
-
-## 3. Minimal Full-Game Trace
+## 3. Minimal trace
 
 ```powershell
-.\tools\play\bot.ps1 glance              # see current state
-.\tools\play\bot.ps1 start RED WHITE     # example: start DECK STAKE (see glance for deck/stake list)
-.\tools\play\bot.ps1 select              # select current blind
-# optional: .\tools\play\bot.ps1 estimate   # score helper (incomplete; not recommended for normal play)
-.\tools\play\bot.ps1 sort rank           # sort hand for easier reading
-.\tools\play\bot.ps1 play 0 1 2 3 4      # play cards at hand indices 0-4
-.\tools\play\bot.ps1 discard 0 1         # or discard to draw replacements
-.\tools\play\bot.ps1 cash_out            # collect round rewards → shop
-.\tools\play\bot.ps1 buy card 0          # buy joker/consumable from shop
-.\tools\play\bot.ps1 buy pack 0          # buy a booster pack
-.\tools\play\bot.ps1 pack 0              # take card 0 from the open pack
-.\tools\play\bot.ps1 next_round          # leave shop → next blind select
-# ... repeat until GAME_OVER
-.\tools\play\bot.ps1 menu                # return to main menu
+.\tools\play\bot.ps1 glance
+.\tools\play\bot.ps1 start RED WHITE
+.\tools\play\bot.ps1 select
+.\tools\play\bot.ps1 play 0 1 2 3 4
+.\tools\play\bot.ps1 cash_out
+.\tools\play\bot.ps1 buy card 0
+.\tools\play\bot.ps1 next_round
+# ... until GAME_OVER → menu → start
 ```
 
-Each command prints the new compact state automatically, including the next
-`actions:` line — you rarely need a separate `glance` between actions.
+Each action prints the new summary + `actions:` — you rarely need a separate `glance` between actions.
 
-> **Do not use `bot.ps1 exec '{"command":...}'`.** PowerShell strips unescaped
-> double quotes when passing JSON strings to native exes, so the JSON arrives
-> malformed and you get `Expecting property name enclosed in double quotes`.
-> The friendly subcommands above avoid quoting entirely. `exec` is only for
-> advanced use; if you must, escape quotes as `\"`:
-> `bot.ps1 exec '{\"command\":\"play\",\"params\":{\"cards\":[0,1,2,3,4]}}'`.
-
-Equivalent raw JSON-RPC (fallback when `bot.ps1` isn't available):
-
-```powershell
-.\.venv\Scripts\python.exe -c "import httpx,json;print(httpx.post('http://127.0.0.1:12346/',json={'jsonrpc':'2.0','method':'start','params':{'deck':'RED','stake':'WHITE'},'id':1}).json())"
-```
+> **Do not use `bot.ps1 exec '{"command":...}'`.** PowerShell strips unescaped `"`. Use friendly subcommands, or escape as `\"`. Raw JSON-RPC fallback: [tools/play/README.md](tools/play/README.md#json--advanced) or [AGENTS.md](AGENTS.md).
 
 ## 4. Pitfalls
 
-- **0-based indices.** First hand card is `0`. `play 0 1 2 3 4` plays the first five.
-- **One request at a time.** The server is single-client, serial. Wait for each response before sending the next.
-- **PowerShell eats JSON quotes.** Never call `bot.ps1 exec '{"command":...}'` with bare `"` — PowerShell strips them. Use the friendly subcommands ([State → command table](#2-state--friendly-command-table), [Minimal trace](#3-minimal-full-game-trace)), or escape as `\"` if you must use `exec`.
-- **`pack skip` is not “next step”.** It closes the current booster without selecting any card. Tag stacks (e.g. Double + Charm) can open two identical-looking Arcana packs in a row — check **`choices remaining: N`** each time and use `pack IDX` while N > 0.
-- **`pack` `targets` only for hand cards (Tarot/Spectral).** Trailing indices highlight **hand** cards, not jokers. Buffoon/Celestial/Standard packs don't need targets. The endpoint validates target count against the card's requirement and returns `BAD_REQUEST` if wrong.
-- **Ankh / Hex / Ectoplasm pick a random joker.** `glance` shows `(random joker — pack targets ignored)`. The API cannot aim these at a joker slot — **`rearrange jokers` is for scoring order only**, not consumable targeting.
-- **Boss blinds hide card faces.** Cards with `state.hidden == true` return no rank/suit (shown as `??` in `glance`) — do not try to "read" them; decide based on what's visible.
-- **`buy` / `reroll` affordability is `money - bankrupt_at`**, not raw `money` (Credit Card raises `bankrupt_at`). `glance` shows `[ok]` / `[need $N]` on shop rows; if a buy still fails with `BAD_REQUEST`, slots may be full or cost changed after reroll.
-- **Joker/consumable slots can be full.** `buy` returns `BAD_REQUEST` when slots are full — `sell` something first or skip.
-- **`skip` only works on Small/Big blinds**, not boss. Skip collects a tag reward (see [Tag semantics](#tag-semantics-skip-rewards)). Only five tags open a pack on skip; `glance` after skip should show `pack` actions when one fires. If skip with **Charm Tag** leaves blind select with the tag in the HUD but no pack, restart the game (Lua mod reload) — a prior API bug blocked tag apply; use a fresh run after updating.
-- \*\*`reroll_boss` is Boss-only and costs $10.** Only in `BLIND_SELECT` when the Boss blind is on deck, you own **Director's Cut** (once per ante) or **Retcon** (unlimited), and `money - bankrupt_at >= 10`. `glance` shows `reroll_boss=$10 [ok]`/`[need $N]`/`[used this ante]`; then`select`the new boss. Shop`reroll\` is unrelated.
-- **`won` ≠ current outcome on `GAME_OVER`.** `won: true` means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual line (`Lost to …`, `Victory`, etc.) — especially after endless-mode death.
-- **Connection failure ≠ bug.** During state transitions the server may briefly not respond. Retry `glance` once before investigating.
-- **Error names:** `INTERNAL_ERROR` (Lua crash), `BAD_REQUEST` (bad params), `INVALID_STATE` (wrong state), `NOT_ALLOWED` (game rules blocked it). Read `error.message` — it's specific.
+Extra items not repeated in Quick start:
 
-## 5. Decision Principles
+- **`pack` target count** must match the card's requirement or you get `BAD_REQUEST`.
+- **`rearrange jokers`** is scoring order only — not consumable/pack targeting.
+- **Joker/consumable slots full** → `sell` first; shop rows may show `[slots full]`.
+- **`skip` only on Small/Big** — collects tag; pack tags should show `pack` actions after skip. Charm skip with no pack after mod update → restart game (stale Lua).
+- **`reroll_boss`:** Boss `BLIND_SELECT` only; $10; Director's Cut (once/ante) or Retcon; `money - bankrupt_at >= 10`. Unrelated to shop `reroll`.
+- **`won` on `GAME_OVER`** means you beat Ante 8 Boss (stays true in endless). Read **`run_summary.result`** for the actual outcome.
+- **Connection blip** during transitions → retry `glance` once.
+- **Errors:** `BAD_REQUEST` (bad params), `INVALID_STATE` (wrong state), `NOT_ALLOWED` (game rules), `INTERNAL_ERROR` (Lua crash). Read `error.message`.
 
-- **Always `glance` (and ideally `know preflight`) before deciding.** Never assume the state.
-- **`bot.ps1 estimate` is optional and not recommended for normal play.** It only models a subset of jokers, may miss locale-specific effect text, and can make agents over-trust a number. Prefer reading the hand + `query hands` + `know check rule scoring_formula` when you need score math. Use `estimate` mainly for dev/regression (`tools/play/estimate_registry.md`), not as the default decision loop.
-- **If you do run `estimate`, only in `SELECTING_HAND`.** It returns `INVALID_STATE` elsewhere. Output is a hint only: **`idx`** = full `bot.ps1 play` list when kickers matter (e.g. Blackboard); **`scoring=`** = poker scorers only. **`unmodeled`** jokers mean the true score can be higher — never treat `[BEATS]` as guaranteed.
-- **Scoring math (default path):** Run `bot.ps1 query hands` for real base `chips`/`mult`. Apply `bot.ps1 know check rule scoring_formula`: score = Chips × Mult, built in phases (hand base → scoring-card chips → jokers left-to-right, +Mult before ×Mult). **Only the cards forming the poker hand type score — kickers add no chips** (`know check rule kickers_do_not_score`); card chips are A=11, 2-10=face, J/Q/K=10 (`know check rule card_chip_values`). (Example: Three of a Kind is base 30/3 + 3×scoring rank chips, not all five cards.) `know list rule` lists all rules; relevant ones: `scoring_formula`, `kickers_do_not_score`, `card_chip_values`, `hand_base_values_level_1`, `additive_before_multiplicative_mult`, `edition_values`, `enhancement_scoring`, `wild_card_enhancement`, `seal_effects`, `plasma_deck_balances_chips_and_mult`.
-- **Wild cards:** Wild counts as every **suit**, not every **rank** — pair Wild only with matching rank (`know check rule wild_card_enhancement`). Do not play Ace + Queen Wild expecting an Ace pair.
-- **Beat the blind target, not maximize score.** `round.chips` is your current score; the current blind's `score` is the target. Once you've passed it, you can stop playing hands to bank unused hands ($1 each) and discards.
-- **Don't burn discards for no reason.** Each unused hand pays $1 interest at round end (interest capped at $5). Discard only to improve a hand you intend to play.
-- **Economy early, scaling late.** In early antes, money compounds. Don't reroll aggressively. Buy jokers that scale (Mult+) or generate economy.
-- **Joker order matters (scoring).** Put chips and `+Mult` jokers before `×Mult` jokers when possible; in `SELECTING_HAND` or **SHOP** (2+ jokers), use `bot.ps1 rearrange jokers ...` so multiplicative effects fire late. This does **not** control random-joker Spectrals (Ankh, Hex, Ectoplasm).
-- **Boss-blind awareness.** Before `select`ing a boss, run `know preflight` and check the boss effect — some bosses invalidate strategies (e.g. "The Flint" halves base chips/mult, "The Psychic" forces 5-card plays and hides cards). Adjust which cards you play.
-- **Vouchers persist for the run.** Buying a voucher is usually higher value than a single joker if it matches your direction.
-- **When in doubt in shop:** buy a pack > reroll > skip to next round. Packs give selection among multiple cards.
-- **Losing is fine.** If `hands_left` hits 0 and chips < target, the run ends (`GAME_OVER`). Call `menu` and start fresh.
+## 5. Decision assist
 
-### When to run `know preflight`
+Balatro strategy and scoring formulas: **`know`** CLI and knowledge JSON.
 
-Run it before any non-trivial decision:
+- **`glance` first** — never assume state.
+- **Score math:** `query hands` + `know check rule scoring_formula`; wild/kickers/editions → `know list rule`.
+- **Boss / joker / tag:** `know preflight` or targeted `know check …` (see Quick start).
+- **`estimate`:** dev/regression only — [tools/play/estimate_registry.md](tools/play/estimate_registry.md).
 
-- **BLIND_SELECT** before `select`ing a **boss** blind (verify the boss effect).
-- **SHOP** before buying a joker whose effect you're unsure about (verify with `know check joker "Name"`).
-- **SELECTING_HAND** when you own jokers and aren't sure what triggers them.
+## 6. Further commands
 
-Output is a `checks[]` array (stake / each joker / boss / pending tags), each with
-`passed` and a verified `entry`:
-
-```json
-{"ok": true, "format": "balatrobot-know-v1", "preflight": {
-  "passed": true,
-  "context": {"state": "BLIND_SELECT", "ante_num": 1, "stake": "WHITE", "money": 8},
-  "checks": [
-    {"kind": "stake", "name": "WHITE", "passed": true, "entry": {...}},
-    {"kind": "joker", "name": "Seltzer", "passed": true, "entry": {...}},
-    {"kind": "boss", "name": "The Psychic", "passed": true, "entry": {...}},
-    {"kind": "tag", "name": "Foil Tag", "slot": "big", "passed": true, "entry": {...}}
-  ]
-}}
-```
-
-`passed: false` means a fact wasn't found in the knowledge library — treat the
-effect as unknown and fall back to the in-game `effect`/`tag_effect` text.
-
-## 6. Command reference
-
-| Command                                                                                 | Output                                            | When to use                                                                       |
-| --------------------------------------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `glance`                                                                                | Compact summary + `actions:`                      | Every turn — primary state read                                                   |
-| `query hands`                                                                           | Hand-type level / chips / mult table              | **Scoring math** (preferred over `estimate`)                                      |
-| `query deck`                                                                            | Remaining draw pile                               | Deck composition / draw tracking                                                  |
-| `query blinds`                                                                          | All three blinds (full detail)                    | When the glance blind block is not enough                                         |
-| `query used_vouchers`                                                                   | Vouchers owned this run                           | Shop planning, `reroll_boss` eligibility                                          |
-| `query seed`                                                                            | Run seed                                          | Debug / replay                                                                    |
-| `state`                                                                                 | Full JSON state + `actions` + available `queries` | Scripting; append `--json` to actions for the same shape                          |
-| `know preflight`                                                                        | Verified joker / boss / tag / stake checks        | Before boss select, shop buys, tricky joker lines                                 |
-| `know check joker "Name"` / `check boss "Name"` / `check tag "Name"` / `check rule "…"` | Single knowledge entry                            | One-off lookup                                                                    |
-| `estimate`                                                                              | Top playable hands + partial score model          | Dev/regression only — [not recommended for play](tools/play/estimate_registry.md) |
-| `screenshot PATH` / `save PATH` / `load PATH`                                           | File I/O                                          | Checkpoints and visual debug                                                      |
-
-Append `--json` to `query` or `know` for raw JSON instead of tables.
-
-See also [Three ways to read state](#three-ways-to-read-state) and [tools/play/README.md](tools/play/README.md).
+Full **`query` / `know` / `state`** table and friendly subcommand notes: [tools/play/README.md](tools/play/README.md) (Commands, Friendly action subcommands, JSON / advanced).
