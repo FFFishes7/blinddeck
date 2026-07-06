@@ -194,7 +194,11 @@ def catalog_entries() -> list[CatalogEntry]:
             "advanced",
         ),
         # hidden
-        CatalogEntry("save run.jkr", "Save current run to a file.", "hidden"),
+        CatalogEntry(
+            "save run.jkr",
+            "Save current run to a file; relative paths write under Balatro's AppData save directory.",
+            "hidden",
+        ),
         CatalogEntry("load run.jkr", "Load a saved run from a file.", "hidden"),
         CatalogEntry(
             "screenshot shot.png",

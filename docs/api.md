@@ -237,6 +237,8 @@ curl -X POST http://127.0.0.1:12346 \
 
 Save the current run to a file.
 
+On Windows, relative paths are resolved by the Balatro/LÖVE process. For example, `path: "run.jkr"` writes under `C:\Users\<username>\AppData\Roaming\Balatro\`. Use an absolute path to save elsewhere.
+
 **Parameters:**
 
 | Name   | Type   | Required | Description            |
