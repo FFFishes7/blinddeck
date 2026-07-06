@@ -803,6 +803,25 @@ def test_joker_line_perishable_rental() -> None:
     assert "(+10 mult)" in line
     assert "(eternal)" in line
     assert "Jolly Joker" in line
+    assert " — +8 Mult if played hand contains a Pair" in line
+    _, desc = line.split(" — ", 1)
+    assert "+10 Mult" not in desc
+
+
+def test_joker_line_effect_excludes_edition_in_description() -> None:
+    """Effect after em dash is main ability only; edition stays in prefix tags."""
+    line = _joker_line(
+        0,
+        {
+            "label": "Jolly Joker",
+            "value": {"effect": "+8 Mult if played hand contains a Pair"},
+            "modifier": {"edition": "HOLO"},
+        },
+    )
+    assert "(+10 mult)" in line.split(" — ", 1)[0]
+    desc = line.split(" — ", 1)[1]
+    assert "+8 Mult" in desc
+    assert "+10 Mult" not in desc
 
 
 def test_joker_line_sell_price_before_stickers() -> None:

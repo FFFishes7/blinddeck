@@ -546,7 +546,8 @@ local function get_card_ui_description(card)
     end
   end
 
-  if ui_table.info then
+  local joker_main_only = card.ability and card.ability.set == "Joker"
+  if ui_table.info and not joker_main_only then
     for _, line in ipairs(ui_table.info) do
       local line_texts = {}
       collect_ui_texts(line, line_texts)

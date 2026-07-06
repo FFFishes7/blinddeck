@@ -979,7 +979,7 @@ All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, 
 
 `value.stats` fields vary by joker (e.g. `x_mult`, `chips`, `loyalty_remaining`, `caino_xmult`). See [JokerStats](#jokerstats). `value.rarity` is one of `COMMON`, `UNCOMMON`, `RARE`, `LEGENDARY`.
 
-`value.effect` is the card's **mechanism** description (main UI text). Profile stake win sticker achievement lines (e.g. “Used this Joker to win on White Stake difficulty”) are excluded from `value.effect` even when the sticker is visible on the card.
+`value.effect` is the card's **mechanism** description (main UI text). For **Jokers**, only `main` ability text is included — edition, perishable, rental, eternal, and profile stake win sticker lines (e.g. “Used this Joker to win on White Stake difficulty”) live in the in-game `info` panel and are **not** appended to `value.effect` (use `modifier` and glance prefix tags for those buffs). **Consumables** still merge `main` + `info`, excluding stake win sticker lines from `info`.
 
 Consumables (Tarot/Planet/Spectral) may include `value.target_min` / `value.target_max` (hand cards required when using or selecting from a pack), `value.requires_jokers_min` (must own at least N jokers — Ankh, Hex), and `value.random_joker_effect` (Ankh, Hex, Ectoplasm: picks a random joker; **not** targetable via `pack` indices). Derived from game config — same rules as the [`pack`](#pack) endpoint.
 

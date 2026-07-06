@@ -903,6 +903,45 @@ class TestGamestateCards:
                 assert line not in effect, f"sticker line leaked into effect: {line!r}"
             assert "Retrigger" in effect
 
+        def test_joker_effect_main_only_unchanged_by_edition(
+            self, client: httpx.Client
+        ) -> None:
+            """Joker value.effect uses main UI only; edition info must not alter text."""
+            fixture_name = "state-SELECTING_HAND"
+            load_fixture(client, "gamestate", fixture_name)
+            plain = api(client, "add", {"key": "j_jolly"})["result"]["jokers"]["cards"][
+                0
+            ]["value"]["effect"]
+            load_fixture(client, "gamestate", fixture_name)
+            holo = api(client, "add", {"key": "j_jolly", "edition": "HOLO"})["result"][
+                "jokers"
+            ]["cards"][0]["value"]["effect"]
+            assert plain == holo
+            assert plain != ""
+
+        def test_joker_effect_main_only_unchanged_by_stickers(
+            self, client: httpx.Client
+        ) -> None:
+            """Perishable/rental/eternal info lines must not append to joker effect."""
+            fixture_name = "state-SELECTING_HAND"
+            load_fixture(client, "gamestate", fixture_name)
+            plain = api(client, "add", {"key": "j_jolly"})["result"]["jokers"]["cards"][
+                0
+            ]["value"]["effect"]
+            load_fixture(client, "gamestate", fixture_name)
+            stickered = api(
+                client,
+                "add",
+                {
+                    "key": "j_jolly",
+                    "edition": "FOIL",
+                    "perishable": 5,
+                    "rental": True,
+                    "eternal": True,
+                },
+            )["result"]["jokers"]["cards"][0]["value"]["effect"]
+            assert plain == stickered
+
         def test_card_value_consumable_target_requirements(
             self, client: httpx.Client
         ) -> None:
