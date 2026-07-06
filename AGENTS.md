@@ -29,6 +29,16 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 Each `glance`/action output ends with an `actions:` line listing valid next commands. **Pitfalls and API gotchas:** [PLAY.md §6](./PLAY.md#6-pitfalls). State→command table and glance abbreviations: [PLAY.md §4–§5](./PLAY.md#4-state--command).
 
+### Windows play helpers
+
+- Launch with `.\tools\play\serve.ps1 --fast` or `--fast --debug`; there is no `bot.ps1 serve`. Leave it running and health-check `http://127.0.0.1:12346`.
+- `tools/play/serve.ps1` is machine-local and gitignored because it contains the correct local Steam/Balatro path.
+- Use the deliberate loop: `glance` → optional `know preflight` → think → one friendly action → read the new summary.
+- Do **not** write or run automated strategy scripts, batch play loops, or bots that pick actions without per-turn reasoning.
+- Do **not** use `estimate` as the default play loop step; it is optional and incomplete. Prefer `query hands` plus the scoring rules in `PLAY.md`.
+- If `estimate` is used: `idx` / `indices` means the full `bot.ps1 play` list, including kickers when they matter; `scoring=` / `scoring_indices` means only poker-scoring cards.
+- Never use bare JSON through `bot.ps1 exec` in PowerShell; use friendly subcommands. If raw `exec` is unavoidable, escape quotes as `\"`.
+
 ## Overview
 
 This repository is **BlindDeck** — a Balatro play desk built on [BalatroBot](https://github.com/coder/balatrobot). It consists of two main parts:
@@ -113,6 +123,57 @@ Available make targets:
     - Use `make format` instead of `ruff format`
     - Use `make typecheck` instead of `ty check`
     - Use `make quality` for all checks combined
+3. On Windows, if `make` is unavailable, run the equivalent commands from `.venv` using the same flags and scope as the Makefile. For markdown checks, use repo-wide `mdformat --check .`, matching CI scope.
+
+### Change delivery checklist
+
+When a **feature, fix, or refactor** changes user-visible or agent-visible behavior, complete this before marking the task done:
+
+1. **Unit tests** — CLI (`tests/cli/`) and/or pure logic; no Balatro required.
+2. **Live tests** — required when touching gamestate, glance output, Lua endpoints, tag/pack/cashout timing, or OpenRPC fields. Run targeted `pytest tests/lua/...`; skip only with an explicit reason in the completion summary.
+3. **Docs** — update affected docs in the same working tree change.
+4. **Manual smoke** — when glance, CLI, polling, or play-helper UX changed, use `serve.ps1` + `bot.ps1 glance` on the affected state if practical.
+
+Live tests are expected for changes under `src/lua/**`, `tools/play/view.py`, `tools/play/layers.py`, `tools/play/actions.py`, tag skip/pack sequences, cashout preview, and victory overlay handling.
+
+When summarizing a behavior change, include what was run or why it was skipped:
+
+- **Unit:** `pytest ...` (pass)
+- **Live:** `pytest tests/lua/...` (pass) or reason skipped
+- **Docs:** files updated, or why none
+- **Smoke:** manual step if applicable
+
+Do not mark todos complete while a required live scenario fails or docs are stale.
+
+### Git boundaries
+
+- **Do not** `git commit`, `git push`, amend, or force-push unless the user explicitly asks for that git action.
+- Task done, tests passing, docs updated, or a user saying “可以” for a feature is not permission to commit unless they clearly mean git.
+- If unclear, ask whether they want a commit or push.
+- Never commit local or machine-specific paths:
+    - `.cursor/` — local Cursor rules
+    - `CLAUDE.md` — local Claude copy; repo uses `AGENTS.md`
+    - `tools/play/serve.ps1` — machine-specific Balatro path
+    - `saves/`, `*.jkr` outside fixtures — runtime saves
+- `AGENTS.md` is the tracked canonical agent guidance for this repo.
+
+When the user explicitly asks to commit or push, first run pre-push checks: `make quality`, relevant tests, docs review, `git status` / `git diff`, and confirm no secrets or ignored/local files are staged. Commit messages should follow conventional commits (`feat:`, `fix:`, `docs:`, ...).
+
+### Keep docs in sync
+
+After code changes, check whether related documentation is still accurate and update it unless the change is purely internal or the user explicitly requested code-only work.
+
+| Area changed                    | Likely docs                                                                |
+| ------------------------------- | -------------------------------------------------------------------------- |
+| Play helper / bot UX            | `PLAY.md`, `tools/play/README.md`                                          |
+| Estimate / joker modeling       | `tools/play/estimate_registry.md`, `AGENTS.md` § Estimate modeling         |
+| Agent entry points              | `AGENTS.md`                                                                |
+| Lua API / endpoints             | `src/lua/utils/openrpc.json`, endpoint docstrings, `AGENTS.md`             |
+| Architecture / setup            | `docs/OVERVIEW.md`, `README.md`                                            |
+| Knowledge / rules               | `knowledge/balatro/README.md`, verified JSON under `knowledge/`            |
+| Live Lua tests / scenario setup | `tests/lua/tag_seeds.py`, `docs/contributing.md`, `scripts/find_*_seed.py` |
+
+If intentionally skipping a docs update, mention why in the summary.
 
 ## Architecture
 
@@ -199,6 +260,25 @@ Runs inside the game engine and exposes an API.
 5. **Document** — update [`tools/play/estimate_registry.md`](tools/play/estimate_registry.md) (checklist + Verified/Never tables + live log); update `docs/api.md` if gamestate fields changed.
 
 Full checklist and scoring pipeline map: **`tools/play/estimate_registry.md`**. Do not use wiki guesses when source is available.
+
+### Estimate hard rules and invariants
+
+- Deterministic only: no RNG, probability, or expected-value guesses. RNG jokers stay `unmodeled` and belong in the registry's Never table.
+- Prefer structured API fields (`value.stats`, `gamestate.round`, `gamestate.run`); parse `value.effect` only as a fallback.
+- Dusk: API `hands_left == 1` (= game internal `0` after `ease_hands_played(-1)`); +1 retrigger per played scoring card.
+- Blue Joker: +2 chips × `state.cards.count` in global joker phase.
+- Blackboard: all **unplayed** cards (`G.hand.cards`) must be Spades or Clubs.
+- Mystic Summit: only active when `discards_left == 0`.
+- Dedupe estimate candidates by `(hand_type, sorted scoring_indices)`; keep the highest score and prefer fewer cards on tie.
+
+Unit tests prove the Python model matches itself; they do not prove Balatro agrees. For modeled joker changes, add or update live coverage using real gamestate: `load_fixture` → add joker(s) → `estimate(state)` → `play` the same `indices` → assert chip delta equals the estimate score. Run:
+
+```powershell
+python -m pytest tests/cli/test_play_helpers.py -k estimate -v
+python -m pytest tests/lua/endpoints/test_estimate_live.py -v
+```
+
+Manual fallback when a fixture cannot hit the joker: with `$env:BALATROBOT_ALLOW_CHEATS=1`, run `estimate`, then `play` the same indices, compare against actual score, and log it in `tools/play/estimate_registry.md`.
 
 ## Key Files
 
