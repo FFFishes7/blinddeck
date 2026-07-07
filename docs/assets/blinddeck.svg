@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">BlindDeck</title>
+  <desc id="desc">A clean, understated BlindDeck logo: soft layered cards with a blindfold band and a single heart.</desc>
+  <defs>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --card: #fafaf8;
+        --card-stroke: #d6d3cd;
+        --back: #e8e5df;
+        --back-stroke: #ccc9c2;
+        --band: #2c2c30;
+        --scan: #8eaab8;
+        --pip: #c45c5c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --card: #28282c;
+          --card-stroke: #3e3e44;
+          --back: #35353a;
+          --back-stroke: #4a4a50;
+          --band: #e8e6e1;
+          --scan: #7a9caa;
+          --pip: #c87070;
+        }
+      }
+    </style>
+    <filter id="shadow" x="-20%" y="-15%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="12" flood-color="rgba(30,30,32,0.09)" flood-opacity="1" />
+    </filter>
+  </defs>
+
+  <!-- Back card -->
+  <g transform="translate(256 256) rotate(10) translate(-115 -160)">
+    <rect width="230" height="320" rx="32" fill="var(--back)" stroke="var(--back-stroke)" stroke-width="2" />
+  </g>
+
+  <!-- Front card -->
+  <g transform="translate(256 256) rotate(-5) translate(-115 -160)" filter="url(#shadow)">
+    <rect width="230" height="320" rx="32" fill="var(--card)" stroke="var(--card-stroke)" stroke-width="2" />
+
+    <!-- Heart -->
+    <path transform="translate(115, 118)"
+          d="M0 -15C0 -32 25 -32 25 -15C25 3 0 20 0 20S-25 3 -25 -15C-25 -32 0 -32 0 -15Z"
+          fill="var(--pip)" />
+
+    <!-- Blindfold band -->
+    <rect x="35" y="174" width="160" height="36" rx="18" fill="var(--band)" />
+    <rect x="72" y="186" width="36" height="12" rx="6" fill="var(--scan)" opacity="0.7" />
+    <rect x="122" y="186" width="28" height="12" rx="6" fill="var(--scan)" opacity="0.35" />
+  </g>
+</svg>

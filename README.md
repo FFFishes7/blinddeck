@@ -1,6 +1,6 @@
 <div align="center">
   <h1>BlindDeck</h1>
-  <div><img src="./docs/assets/balatrobot.svg" alt="BlindDeck" width="170" height="170"></div>
+  <div><img src="./docs/assets/blinddeck.svg" alt="BlindDeck" width="170" height="170"></div>
   <p><em>Play Balatro with your agent — glance, then act.</em></p>
 </div>
 
@@ -42,31 +42,31 @@ Two steps: install the mod once, then launch the game and use the helpers.
 
 3. Put this repository under `%AppData%\Balatro\Mods\balatrobot\`. For development, a symlink works well:
 
-    ```powershell
-    New-Item -ItemType SymbolicLink -Path "$env:APPDATA\Balatro\Mods\balatrobot" -Target (Get-Location)
-    ```
+   ```powershell
+   New-Item -ItemType SymbolicLink -Path "$env:APPDATA\Balatro\Mods\balatrobot" -Target (Get-Location)
+   ```
 
-    (Run PowerShell as Administrator if the symlink command fails.)
+   (Run PowerShell as Administrator if the symlink command fails.)
 
-    The mod directory name remains `balatrobot` (SMODS mod id); the in-game mod title is **BlindDeck**.
+   The mod directory name remains `balatrobot` (SMODS mod id); the in-game mod title is **BlindDeck**.
 
 **In this repository**
 
 1. Install dependencies — creates `.venv` with the `balatrobot` CLI and play-helper packages:
 
-    ```powershell
-    make install
-    ```
+   ```powershell
+   make install
+   ```
 
-    If `make` is unavailable, run `uv sync --group dev --group test` instead.
+   If `make` is unavailable, run `uv sync --group dev --group test` instead.
 
 2. Copy `tools/play/serve.example.ps1` to `tools/play/serve.ps1` and set `$BalatroDir` to your Steam Balatro folder if it is not the default:
 
-    ```powershell
-    Copy-Item tools\play\serve.example.ps1 tools\play\serve.ps1
-    ```
+   ```powershell
+   Copy-Item tools\play\serve.example.ps1 tools\play\serve.ps1
+   ```
 
-    `serve.ps1` stays untracked (machine-specific). You can also set the user env var `BALATROBOT_GAME_DIR` instead of editing the file.
+   `serve.ps1` stays untracked (machine-specific). You can also set the user env var `BALATROBOT_GAME_DIR` instead of editing the file.
 
 For platform-specific paths (macOS / Linux Proton / native Love) and CLI flags, see the [CLI Reference](docs/cli.md).
 
