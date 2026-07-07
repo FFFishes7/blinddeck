@@ -197,7 +197,7 @@ Open only when the play sheet is not enough.
 - Balatro with this mod on `http://127.0.0.1:12346`. Health-check:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "import httpx;print(httpx.post('http://127.0.0.1:12346/',json={'jsonrpc':'2.0','method':'health','params':{},'id':1},timeout=3).text)"
+.\tools\play\bot.ps1 health
 ```
 
 **If health fails:** wait 30–60s after launch; kill zombie `balatrobot` processes; restart `.\tools\play\serve.ps1 --fast --debug`; try `--port 12347` if busy. Do not “fix” game state — restart the server only. Details: [README.md](README.md).

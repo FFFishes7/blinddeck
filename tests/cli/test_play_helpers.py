@@ -398,6 +398,22 @@ def test_build_actions_round_eval_victory_overlay(selecting_hand_state: dict) ->
     assert commands == ["endless", "menu"]
 
 
+def test_build_actions_round_eval_endless_win_without_overlay(
+    selecting_hand_state: dict,
+) -> None:
+    round_eval_state = {
+        **selecting_hand_state,
+        "state": "ROUND_EVAL",
+        "won": True,
+        "round": {
+            **selecting_hand_state["round"],
+            "cashout_preview": {"total": 1, "lines": [{"kind": "hands", "dollars": 1}]},
+        },
+    }
+    commands = [a["command"] for a in build_actions(round_eval_state)]
+    assert commands == ["cash_out"]
+
+
 def test_build_actions_pack_open(selecting_hand_state: dict) -> None:
     pack_state = {
         **selecting_hand_state,
@@ -548,6 +564,14 @@ def test_is_gamestate_stable_waits_for_victory_overlay() -> None:
         {"state": "ROUND_EVAL", "won": True, "victory_overlay": False}
     )
     assert not is_gamestate_stable({"state": "ROUND_EVAL", "won": True})
+    assert is_gamestate_stable(
+        {
+            "state": "ROUND_EVAL",
+            "won": True,
+            "victory_overlay": False,
+            "round": {"cashout_preview": {"total": 1, "lines": []}},
+        }
+    )
     assert is_gamestate_stable(
         {"state": "ROUND_EVAL", "won": True, "victory_overlay": True}
     )
@@ -1879,6 +1903,30 @@ def test_act_main_save_prints_success_without_state_refresh(
     assert "state=" not in out
     assert "actions:" not in out
     assert "hand:" not in out
+
+
+def test_act_main_health_prints_success_without_state_refresh(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    def fake_rpc(method: str, params: dict) -> dict:
+        calls.append((method, params))
+        return {"status": "ok"}
+
+    def fail_execute(method: str, params: dict) -> dict:
+        raise AssertionError("health should not refresh gamestate")
+
+    monkeypatch.setattr(act, "rpc", fake_rpc)
+    monkeypatch.setattr(act, "execute", fail_execute)
+    monkeypatch.setattr(act.sys, "argv", ["act.py", "health"])
+    rc = act.main()
+    assert rc == 0
+    assert calls == [("health", {})]
+    out = capsys.readouterr().out
+    assert out.strip() == "health: ok"
+    assert "state=" not in out
+    assert "actions:" not in out
 
 
 def test_act_main_save_json_flag_keeps_play_envelope(

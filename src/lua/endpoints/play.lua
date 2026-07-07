@@ -75,6 +75,8 @@ return {
     local card_str = BB_LOGGER.format_playing_cards(G.hand.cards, args.cards)
     sendDebugMessage(string.format("Playing %d cards: %s", #args.cards, card_str), "BB.ENDPOINTS")
 
+    local run_won_before_play = G.GAME and G.GAME.won == true
+
     ---@diagnostic disable-next-line: undefined-field
     local play_button = UIBox:get_UIE_by_ID("play_button", G.buttons.UIRoot)
     assert(play_button ~= nil, "play() play button not found")
@@ -86,7 +88,12 @@ return {
     -- NOTE: GAME_OVER and final-run win detection cannot happen reliably inside
     -- this event function because win_game() sets G.SETTINGS.paused = true,
     -- which stops E_MANAGER. love.update polls these callbacks instead.
+    local completed = false
     local function finish_play()
+      if completed then
+        return
+      end
+      completed = true
       BB_GAMESTATE.clear_play_callbacks()
       send_response(BB_GAMESTATE.get_gamestate())
     end
@@ -109,6 +116,10 @@ return {
         -- Win game: HAND_PLAYED -> NEW_ROUND -> ROUND_EVAL (with G.GAME.won = true)
         -- Keep playing current round: HAND_PLAYED -> DRAW_TO_HAND -> SELECTING_HAND
 
+        if completed then
+          return true
+        end
+
         -- Track state transitions
         if G.STATE == G.STATES.HAND_PLAYED then
           hand_played = true
@@ -124,15 +135,17 @@ return {
         -- end
 
         if G.STATE == G.STATES.ROUND_EVAL then
-          -- Final run win: wait for the victory overlay, not merely STATE_COMPLETE.
-          -- Returning earlier exposes a normal ROUND_EVAL/cash_out path before
-          -- the post-win overlay is available.
-          if G.GAME.won then
-            if BB_GAMESTATE.has_victory_overlay() then
-              sendDebugMessage("Return play() - won", "BB.ENDPOINTS")
-              finish_play()
-              return true
-            end
+          -- First Ante 8 victory pauses on an overlay. In Endless, G.GAME.won
+          -- remains true for later rounds, so only use the victory branch when
+          -- the overlay is actually visible; otherwise follow normal cash-out.
+          if BB_GAMESTATE.has_victory_overlay() then
+            sendDebugMessage("Return play() - won", "BB.ENDPOINTS")
+            finish_play()
+            return true
+          end
+          -- If this play just won Ante 8, wait for the overlay to appear. If
+          -- the run was already won before this play, it is an Endless round.
+          if G.GAME.won and not run_won_before_play then
             return false
           end
 

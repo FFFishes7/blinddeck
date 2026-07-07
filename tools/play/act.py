@@ -59,6 +59,14 @@ def main() -> int:
     method, rest = args[0], args[1:]
     try:
         params: dict[str, Any] = build_params(method, rest)
+        if method == "health":
+            result = rpc("health", params)
+            if json_out:
+                print(json.dumps({"ok": True, "result": result}, ensure_ascii=False))
+            else:
+                status = result.get("status") if isinstance(result, dict) else None
+                print(f"health: {status or 'ok'}")
+            return 0
         if method == "save" and not json_out:
             result = rpc("save", params)
             path = result.get("path") if isinstance(result, dict) else None

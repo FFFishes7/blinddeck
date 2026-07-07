@@ -34,7 +34,8 @@ class TestEndlessEndpoint:
         )
         assert gamestate["state"] == "SELECTING_HAND"
         play_response = api(client, "play", {"cards": [0, 3, 4, 5, 6]})
-        assert_gamestate_response(play_response, won=True)
+        play_state = assert_gamestate_response(play_response, won=True)
+        assert play_state.get("victory_overlay") is True
         won_state = _wait_for_victory_overlay(client)
         assert won_state.get("won") is True
         assert won_state.get("victory_overlay") is True
@@ -95,6 +96,38 @@ class TestEndlessEndpoint:
         result = gamestate["run_summary"]["result"]
         assert result != "Victory"
         assert result == "Lost" or result.startswith("Lost to ")
+
+    def test_play_after_endless_win_returns_round_eval(
+        self, client: httpx.Client
+    ) -> None:
+        """Endless keeps won=true, but later won blinds return cash-out state."""
+        load_fixture(
+            client,
+            "play",
+            "state-SELECTING_HAND--ante_num-8--blinds.boss.status-CURRENT--round.chips-1000000",
+        )
+        play_response = api(client, "play", {"cards": [0, 3, 4, 5, 6]})
+        assert_gamestate_response(play_response, won=True)
+        _wait_for_victory_overlay(client)
+
+        assert_gamestate_response(
+            api(client, "endless", {}), state="ROUND_EVAL", won=True
+        )
+        assert_gamestate_response(api(client, "cash_out", {}), state="SHOP")
+        assert_gamestate_response(api(client, "next_round", {}), state="BLIND_SELECT")
+        assert_gamestate_response(api(client, "select", {}), state="SELECTING_HAND")
+        api(client, "set", {"chips": 100000000})
+
+        post_endless_win = assert_gamestate_response(
+            api(client, "play", {"cards": [0]}, timeout=60),
+            state="ROUND_EVAL",
+            won=True,
+        )
+        assert not post_endless_win.get("victory_overlay")
+        assert isinstance(
+            post_endless_win.get("round", {}).get("cashout_preview"), dict
+        )
+        assert_gamestate_response(api(client, "cash_out", {}), state="SHOP")
 
 
 class TestEndlessEndpointValidation:

@@ -293,7 +293,9 @@ def is_gamestate_stable(raw: dict[str, Any]) -> bool:
         and raw.get("won") is True
         and raw.get("victory_overlay") is not True
     ):
-        return False
+        round_info = raw.get("round") or {}
+        if not isinstance(round_info.get("cashout_preview"), dict):
+            return False
     if state in HELD_TAGS_STATES and raw.get("held_tags_ready") is False:
         return False
     play_state = effective_state(raw)
