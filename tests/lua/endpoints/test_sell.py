@@ -212,17 +212,18 @@ class TestSellEndpointStateRequirements:
         assert before["money"] < after["money"]
 
     def test_sell_from_ROUND_EVAL(self, client: httpx.Client) -> None:
-        """Test selling a joker from ROUND_EVAL state."""
+        """Test selling is disallowed from ROUND_EVAL state."""
         before = load_fixture(
             client,
             "sell",
             "state-ROUND_EVAL--jokers.count-1--consumables.count-0",
         )
         assert before["state"] == "ROUND_EVAL"
-        response = api(client, "sell", {"joker": 0})
-        after = assert_gamestate_response(response, state="ROUND_EVAL")
-        assert after["jokers"]["count"] == 0
-        assert before["money"] < after["money"]
+        assert_error_response(
+            api(client, "sell", {"joker": 0}),
+            "INVALID_STATE",
+            "Method 'sell' requires one of these states:",
+        )
 
     def test_sell_from_MENU(self, client: httpx.Client) -> None:
         """Test that sell fails from the main menu."""

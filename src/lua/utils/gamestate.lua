@@ -863,6 +863,9 @@ local function extract_card_value(card)
   -- this in G.GAME.last_tarot_planet and the in-game UI shows it on the card.
   if card.config and card.config.center_key == "c_fool" then
     local copy_key = G.GAME and G.GAME.last_tarot_planet or nil
+    if not copy_key then
+      value.effect = value.effect:gsub("%s+None%s*$", " ")
+    end
     value.copy_key = copy_key or ""
     if copy_key and G.P_CENTERS and G.P_CENTERS[copy_key] then
       local center = G.P_CENTERS[copy_key]
@@ -927,6 +930,12 @@ local function extract_card_state(card)
   -- Highlighted
   if card.highlighted then
     state.highlight = true
+  end
+
+  -- Forced selection (Cerulean Bell). This is distinct from a normal
+  -- highlight because the card cannot be unselected by the player.
+  if card.ability and card.ability.forced_selection then
+    state.forced_selection = true
   end
 
   return state
@@ -1000,10 +1009,8 @@ local function extract_card(card, opts)
   end
 
   if hidden then
-    local state = { hidden = true }
-    if card.highlighted then
-      state.highlight = true
-    end
+    local state = extract_card_state(card)
+    state.hidden = true
     return {
       id = card.sort_id or 0,
       key = "",
@@ -1902,11 +1909,7 @@ local function play_won_round_eval_ready()
   if not G.GAME or not G.GAME.won or G.STATE ~= G.STATES.ROUND_EVAL then
     return false
   end
-  if gamestate.has_victory_overlay() then
-    return true
-  end
-  -- win_game() can pause before overlay UI; don't wait for cash_out rows.
-  return G.STATE_COMPLETE == true
+  return gamestate.has_victory_overlay()
 end
 
 ---Check and trigger GAME_OVER callback if state is GAME_OVER

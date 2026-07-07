@@ -113,7 +113,7 @@
 ---@field label string Display label/name of the card
 ---@field value Card.Value Value information for the card
 ---@field modifier Card.Modifier Modifier information (seals, editions, enhancements)
----@field state Card.State Current state information (debuff, hidden, highlighted)
+---@field state Card.State Current state information (debuff, hidden, highlighted, forced selection)
 ---@field cost Card.Cost Cost information (buy/sell prices)
 
 ---@class Card.Value
@@ -163,6 +163,7 @@
 ---@field debuff boolean? If true, card is debuffed and won't score
 ---@field hidden boolean? If true, card is face down (facing == "back")
 ---@field highlight boolean? If true, card is currently highlighted
+---@field forced_selection boolean? If true, card is forced selected by a Boss blind (Cerulean Bell)
 
 ---@class Card.Cost
 ---@field sell integer Sell value of the card

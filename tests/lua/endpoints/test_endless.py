@@ -47,13 +47,13 @@ class TestEndlessEndpoint:
         )
         assert_error_response(
             api(client, "sell", {"joker": 0}),
-            "NOT_ALLOWED",
-            "Victory overlay is showing",
+            "INVALID_STATE",
+            "Method 'sell' requires one of these states:",
         )
         assert_error_response(
             api(client, "use", {"consumable": 0}),
-            "NOT_ALLOWED",
-            "Victory overlay is showing",
+            "INVALID_STATE",
+            "Method 'use' requires one of these states:",
         )
         assert_error_response(
             api(client, "save", {"path": "balatrobot_victory_overlay_test.jkr"}),

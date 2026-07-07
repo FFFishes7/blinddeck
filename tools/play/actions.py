@@ -382,8 +382,6 @@ def build_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
         actions: list[dict[str, Any]] = [
             _action("cash_out", "Cash out round rewards", example_params={}),
         ]
-        actions.extend(_sell_actions(state))
-        actions.extend(_use_actions(state))
         return actions
     if name == "SHOP":
         return _shop_actions(state)

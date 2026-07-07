@@ -6,6 +6,7 @@ import httpx
 import pytest
 
 from tests.lua.conftest import api, assert_gamestate_response, load_fixture
+from tests.lua.tag_seeds import CERULEAN_FINAL_BOSS
 
 
 class TestGamestateEndpoint:
@@ -83,6 +84,7 @@ class TestGamestateRunSummary:
         )
         response = api(client, "play", {"cards": [0, 3, 4, 5, 6]}, timeout=60)
         gamestate = assert_gamestate_response(response, won=True)
+        assert gamestate["victory_overlay"] is True
         summary = gamestate["run_summary"]
         assert summary["result"] == "Victory"
         assert isinstance(summary["best_hand"], int)
@@ -176,8 +178,55 @@ class TestGamestateTopLevel:
         """Test won field after winning ante 8 boss."""
         fixture_name = "state-SELECTING_HAND--round_num-8--blinds.boss.status-CURRENT--round.chips-1000000"
         load_fixture(client, "gamestate", fixture_name)
-        response = api(client, "play", {"cards": [0]})
-        assert response["result"]["won"] is True
+        response = api(client, "play", {"cards": [0]}, timeout=60)
+        gamestate = assert_gamestate_response(response, won=True)
+        assert gamestate["victory_overlay"] is True
+
+    def test_cerulean_bell_forced_selection_state(self, client: httpx.Client) -> None:
+        """Test Cerulean Bell exposes its forced hand card separately from highlight."""
+        api(client, "menu", {})
+        gamestate = assert_gamestate_response(
+            api(
+                client,
+                "start",
+                {"deck": "RED", "stake": "WHITE", "seed": CERULEAN_FINAL_BOSS},
+            )
+        )
+        assert gamestate["state"] == "BLIND_SELECT"
+
+        api(client, "set", {"ante": 7})
+        api(client, "skip", {})
+        api(client, "skip", {})
+        api(client, "select", {})
+        api(client, "set", {"chips": 10_000_000})
+        gamestate = assert_gamestate_response(
+            api(client, "play", {"cards": [0]}, timeout=60)
+        )
+        if gamestate["state"] == "ROUND_EVAL" and not gamestate.get("victory_overlay"):
+            gamestate = assert_gamestate_response(
+                api(client, "cash_out", {}, timeout=60)
+            )
+        if gamestate["state"] == "SHOP":
+            gamestate = assert_gamestate_response(
+                api(client, "next_round", {}, timeout=60)
+            )
+
+        assert gamestate["state"] == "BLIND_SELECT"
+        assert gamestate["ante_num"] == 8
+        assert gamestate["blinds"]["boss"]["name"] == "Cerulean Bell"
+
+        api(client, "skip", {})
+        api(client, "skip", {})
+        gamestate = assert_gamestate_response(api(client, "select", {}, timeout=60))
+        assert gamestate["state"] == "SELECTING_HAND"
+        assert gamestate["blinds"]["boss"]["name"] == "Cerulean Bell"
+        forced_cards = [
+            card
+            for card in gamestate["hand"]["cards"]
+            if card.get("state", {}).get("forced_selection")
+        ]
+        assert len(forced_cards) == 1
+        assert forced_cards[0]["state"].get("highlight") is True
 
 
 class TestGamestateRound:

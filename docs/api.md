@@ -427,7 +427,7 @@ curl -X POST http://127.0.0.1:12346 \
 
 ### `sell`
 
-Sell a joker or consumable.
+Sell a joker or consumable. This is not available during `ROUND_EVAL`; cash out first.
 
 **Parameters:** (exactly one required)
 
@@ -438,7 +438,9 @@ Sell a joker or consumable.
 
 **Returns:** [GameState](#gamestate-schema)
 
-**Errors:** `BAD_REQUEST`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
+**Errors:** `BAD_REQUEST`, `INVALID_STATE`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
+
+**Required State:** `BLIND_SELECT`, `SELECTING_HAND`, `SHOP`, or `SMODS_BOOSTER_OPENED`
 
 **Example:**
 
@@ -655,7 +657,7 @@ curl -X POST http://127.0.0.1:12346 \
 
 ### `use`
 
-Use a consumable card.
+Use a consumable card. This is not available during `ROUND_EVAL`; cash out first.
 
 **Parameters:**
 
@@ -667,6 +669,8 @@ Use a consumable card.
 **Returns:** [GameState](#gamestate-schema)
 
 **Errors:** `BAD_REQUEST`, `INVALID_STATE`, `NOT_ALLOWED` (victory overlay visible — call [`endless`](#endless) or [`menu`](#menu) first)
+
+**Required State:** `BLIND_SELECT`, `SELECTING_HAND`, `SHOP`, or `SMODS_BOOSTER_OPENED`
 
 **Example:**
 
@@ -908,11 +912,14 @@ For hidden cards, only these fields contain reliable information:
 - `id` — stable position identifier (`sort_id`)
 - `state.hidden` — always `true`
 - `state.highlight` — present when the card is highlighted
+- `state.forced_selection` — present when a boss blind such as Cerulean Bell forces the card to stay selected
 - `cost` — sell/buy values (including booster `free` picks when applicable)
 
 All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, empty `value`, and empty `modifier`. Do not infer card identity from masked fields.
 
 `state.debuff: true` means the card is debuffed (boss blinds, debug [`debuff`](#debuff), etc.). Debuffed Wild cards count only as their printed suit; debuffed scoring cards lose enhancement bonuses.
+
+`state.forced_selection: true` marks a card forced selected by a boss blind, currently Cerulean Bell. It is distinct from a normal `state.highlight`.
 
 **Visible card example:**
 
@@ -938,7 +945,8 @@ All other fields use placeholder values: empty `key`/`label`, `set: "DEFAULT"`, 
   "state": {
     "debuff": false,
     "hidden": false,
-    "highlight": false
+    "highlight": false,
+    "forced_selection": false
   },
   "cost": {
     "sell": 1,

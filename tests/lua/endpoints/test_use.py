@@ -428,7 +428,7 @@ class TestUseEndpointStateRequirements:
         )
 
     def test_use_from_ROUND_EVAL(self, client: httpx.Client) -> None:
-        """Hand-target consumables fail from ROUND_EVAL when no hand is visible."""
+        """Test using consumables is disallowed from ROUND_EVAL state."""
         gamestate = load_fixture(
             client,
             "use",
@@ -438,7 +438,7 @@ class TestUseEndpointStateRequirements:
         assert_error_response(
             api(client, "use", {"consumable": 0, "cards": [0]}),
             "INVALID_STATE",
-            "Consumable 'The Magician' requires card selection and a visible hand",
+            "Method 'use' requires one of these states:",
         )
 
     def test_use_magician_from_SHOP(self, client: httpx.Client) -> None:

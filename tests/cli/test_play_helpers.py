@@ -377,9 +377,8 @@ def test_build_actions_round_eval(selecting_hand_state: dict) -> None:
             ],
         },
     }
-    commands = {a["command"] for a in build_actions(round_eval_state)}
-    assert {"cash_out", "sell"}.issubset(commands)
-    assert "use" not in commands
+    commands = [a["command"] for a in build_actions(round_eval_state)]
+    assert commands == ["cash_out"]
 
 
 def test_build_actions_round_eval_victory_overlay(selecting_hand_state: dict) -> None:
@@ -542,6 +541,19 @@ def test_is_gamestate_stable_requires_pack_ready() -> None:
     )
     assert is_gamestate_stable({**base, "pack_ready": True, "pack_hand_ready": True})
     assert is_gamestate_stable({**base, "pack_ready": True, "pack_hand_ready": None})
+
+
+def test_is_gamestate_stable_waits_for_victory_overlay() -> None:
+    assert not is_gamestate_stable(
+        {"state": "ROUND_EVAL", "won": True, "victory_overlay": False}
+    )
+    assert not is_gamestate_stable({"state": "ROUND_EVAL", "won": True})
+    assert is_gamestate_stable(
+        {"state": "ROUND_EVAL", "won": True, "victory_overlay": True}
+    )
+    assert is_gamestate_stable(
+        {"state": "ROUND_EVAL", "won": False, "victory_overlay": False}
+    )
 
 
 def test_consumable_target_hint_death() -> None:
@@ -739,6 +751,36 @@ def test_card_label_hidden() -> None:
             }
         )
         == "??"
+    )
+
+
+def test_card_label_forced_and_selected() -> None:
+    assert (
+        card_label(
+            {"value": {"rank": "Q", "suit": "D"}, "state": {"forced_selection": True}}
+        )
+        == "Q♦[forced]"
+    )
+    assert (
+        card_label({"value": {"rank": "A", "suit": "S"}, "state": {"highlight": True}})
+        == "A♠[selected]"
+    )
+    assert (
+        card_label(
+            {
+                "value": {"rank": "4", "suit": "H"},
+                "state": {"forced_selection": True, "highlight": True},
+                "modifier": {"enhancement": "MULT"},
+            }
+        )
+        == "4♥[e:Mult,forced]"
+    )
+
+
+def test_card_label_hidden_forced() -> None:
+    assert (
+        card_label({"label": "?", "state": {"hidden": True, "forced_selection": True}})
+        == "??[forced]"
     )
 
 
@@ -1190,6 +1232,11 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
                     "value": {"rank": "Q", "suit": "C"},
                     "state": {"hidden": True},
                 },
+                {
+                    "label": "Q of D",
+                    "value": {"rank": "Q", "suit": "D"},
+                    "state": {"forced_selection": True, "highlight": True},
+                },
             ],
         },
     }
@@ -1201,6 +1248,7 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
     assert "score=180/300 need=120" in out
     assert "K♠" in out
     assert "??" in out
+    assert "Q♦[forced]" in out
     assert "jokers (1/5)" in out
     assert "Seltzer" in out
     assert "actions: play discard sort rearrange" in out

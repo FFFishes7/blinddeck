@@ -124,9 +124,11 @@ return {
         -- end
 
         if G.STATE == G.STATES.ROUND_EVAL then
-          -- Final run win: never wait for cash_out UI (may not appear when paused).
+          -- Final run win: wait for the victory overlay, not merely STATE_COMPLETE.
+          -- Returning earlier exposes a normal ROUND_EVAL/cash_out path before
+          -- the post-win overlay is available.
           if G.GAME.won then
-            if BB_GAMESTATE.has_victory_overlay() or G.STATE_COMPLETE then
+            if BB_GAMESTATE.has_victory_overlay() then
               sendDebugMessage("Return play() - won", "BB.ENDPOINTS")
               finish_play()
               return true

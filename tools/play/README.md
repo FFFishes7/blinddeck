@@ -91,6 +91,7 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../P
     **`→ menu  then  start RED WHITE ABC123`**.
 
 - **ROUND_EVAL:** `round won, score=…` plus **`pending:`** (income rows + **`total +$N`** for remaining **`cash_out`** bundle).
+    In normal **`ROUND_EVAL`**, **`actions:`** offers **`cash_out`** only; inventory **`sell`** and **`use`** are disabled until the next state.
     **Investment Tag** on boss defeat: **`received: +$N Investment Tag (boss defeat)`** — already in **`money=`**; not listed under **`pending:`**.
     If **`victory_overlay`**, **`→ endless`** then **`→ menu`** only — **`actions:`** and API allow **`endless`** / **`menu`** only (no **`cash_out`**, **`sell`**, **`use`**, or **`save`** until overlay dismissed). Example:
 
@@ -103,7 +104,7 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../P
 - **Transient states** (`HAND_PLAYED`, `DRAW_TO_HAND`, `NEW_ROUND`, `PLAY_TAROT`):
     **`→ transient: wait for stable state, then glance again`** and `actions: (none)`.
 
-- **Card modifier tags** on hand cards and pack rows — abbreviations in [PLAY.md §5](../../PLAY.md#5-read-glance) (`e:`/`d:`/`s:`). Example: `4♦[e:Mult,s:Red]`. Debuffed cards: `(7♣)`.
+- **Card modifier tags** on hand cards and pack rows — abbreviations in [PLAY.md §5](../../PLAY.md#5-read-glance) (`e:`/`d:`/`s:`). Example: `4♦[e:Mult,s:Red]`. Debuffed cards: `(7♣)`. Cerulean Bell forced hand cards show `[forced]`; ordinary highlighted cards show `[selected]`.
 
 - **Joker / consumable stickers** inline: `[0] (+$3 sell) (perishable 3r) (rental -$1/round) (+10 mult) Holographic Jolly Joker — ...`. **`(+$N sell)`** is sell value when you **`sell joker|consumable`** (omitted for **eternal**). Shop rows use the same sticker
     prefix when a card has edition/perishable/rental (shop buy price stays **`$N`** on the row).

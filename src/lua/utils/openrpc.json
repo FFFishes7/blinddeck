@@ -739,7 +739,7 @@
     {
       "name": "sell",
       "summary": "Sell a joker or consumable",
-      "description": "Sell a joker or consumable from player inventory. Must provide exactly one of: joker or consumable.",
+      "description": "Sell a joker or consumable from player inventory. Must provide exactly one of: joker or consumable. Not available during ROUND_EVAL.",
       "tags": [
         {
           "$ref": "#/components/tags/shop"
@@ -1018,7 +1018,7 @@
     {
       "name": "use",
       "summary": "Use a consumable card",
-      "description": "Use a consumable card with optional target cards. Some consumables require card selection.",
+      "description": "Use a consumable card with optional target cards. Some consumables require card selection. Not available during ROUND_EVAL.",
       "tags": [
         {
           "$ref": "#/components/tags/cards"
@@ -1801,6 +1801,10 @@
           "highlight": {
             "type": "boolean",
             "description": "If true, card is currently highlighted"
+          },
+          "forced_selection": {
+            "type": "boolean",
+            "description": "If true, card is forced selected by a Boss blind (Cerulean Bell)"
           }
         }
       },

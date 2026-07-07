@@ -32,3 +32,6 @@ DOUBLE_THEN_CHARM = "INB3JIA8"
 
 # ante 1: small=Double Tag, big=Foil Tag
 DOUBLE_THEN_FOIL = "S00062"
+
+# ante 8: final Boss=Cerulean Bell after shortcutting through ante 7 boss
+CERULEAN_FINAL_BOSS = "CB0002"

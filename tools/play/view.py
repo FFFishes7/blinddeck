@@ -87,15 +87,24 @@ def card_label(card: dict[str, Any]) -> str:
     (e.g. ``4♦[e:Mult,s:Red]``) so the AI can see buffs without a separate
     query. Debuffed cards are wrapped in parentheses.
     """
-    if card.get("state", {}).get("hidden"):
-        return "??"
+    state = card.get("state") or {}
+    state_tags: list[str] = []
+    if state.get("forced_selection"):
+        state_tags.append("forced")
+    elif state.get("highlight"):
+        state_tags.append("selected")
+    if state.get("hidden"):
+        base = "??"
+        if state_tags:
+            base += "[" + ",".join(state_tags) + "]"
+        return base
     value = card.get("value") or {}
     rank = value.get("rank")
     suit = value.get("suit")
     if not rank or not suit:
         return str(card.get("label") or "?")
     base = f"{rank}{SUIT_SYMBOL.get(suit, suit)}"
-    tags = _modifier_tags(card)
+    tags = _modifier_tags(card) + state_tags
     if tags:
         base += "[" + ",".join(tags) + "]"
     if card.get("state", {}).get("debuff"):

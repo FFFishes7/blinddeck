@@ -35,7 +35,6 @@ return {
   requires_state = {
     G.STATES.BLIND_SELECT,
     G.STATES.SELECTING_HAND,
-    G.STATES.ROUND_EVAL,
     G.STATES.SHOP,
     G.STATES.SMODS_BOOSTER_OPENED,
   },
@@ -168,7 +167,6 @@ return {
           or G.STATE == G.STATES.SELECTING_HAND
           or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
           or G.STATE == G.STATES.BLIND_SELECT
-          or G.STATE == G.STATES.ROUND_EVAL
         )
 
         -- All conditions must be met

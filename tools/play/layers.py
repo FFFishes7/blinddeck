@@ -288,6 +288,12 @@ def is_gamestate_stable(raw: dict[str, Any]) -> bool:
     state = raw.get("state", "UNKNOWN")
     if state in TRANSITION_STATES:
         return False
+    if (
+        state == "ROUND_EVAL"
+        and raw.get("won") is True
+        and raw.get("victory_overlay") is not True
+    ):
+        return False
     if state in HELD_TAGS_STATES and raw.get("held_tags_ready") is False:
         return False
     play_state = effective_state(raw)
