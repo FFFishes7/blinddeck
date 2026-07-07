@@ -1808,6 +1808,51 @@ def test_act_main_json_flag(
     assert data["gamestate"] == {"state": "MENU"}
 
 
+def test_act_main_save_prints_success_without_state_refresh(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    calls: list[tuple[str, dict]] = []
+
+    def fake_rpc(method: str, params: dict) -> dict:
+        calls.append((method, params))
+        return {"success": True, "path": "run.jkr"}
+
+    def fail_execute(method: str, params: dict) -> dict:
+        raise AssertionError("save should not refresh gamestate")
+
+    monkeypatch.setattr(act, "rpc", fake_rpc)
+    monkeypatch.setattr(act, "execute", fail_execute)
+    monkeypatch.setattr(act.sys, "argv", ["act.py", "save", "run.jkr"])
+    rc = act.main()
+    assert rc == 0
+    assert calls == [("save", {"path": "run.jkr"})]
+    out = capsys.readouterr().out
+    assert "save success: run.jkr" in out
+    assert "state=" not in out
+    assert "actions:" not in out
+    assert "hand:" not in out
+
+
+def test_act_main_save_json_flag_keeps_play_envelope(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fail_rpc(method: str, params: dict) -> dict:
+        raise AssertionError("save --json should keep execute path")
+
+    def fake_execute(method: str, params: dict) -> dict:
+        assert (method, params) == ("save", {"path": "run.jkr"})
+        return {"state": "MENU", "money": 0, "round_num": 0, "ante_num": 0}
+
+    monkeypatch.setattr(act, "rpc", fail_rpc)
+    monkeypatch.setattr(act, "execute", fake_execute)
+    monkeypatch.setattr(act.sys, "argv", ["act.py", "save", "run.jkr", "--json"])
+    rc = act.main()
+    assert rc == 0
+    data = json.loads(capsys.readouterr().out)
+    assert data["ok"] is True
+    assert data["gamestate"] == {"state": "MENU"}
+
+
 def test_act_main_unknown_method_returns_bad_request(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

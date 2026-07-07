@@ -21,7 +21,7 @@ import sys
 from typing import Any
 
 from actions import build_actions
-from bot_client import APIError
+from bot_client import APIError, rpc
 from commands import build_params
 from envelope import build_error_envelope, build_play_envelope
 from exec import execute
@@ -59,6 +59,11 @@ def main() -> int:
     method, rest = args[0], args[1:]
     try:
         params: dict[str, Any] = build_params(method, rest)
+        if method == "save" and not json_out:
+            result = rpc("save", params)
+            path = result.get("path") if isinstance(result, dict) else None
+            print(f"save success: {path or params['path']}")
+            return 0
         raw = execute(method, params)
         normalized = normalize_play_state(raw)
         envelope = build_play_envelope(normalized, build_actions(normalized))
