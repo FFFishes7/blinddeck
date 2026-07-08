@@ -383,31 +383,44 @@ class TestUseEndpointValidation:
             "Consumable 'Death' requires exactly 2 cards (provided: 3)",
         )
 
-    def test_use_death_arg_order_invariant(self, client: httpx.Client) -> None:
-        """Death converts the lower-index card into a copy of the higher-index one,
-        regardless of arg order. `use 0 [0,1]` and `use 0 [1,0]` produce the same hand."""
+    def test_use_death_arg_order(self, client: httpx.Client) -> None:
+        """Death converts the first arg into a copy of the second arg.
+        `use 0 [0,1]` transforms card 0 into card 1.
+        `use 0 [1,0]` transforms card 1 into card 0."""
 
-        def _use_and_snapshot(order: list[int]) -> tuple[dict, list[dict]]:
-            before = load_fixture(
-                client, "use", "state-SELECTING_HAND--consumables.cards[0].key-c_death"
-            )
-            orig_right = before["hand"]["cards"][1]["value"]
-            after = assert_gamestate_response(
-                api(client, "use", {"consumable": 0, "cards": order}),
-                state="SELECTING_HAND",
-            )
-            return orig_right, after["hand"]["cards"]
+        # Forward: [0, 1] — card 0 becomes a copy of card 1
+        before_fwd = load_fixture(
+            client, "use", "state-SELECTING_HAND--consumables.cards[0].key-c_death"
+        )
+        orig_card1_value = before_fwd["hand"]["cards"][1]["value"]
+        after_fwd = assert_gamestate_response(
+            api(client, "use", {"consumable": 0, "cards": [0, 1]}),
+            state="SELECTING_HAND",
+        )
+        # card 0 should now match original card 1
+        assert (
+            after_fwd["hand"]["cards"][0]["value"]["rank"] == orig_card1_value["rank"]
+        )
+        assert (
+            after_fwd["hand"]["cards"][0]["value"]["suit"] == orig_card1_value["suit"]
+        )
 
-        orig_right_fwd, hand_fwd = _use_and_snapshot([0, 1])
-        orig_right_rev, hand_rev = _use_and_snapshot([1, 0])
-
-        for hand, orig_right in [
-            (hand_fwd, orig_right_fwd),
-            (hand_rev, orig_right_rev),
-        ]:
-            assert hand[0]["value"]["rank"] == orig_right["rank"]
-            assert hand[0]["value"]["suit"] == orig_right["suit"]
-        assert [c["value"] for c in hand_fwd] == [c["value"] for c in hand_rev]
+        # Reverse: [1, 0] — card 1 becomes a copy of card 0
+        before_rev = load_fixture(
+            client, "use", "state-SELECTING_HAND--consumables.cards[0].key-c_death"
+        )
+        orig_card0_value = before_rev["hand"]["cards"][0]["value"]
+        after_rev = assert_gamestate_response(
+            api(client, "use", {"consumable": 0, "cards": [1, 0]}),
+            state="SELECTING_HAND",
+        )
+        # card 1 should now match original card 0
+        assert (
+            after_rev["hand"]["cards"][1]["value"]["rank"] == orig_card0_value["rank"]
+        )
+        assert (
+            after_rev["hand"]["cards"][1]["value"]["suit"] == orig_card0_value["suit"]
+        )
 
 
 class TestUseEndpointStateRequirements:

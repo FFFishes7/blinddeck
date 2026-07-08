@@ -105,7 +105,10 @@ def _indices_for_rank(gs: dict, rank: str, count: int = 2) -> list[int]:
 
 def _play_delta(client: httpx.Client, gs: dict, indices: list[int]) -> int:
     chips_before = gs["round"]["chips"]
-    gs_after = api(client, "play", {"cards": indices})["result"]
+    resp = api(client, "play", {"cards": indices})
+    if "error" in resp:
+        raise RuntimeError(f"Play API error: {resp['error']}")
+    gs_after = resp["result"]
     return gs_after["round"]["chips"] - chips_before
 
 
@@ -316,22 +319,14 @@ def _rearrange_jokers(client: httpx.Client, order: tuple[int, ...]) -> dict:
     return api(client, "rearrange", {"jokers": list(order)})["result"]
 
 
-def _rearrange_hand(client: httpx.Client, order: tuple[int, ...]) -> dict:
-    return api(client, "rearrange", {"hand": list(order)})["result"]
-
-
 def _rearrange_hand_for_play_order(
     client: httpx.Client,
     gs: dict,
     play_order_cards: tuple[CardAdd, ...],
 ) -> tuple[dict, list[int]]:
-    """Move ``play_order_cards`` to the front of the hand (slot order = score order)."""
+    """Return indices matching ``play_order_cards`` (arg order = score order)."""
     want_indices = _indices_for_cards(gs, play_order_cards)
-    n = _hand_count(gs)
-    rest = [i for i in range(n) if i not in want_indices]
-    order = tuple(want_indices + rest)
-    gs = _rearrange_hand(client, order)
-    return gs, list(range(len(want_indices)))
+    return gs, want_indices
 
 
 def _find_card_index(
@@ -353,45 +348,6 @@ def _find_card_index(
             continue
         return i
     raise AssertionError(f"card not found rank={rank} enh={enhancement}")
-
-
-def _apply_hand_order(client: httpx.Client, gs: dict, hand_order: str) -> dict:
-    if not hand_order:
-        return gs
-    n = _hand_count(gs)
-    if hand_order == "queen_left":
-        q = _find_card_index(gs, rank="Q")
-        k = _find_card_index(gs, rank="K", enhancement="STEEL")
-        if q > k:
-            order = list(range(n))
-            order[q], order[k] = order[k], order[q]
-            return _rearrange_hand(client, tuple(order))
-        return gs
-    if hand_order == "queen_right":
-        q = _find_card_index(gs, rank="Q")
-        k = _find_card_index(gs, rank="K", enhancement="STEEL")
-        if q < k:
-            order = list(range(n))
-            order[q], order[k] = order[k], order[q]
-            return _rearrange_hand(client, tuple(order))
-        return gs
-    if hand_order == "two_left":
-        two = _find_card_index(gs, rank="2")
-        three = _find_card_index(gs, rank="3", enhancement="STEEL")
-        if two > three:
-            order = list(range(n))
-            order[two], order[three] = order[three], order[two]
-            return _rearrange_hand(client, tuple(order))
-        return gs
-    if hand_order == "two_right":
-        two = _find_card_index(gs, rank="2")
-        three = _find_card_index(gs, rank="3", enhancement="STEEL")
-        if two < three:
-            order = list(range(n))
-            order[two], order[three] = order[three], order[two]
-            return _rearrange_hand(client, tuple(order))
-        return gs
-    raise ValueError(f"unknown hand_order: {hand_order}")
 
 
 def _add_jokers(client: httpx.Client, jokers: tuple[JokerAdd, ...]) -> dict:
@@ -428,7 +384,10 @@ def setup_scenario(
         gs = _debuff_cards(client, gs, debuff)
     if line.joker_order is not None:
         gs = _rearrange_jokers(client, line.joker_order)
-    gs = _apply_hand_order(client, gs, line.hand_order)
+    if line.hand_order:
+        raise ValueError(
+            "hand_order is no longer supported because rearrange hand was removed"
+        )
     return gs
 
 

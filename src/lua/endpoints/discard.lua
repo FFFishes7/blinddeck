@@ -2,6 +2,7 @@
 
 ---@type BB_LOGGER
 local BB_LOGGER = assert(SMODS.load_file("src/lua/utils/logger.lua"))()
+local HAND_ORDER = assert(SMODS.load_file("src/lua/utils/hand_order.lua"))()
 
 -- ==========================================================================
 -- Discard Endpoint Params
@@ -60,6 +61,7 @@ return {
       return
     end
 
+    local seen = {}
     for _, card_index in ipairs(args.cards) do
       if not G.hand.cards[card_index + 1] then
         send_response({
@@ -68,6 +70,14 @@ return {
         })
         return
       end
+      if seen[card_index] then
+        send_response({
+          message = "Duplicate card index: " .. card_index,
+          name = BB_ERROR_NAMES.BAD_REQUEST,
+        })
+        return
+      end
+      seen[card_index] = true
     end
 
     -- NOTE: Clear any existing highlights before selecting new cards
@@ -75,6 +85,7 @@ return {
     -- with Boss Blind like Cerulean Bell.
     G.hand:unhighlight_all()
 
+    local restore_hand_positions = HAND_ORDER.apply_arg_order(args.cards)
     for _, card_index in ipairs(args.cards) do
       G.hand.cards[card_index + 1]:click()
     end
@@ -91,6 +102,7 @@ return {
     local discard_button = UIBox:get_UIE_by_ID("discard_button", G.buttons.UIRoot)
     assert(discard_button ~= nil, "discard() discard button not found")
     G.FUNCS.discard_cards_from_highlighted(discard_button)
+    restore_hand_positions()
 
     local draw_to_hand = false
 

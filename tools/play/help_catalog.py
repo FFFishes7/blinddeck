@@ -49,12 +49,12 @@ def catalog_entries() -> list[CatalogEntry]:
         ),
         CatalogEntry(
             "play 0 1 2 3 4",
-            "Play 1-5 cards; [N] from hand: line (0-based).",
+            "Play 1-5 cards; [N] from hand: line, in argument order.",
             "play",
         ),
         CatalogEntry(
             "discard 0 1",
-            "Discard hand cards by [N] from hand: line.",
+            "Discard hand cards by [N] from hand: line, in argument order.",
             "play",
         ),
         CatalogEntry(
@@ -79,22 +79,12 @@ def catalog_entries() -> list[CatalogEntry]:
         ),
         CatalogEntry(
             "use 0 1 2",
-            "Use consumable [0] targeting hand cards [1] [2] (Tarot/Spectral/Death).",
+            "Use consumable [0] targeting hand cards [1] [2]; Death copies second target onto first.",
             "play",
         ),
         CatalogEntry(
             "rearrange jokers 1 0",
             "Reorder jokers left-to-right (scoring order); 2+ jokers required.",
-            "play",
-        ),
-        CatalogEntry(
-            "rearrange consumables 1 0",
-            "Reorder consumable slots; 2+ consumables required.",
-            "play",
-        ),
-        CatalogEntry(
-            "rearrange hand 2 0 1 3",
-            "Reorder hand cards; 2+ hand cards required.",
             "play",
         ),
         CatalogEntry(

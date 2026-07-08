@@ -584,8 +584,7 @@ def test_consumable_target_hint_death() -> None:
     card = {"key": "c_death", "value": {"effect": "copy left card into right"}}
     hint = consumable_target_hint(card)
     assert hint is not None
-    assert "arg order irrelevant" in hint
-    assert "lower-index" in hint
+    assert "first target becomes a copy of the second" in hint
 
 
 def test_build_actions_pack_death_includes_targets(selecting_hand_state: dict) -> None:
@@ -1296,7 +1295,7 @@ def test_print_summary_selecting_hand(capsys: pytest.CaptureFixture[str]) -> Non
     assert "Q♦[forced]" in out
     assert "jokers (1/5)" in out
     assert "Seltzer" in out
-    assert "actions: play discard sort rearrange" in out
+    assert "actions: play discard sort" in out
 
 
 def test_print_summary_consumables_without_jokers(
@@ -1348,7 +1347,7 @@ def test_print_summary_consumables_without_jokers(
     assert "jokers" not in out
     assert "consumables (1/2):" in out
     assert "[0] Death" in out
-    assert "arg order irrelevant" in out
+    assert "first target becomes a copy of the second" in out
     assert "use" in out
 
 
@@ -1675,7 +1674,7 @@ def test_print_summary_pack_death_hint(capsys: pytest.CaptureFixture[str]) -> No
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "Death" in out
-    assert "arg order irrelevant" in out
+    assert "first target becomes a copy of the second" in out
     assert "note: Death" not in out
 
 

@@ -114,10 +114,7 @@ def consumable_target_hint(card: dict) -> str | None:
     key = card.get("key") or ""
     value = card.get("value") or {}
     if key == "c_death":
-        return (
-            "needs 2 hand targets: lower-index card becomes a copy of "
-            "the higher-index card (arg order irrelevant)"
-        )
+        return "needs 2 hand targets: first target becomes a copy of the second"
     if value.get("random_joker_effect") or key in _RANDOM_JOKER_KEYS:
         if key == "c_ectoplasm":
             return "random joker Negative — pack targets ignored"
@@ -206,15 +203,6 @@ def _use_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
 
 def _rearrange_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions: list[dict[str, Any]] = []
-    hand_cards = state.get("hand", {}).get("cards", [])
-    if len(hand_cards) >= 2:
-        actions.append(
-            _action(
-                "rearrange",
-                "Reorder hand cards",
-                example_params={"hand": list(range(len(hand_cards)))},
-            )
-        )
     jokers = state.get("jokers", {}).get("cards", [])
     if len(jokers) >= 2:
         actions.append(
@@ -222,15 +210,6 @@ def _rearrange_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
                 "rearrange",
                 "Reorder jokers",
                 example_params={"jokers": list(range(len(jokers)))},
-            )
-        )
-    consumables = state.get("consumables", {}).get("cards", [])
-    if len(consumables) >= 2:
-        actions.append(
-            _action(
-                "rearrange",
-                "Reorder consumables",
-                example_params={"consumables": list(range(len(consumables)))},
             )
         )
     return actions
@@ -298,9 +277,8 @@ def _pack_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
             params["targets"] = _pack_target_example(card, hand_len)
             if card.get("key") == "c_death":
                 desc = (
-                    "Select Death — pack 0 I J: card at min(I,J) becomes a copy "
-                    "of card at max(I,J); order of I J doesn't matter "
-                    "(hand [N] indices)"
+                    "Select Death — pack 0 I J: hand card I becomes a copy "
+                    "of hand card J"
                 )
             else:
                 desc = f"{desc} — targets are hand [N] from hand: line"
@@ -322,11 +300,13 @@ def _selecting_hand_actions(state: dict[str, Any]) -> list[dict[str, Any]]:
     actions = [
         _action(
             "play",
-            "Play selected hand cards",
+            "Play selected hand cards in argument order",
             example_params={"cards": [0, 1, 2, 3, 4]},
         ),
         _action(
-            "discard", "Discard selected hand cards", example_params={"cards": [0, 1]}
+            "discard",
+            "Discard selected hand cards in argument order",
+            example_params={"cards": [0, 1]},
         ),
         _action("sort", "Sort hand by rank", example_params={"mode": "rank"}),
     ]

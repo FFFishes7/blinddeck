@@ -51,5 +51,5 @@ class TestBalatroClient:
     def test_connection_error_on_bad_port(self):
         """httpx.ConnectError raised when server not available."""
         client = BalatroClient(host="127.0.0.1", port=1, timeout=1.0)
-        with pytest.raises(httpx.ConnectError):
+        with pytest.raises((httpx.ConnectError, httpx.ConnectTimeout)):
             client.call("health")

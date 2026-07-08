@@ -47,11 +47,11 @@ def normalize_sort_mode(mode: str = "rank") -> str:
 
 def build_rearrange_params(args: list[str]) -> dict:
     if len(args) < 2:
-        raise ValueError("rearrange needs: hand|jokers|consumables FULL_INDEX_ORDER")
+        raise ValueError("rearrange needs: jokers FULL_INDEX_ORDER")
     area = args[0]
-    if area not in ("hand", "jokers", "consumables"):
-        raise ValueError("rearrange area must be hand, jokers, or consumables")
-    return {area: [int(x) for x in args[1:]]}
+    if area != "jokers":
+        raise ValueError("rearrange area must be jokers")
+    return {"jokers": [int(x) for x in args[1:]]}
 
 
 def build_params(method: str, args: list[str]) -> dict:
@@ -165,11 +165,10 @@ def format_friendly_action(action: dict) -> str | None:
             return "use " + " ".join(str(x) for x in [idx, *cards])
         return f"use {idx}"
     if cmd == "rearrange":
-        for area in ("hand", "jokers", "consumables"):
-            order = params.get(area)
-            if order is not None:
-                return f"rearrange {area} " + " ".join(str(i) for i in order)
-        return "rearrange hand|jokers|consumables ORDER"
+        order = params.get("jokers")
+        if order is not None:
+            return "rearrange jokers " + " ".join(str(i) for i in order)
+        return "rearrange jokers ORDER"
     if cmd == "sort":
         return f"sort {params.get('mode', 'rank')}"
     if cmd == "sell":

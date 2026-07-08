@@ -3,6 +3,7 @@
 ---@type BB_LOGGER
 local BB_LOGGER = assert(SMODS.load_file("src/lua/utils/logger.lua"))()
 local consumable = assert(SMODS.load_file("src/lua/utils/consumable.lua"))()
+local HAND_ORDER = assert(SMODS.load_file("src/lua/utils/hand_order.lua"))()
 
 -- ==========================================================================
 -- Pack Select Endpoint Params
@@ -94,6 +95,7 @@ return {
 
     -- Helper function to perform card selection and handle response
     local function select_card()
+      local restore_hand_positions = function() end
       local pos = args.card + 1
 
       -- Validate card index is in range
@@ -181,16 +183,33 @@ return {
               G.hand:remove_from_highlighted(G.hand.highlighted[i], true)
             end
 
+            -- For Death, manipulate card x positions BEFORE add_to_highlighted
+            -- because add_to_highlighted sorts by x position internally.
+            if card_key == "c_death" then
+              restore_hand_positions = HAND_ORDER.apply_arg_order(args.targets or {})
+            end
+
             -- Highlight target cards using proper CardArea method
+            local seen_targets = {}
             for _, target_idx in ipairs(args.targets) do
               local hand_pos = target_idx + 1 -- Convert 0-based to 1-based
               if not G.hand.cards[hand_pos] then
+                restore_hand_positions()
                 send_response({
                   message = "Target card index out of range. Index: " .. target_idx .. ", Hand size: " .. #G.hand.cards,
                   name = BB_ERROR_NAMES.BAD_REQUEST,
                 })
                 return true
               end
+              if seen_targets[target_idx] then
+                restore_hand_positions()
+                send_response({
+                  message = "Duplicate target card index: " .. target_idx,
+                  name = BB_ERROR_NAMES.BAD_REQUEST,
+                })
+                return true
+              end
+              seen_targets[target_idx] = true
               G.hand:add_to_highlighted(G.hand.cards[hand_pos], true)
             end
           end
@@ -220,6 +239,7 @@ return {
       local pack_choices_before = G.GAME.pack_choices or 0
 
       G.FUNCS.use_card(btn)
+      restore_hand_positions()
 
       -- Wait for action to complete - check pack_choices to determine expected state
       G.E_MANAGER:add_event(Event({

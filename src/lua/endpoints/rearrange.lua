@@ -5,9 +5,7 @@
 -- ==========================================================================
 
 ---@class Request.Endpoint.Rearrange.Params
----@field hand integer[]? 0-based indices representing new order of cards in hand
 ---@field jokers integer[]? 0-based indices representing new order of jokers
----@field consumables integer[]? 0-based indices representing new order of consumables
 
 -- ==========================================================================
 -- Rearrange Endpoint
@@ -18,26 +16,14 @@ return {
 
   name = "rearrange",
 
-  description = "Rearrange cards in hand, jokers, or consumables",
+  description = "Rearrange jokers",
 
   schema = {
-    hand = {
-      type = "array",
-      required = false,
-      items = "integer",
-      description = "0-based indices representing new order of cards in hand",
-    },
     jokers = {
       type = "array",
       required = false,
       items = "integer",
       description = "0-based indices representing new order of jokers",
-    },
-    consumables = {
-      type = "array",
-      required = false,
-      items = "integer",
-      description = "0-based indices representing new order of consumables",
     },
   },
 
@@ -47,87 +33,25 @@ return {
   ---@param send_response fun(response: Response.Endpoint)
   execute = function(args, send_response)
     sendDebugMessage("Init rearrange()", "BB.ENDPOINTS")
-    -- Validate exactly one parameter is provided
-    local param_count = (args.hand and 1 or 0) + (args.jokers and 1 or 0) + (args.consumables and 1 or 0)
-    if param_count == 0 then
+    if not args.jokers then
       send_response({
-        message = "Must provide exactly one of: hand, jokers, or consumables",
-        name = BB_ERROR_NAMES.BAD_REQUEST,
-      })
-      return
-    elseif param_count > 1 then
-      send_response({
-        message = "Can only rearrange one type at a time",
+        message = "Must provide jokers",
         name = BB_ERROR_NAMES.BAD_REQUEST,
       })
       return
     end
 
-    -- Determine which type to rearrange and validate state-specific requirements
-    local rearrange_type, source_array, indices, type_name
-
-    if args.hand then
-      -- Cards can only be rearranged during SELECTING_HAND
-      if G.STATE ~= G.STATES.SELECTING_HAND and G.STATE ~= G.STATES.SMODS_BOOSTER_OPENED then
-        send_response({
-          message = "Can only rearrange hand during hand selection",
-          name = BB_ERROR_NAMES.INVALID_STATE,
-        })
-        return
-      end
-
-      -- Validate G.hand exists (not tested)
-      if not G.hand or not G.hand.cards then
-        send_response({
-          message = "No hand available to rearrange",
-          name = BB_ERROR_NAMES.NOT_ALLOWED,
-        })
-        return
-      end
-
-      -- In SMODS_BOOSTER_OPENED, hand is only available in Arcana/Spectral packs
-      if G.STATE == G.STATES.SMODS_BOOSTER_OPENED and #G.hand.cards == 0 then
-        send_response({
-          message = "No cards to rearrange. You can only rearrange hand in Arcana and Spectral packs.",
-          name = BB_ERROR_NAMES.NOT_ALLOWED,
-        })
-        return
-      end
-
-      rearrange_type = "hand"
-      source_array = G.hand.cards
-      indices = args.hand
-      type_name = "hand"
-    elseif args.jokers then
-      -- Validate G.jokers exists (not tested)
-      if not G.jokers or not G.jokers.cards then
-        send_response({
-          message = "No jokers available to rearrange",
-          name = BB_ERROR_NAMES.NOT_ALLOWED,
-        })
-        return
-      end
-
-      rearrange_type = "jokers"
-      source_array = G.jokers.cards
-      indices = args.jokers
-      type_name = "jokers"
-    else -- args.consumables
-      -- Validate G.consumeables exists (not tested)
-      if not G.consumeables or not G.consumeables.cards then
-        send_response({
-          message = "No consumables available to rearrange",
-          name = BB_ERROR_NAMES.NOT_ALLOWED,
-        })
-        return
-      end
-
-      rearrange_type = "consumables"
-      source_array = G.consumeables.cards
-      indices = args.consumables
-      type_name = "consumables"
+    if not G.jokers or not G.jokers.cards then
+      send_response({
+        message = "No jokers available to rearrange",
+        name = BB_ERROR_NAMES.NOT_ALLOWED,
+      })
+      return
     end
 
+    local source_array = G.jokers.cards
+    local indices = args.jokers
+    local type_name = "jokers"
     assert(type(indices) == "table", "indices must be a table")
 
     -- Log what we're rearranging
@@ -177,42 +101,21 @@ return {
     end
 
     -- Replace the array in game state
-    if rearrange_type == "hand" then
-      G.hand.cards = new_array
-    elseif rearrange_type == "jokers" then
-      G.jokers.cards = new_array
-    else -- consumables
-      G.consumeables.cards = new_array
-    end
+    G.jokers.cards = new_array
 
     -- Update order fields on each card
     for i, card in ipairs(new_array) do
-      if rearrange_type == "hand" then
-        card.config.card.order = i
-        if card.config.center then
-          card.config.center.order = i
-        end
-      else -- jokers or consumables
-        if card.ability then
-          card.ability.order = i
-        end
-        if card.config and card.config.center then
-          card.config.center.order = i
-        end
+      if card.ability then
+        card.ability.order = i
+      end
+      if card.config and card.config.center then
+        card.config.center.order = i
       end
     end
 
     -- Refresh CardArea positions so the visual order matches the API order.
-    local area = nil
-    if rearrange_type == "hand" then
-      area = G.hand
-    elseif rearrange_type == "jokers" then
-      area = G.jokers
-    else -- consumables
-      area = G.consumeables
-    end
-    if area and area.align_cards then
-      area:align_cards()
+    if G.jokers and G.jokers.align_cards then
+      G.jokers:align_cards()
     end
 
     -- Wait for completion: state should remain stable after rearranging
@@ -222,21 +125,11 @@ return {
       func = function()
         -- Check that we're still in a valid state and arrays exist
         local done = false
-        if args.hand then
-          done = (G.STATE == G.STATES.SELECTING_HAND or G.STATE == G.STATES.SMODS_BOOSTER_OPENED) and G.hand ~= nil
-        elseif args.jokers then
-          done = (
-            G.STATE == G.STATES.SHOP
-            or G.STATE == G.STATES.SELECTING_HAND
-            or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
-          ) and G.jokers ~= nil
-        else -- consumables
-          done = (
-            G.STATE == G.STATES.SHOP
-            or G.STATE == G.STATES.SELECTING_HAND
-            or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
-          ) and G.consumeables ~= nil
-        end
+        done = (
+          G.STATE == G.STATES.SHOP
+          or G.STATE == G.STATES.SELECTING_HAND
+          or G.STATE == G.STATES.SMODS_BOOSTER_OPENED
+        ) and G.jokers ~= nil
 
         if done then
           sendDebugMessage("Return rearrange()", "BB.ENDPOINTS")

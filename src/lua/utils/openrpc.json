@@ -527,8 +527,8 @@
     },
     {
       "name": "rearrange",
-      "summary": "Rearrange cards in hand, jokers, or consumables",
-      "description": "Rearrange cards by providing a new ordering. Must provide exactly one of: hand, jokers, or consumables. The array must be a valid permutation of all current indices.",
+      "summary": "Rearrange jokers",
+      "description": "Rearrange jokers by providing a new ordering. The array must be a valid permutation of all current joker indices.",
       "tags": [
         {
           "$ref": "#/components/tags/cards"
@@ -536,33 +536,9 @@
       ],
       "params": [
         {
-          "name": "hand",
-          "description": "0-based indices representing new order of cards in hand",
-          "required": false,
-          "schema": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        },
-        {
           "name": "jokers",
           "description": "0-based indices representing new order of jokers",
-          "required": false,
-          "schema": {
-            "type": "array",
-            "items": {
-              "type": "integer",
-              "minimum": 0
-            }
-          }
-        },
-        {
-          "name": "consumables",
-          "description": "0-based indices representing new order of consumables",
-          "required": false,
+          "required": true,
           "schema": {
             "type": "array",
             "items": {

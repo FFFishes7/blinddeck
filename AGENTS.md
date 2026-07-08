@@ -228,7 +228,7 @@ Runs inside the game engine and exposes an API.
     - `next_round.lua`: Leave the shop and advance to blind selection.
     - `pack.lua`: Select or skip a card from an opened booster pack.
     - `play.lua`: Play a card from the hand.
-    - `rearrange.lua`: Rearrange cards in hand, jokers, or consumables.
+    - `rearrange.lua`: Rearrange jokers.
     - `reroll.lua`: Reroll to update the cards in the shop area.
     - `reroll_boss.lua`: Reroll the Boss blind for $10 (Director's Cut / Retcon).
     - `save.lua`: Save the current run state to a file.

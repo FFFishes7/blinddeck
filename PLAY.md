@@ -91,24 +91,24 @@ The primary command for each state. Full syntax and index rules below.
 
 ### Common syntax (wherever the items exist)
 
-**Indices are 0-based and per-area.** `hand:`, `jokers:`, `consumables:` each have their own `[N]` lists. `hand [N]` is for `play` / `discard` / `use` targets / `pack` targets. `jokers [N]` and `consumables [N]` are for `sell` and `rearrange`. They do **not** cross over (`sell joker 0` ≠ `sell consumable 0`).
+**Indices are 0-based and per-area.** `hand:`, `jokers:`, `consumables:` each have their own `[N]` lists. `hand [N]` is for `play` / `discard` / `use` targets / `pack` targets. `jokers [N]` is for `sell` / `rearrange`. `consumables [N]` is for `sell` only. They do **not** cross over (`sell joker 0` ≠ `sell consumable 0`).
 
-| Action    | Syntax                                        | Notes                                                                                                                                                                                  |
-| --------- | --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sell      | `sell joker N` / `sell consumable N`          | Type keyword required (not `sell 0` alone).                                                                                                                                            |
-| Use       | `use 0 1 2`                                   | Consumable `[0]` from `consumables:` + hand targets `[1]` `[2]` from `hand:`. Death same form (2 targets; lower-index card becomes a copy of the higher-index one — order irrelevant). |
-| Rearrange | `rearrange hand\|jokers\|consumables I J K …` | **Full** new left-to-right order, every index once. e.g. `rearrange jokers 1 0` puts former `[1]` left of former `[0]`. Needs ≥2 cards.                                                |
-| Sort      | `sort rank`                                   | Modes: `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`/`rd`/`ra`/`s`/`sd`/`sa`).                                                                    |
-| Save      | `save PATH`                                   | Any in-run state (not `MENU`). e.g. `save run.jkr`. Prints `save success: PATH`; relative paths save under `C:\Users\<username>\AppData\Roaming\Balatro\`.                             |
+| Action    | Syntax                               | Notes                                                                                                                                                                              |
+| --------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sell      | `sell joker N` / `sell consumable N` | Type keyword required (not `sell 0` alone).                                                                                                                                        |
+| Use       | `use 0 1 2`                          | Consumable `[0]` from `consumables:` + hand targets `[1]` `[2]` from `hand:`. Death same form (2 targets; first target = source (transformed), second target = template (copied)). |
+| Rearrange | `rearrange jokers I J K …`           | **Full** new left-to-right order, every index once. e.g. `rearrange jokers 1 0` puts former `[1]` left of former `[0]`. Needs ≥2 jokers.                                           |
+| Sort      | `sort rank`                          | Modes: `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`/`rd`/`ra`/`s`/`sd`/`sa`).                                                                |
+| Save      | `save PATH`                          | Any in-run state (not `MENU`). e.g. `save run.jkr`. Prints `save success: PATH`; relative paths save under `C:\Users\<username>\AppData\Roaming\Balatro\`.                         |
 
 **Where each inventory action is allowed:**
 
-| Action      | Allowed states                                                                                            |
-| ----------- | --------------------------------------------------------------------------------------------------------- |
-| `sell`      | `BLIND_SELECT` · `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED`                                       |
-| `use`       | `BLIND_SELECT` · `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED`                                       |
-| `rearrange` | `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED` (hand only in `SELECTING_HAND` + Tarot/Spectral packs) |
-| `sort`      | `SELECTING_HAND`                                                                                          |
+| Action      | Allowed states                                                      |
+| ----------- | ------------------------------------------------------------------- |
+| `sell`      | `BLIND_SELECT` · `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED` |
+| `use`       | `BLIND_SELECT` · `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED` |
+| `rearrange` | `SELECTING_HAND` · `SHOP` · `SMODS_BOOSTER_OPENED`                  |
+| `sort`      | `SELECTING_HAND`                                                    |
 
 ### Per-state details
 
@@ -120,9 +120,9 @@ The primary command for each state. Full syntax and index rules below.
 
 **`ROUND_EVAL`** — `cash_out` (default; read `pending:` / `total +$N` first). No inventory mutation here: `sell` and `use` are disabled until the next state. If **`victory_overlay`**: **only** `endless` (continue) or `menu` (end run) — no `cash_out`, `sell`, `use`, or `save` until the overlay is dismissed.
 
-**`SHOP`** — `buy card N` / `buy voucher N` / `buy pack N` · `reroll` · `next_round` (leave shop). Full inventory (`sell`/`use`/`rearrange`); `save PATH` allowed.
+**`SHOP`** — `buy card N` / `buy voucher N` / `buy pack N` · `reroll` · `next_round` (leave shop). Full inventory (`sell`/`use`/`rearrange jokers`); `save PATH` allowed.
 
-**`SMODS_BOOSTER_OPENED`** — `pack N [hand…]` while glance shows **`choices remaining: N > 0`** (free pick); `pack skip` only to forfeit remaining picks. Targets = `hand:` `[N]` (Tarot/Spectral/Death; not ranks). Ankh/Hex/Ectoplasm: random joker, targets ignored. Inventory: `sell`/`use`/`rearrange`; `save PATH` allowed.
+**`SMODS_BOOSTER_OPENED`** — `pack N [hand…]` while glance shows **`choices remaining: N > 0`** (free pick); `pack skip` only to forfeit remaining picks. Targets = `hand:` `[N]` (Tarot/Spectral/Death; not ranks). Ankh/Hex/Ectoplasm: random joker, targets ignored. Inventory: `sell`/`use`/`rearrange jokers`; `save PATH` allowed.
 
 **`GAME_OVER`** — `menu`, then at `MENU`: `start DECK STAKE SEED` (seed from summary restart hint). `save PATH` allowed.
 

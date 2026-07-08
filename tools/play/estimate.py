@@ -528,10 +528,7 @@ def score_hand_indices(state: dict, hand_indices: list[int]) -> dict:
             p["hand_index"] = i
             parsed.append(p)
     index_to_local = {p["hand_index"]: i for i, p in enumerate(parsed)}
-    combo_local = sorted(
-        (index_to_local[hi] for hi in hand_indices),
-        key=lambda loc: parsed[loc]["hand_index"],
-    )
+    combo_local = [index_to_local[hi] for hi in hand_indices]
     if len(combo_local) != len(hand_indices):
         raise ValueError(f"invalid or hidden hand indices: {hand_indices}")
 

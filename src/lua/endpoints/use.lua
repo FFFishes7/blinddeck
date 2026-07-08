@@ -2,6 +2,7 @@
 
 ---@type BB_LOGGER
 local BB_LOGGER = assert(SMODS.load_file("src/lua/utils/logger.lua"))()
+local HAND_ORDER = assert(SMODS.load_file("src/lua/utils/hand_order.lua"))()
 
 -- ==========================================================================
 -- Use Endpoint Params
@@ -89,6 +90,7 @@ return {
       end
 
       -- Validate each card index is in range
+      local seen = {}
       for _, card_idx in ipairs(args.cards) do
         if card_idx < 0 or card_idx >= #G.hand.cards then
           send_response({
@@ -97,6 +99,14 @@ return {
           })
           return
         end
+        if seen[card_idx] then
+          send_response({
+            message = "Duplicate card index: " .. card_idx,
+            name = BB_ERROR_NAMES.BAD_REQUEST,
+          })
+          return
+        end
+        seen[card_idx] = true
       end
     end
 
@@ -152,6 +162,19 @@ return {
     end
 
     -- Step 6: Card Selection Setup
+    -- For Death, we must manipulate card x positions BEFORE add_to_highlighted
+    -- because add_to_highlighted sorts cards by x position internally.
+    -- This ensures the highlighted array order matches the argument order,
+    -- so the first arg becomes the source (transformed) and the second
+    -- becomes the template (copied).
+    local is_death = consumable_card.config
+      and consumable_card.config.center
+      and consumable_card.config.center.key == "c_death"
+    local restore_hand_positions = function() end
+    if requires_cards and is_death then
+      restore_hand_positions = HAND_ORDER.apply_arg_order(args.cards or {})
+    end
+
     if requires_cards then
       -- Clear existing selection
       for i = #G.hand.highlighted, 1, -1 do
@@ -176,6 +199,7 @@ return {
 
     -- Step 7: Game-Level Validation (e.g. try to use Familiar Spectral when G.hand is not available)
     if not consumable_card:can_use_consumeable() then
+      restore_hand_positions()
       send_response({
         message = "Consumable '" .. consumable_card.ability.name .. "' cannot be used at this time",
         name = BB_ERROR_NAMES.NOT_ALLOWED,
@@ -185,6 +209,7 @@ return {
 
     -- Step 8: Space Check (not tested)
     if consumable_card:check_use() then
+      restore_hand_positions()
       send_response({
         message = "Cannot use consumable '" .. consumable_card.ability.name .. "': insufficient space",
         name = BB_ERROR_NAMES.NOT_ALLOWED,
@@ -201,6 +226,7 @@ return {
 
     -- Call game's use_card function
     G.FUNCS.use_card(mock_element, true, true)
+    restore_hand_positions()
 
     -- Completion Detection
     G.E_MANAGER:add_event(Event({
