@@ -23,7 +23,7 @@ BlindDeck extends the [BalatroBot](https://github.com/coder/balatrobot) mod (gam
 ## Features
 
 - **`bot.ps1 glance`** — compact multi-line state summary, **`choices remaining: N`** on open packs, and an `actions:` line for valid next commands
-- **`bot.ps1 know`** — wiki-backed lookups (joker, boss, tag, stake, **deck**, planet, tarot, voucher, spectral, rules); **`know preflight`** prints a phase-aware verified-facts table at blind/skip
+- **`bot.ps1 know`** — wiki-backed lookups (joker, boss, tag, stake, deck, planet, tarot, voucher, spectral, rules); **`know preflight`** prints a phase-aware verified-facts table at blind/skip
 - **`bot.ps1 query`** — detail queries (hand levels, deck, blinds, vouchers, seed) as tables or JSON
 - **Friendly actions** — `play`, `select`, `buy`, `pack`, … without PowerShell JSON quoting
 - **JSON-RPC API** — full game control for scripts; OpenRPC spec in `src/lua/utils/openrpc.json`
