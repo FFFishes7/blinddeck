@@ -97,7 +97,7 @@ In a **second terminal**, with the game running:
 .\tools\play\bot.ps1 help
 ```
 
-Relative `save` paths are resolved by Balatro/LÖVE on Windows, so `save run.jkr` writes under `C:\Users\<username>\AppData\Roaming\Balatro\`. Use an absolute path if you want the `.jkr` file inside this repo.
+Relative `save` paths are automatically resolved into this project's `saves/` folder on Windows. Use an absolute path if you want to save elsewhere.
 
 `bot.ps1` calls the API via `.venv\Scripts\python.exe`. Prefer **friendly subcommands** (`glance`, `play`, `select`, `buy`, …). `estimate` is optional and not recommended for normal play — see [PLAY.md](PLAY.md). Use `state` / `exec` for scripting.
 

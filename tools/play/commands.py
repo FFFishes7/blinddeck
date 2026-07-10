@@ -2,7 +2,27 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from cheats import build_add_params, build_debuff_params, build_set_params
+
+
+def resolve_save_path(path_str: str) -> str:
+    """Resolve a save path to an absolute path.
+    Relative paths are resolved relative to the project's saves/ directory.
+    If the path already starts with saves/, it resolves relative to the project root.
+    """
+    if os.path.isabs(path_str):
+        return path_str
+
+    p = Path(path_str)
+    project_root = Path(__file__).resolve().parent.parent.parent
+
+    if p.parts and p.parts[0] == "saves":
+        return str(project_root / p)
+    return str(project_root / "saves" / p)
+
 
 NO_PARAMS = frozenset(
     {
@@ -111,11 +131,11 @@ def build_params(method: str, args: list[str]) -> dict:
     if method == "load":
         if len(args) != 1:
             raise ValueError("load needs: PATH")
-        return {"path": args[0]}
+        return {"path": resolve_save_path(args[0])}
     if method == "save":
         if len(args) != 1:
             raise ValueError("save needs: PATH")
-        return {"path": args[0]}
+        return {"path": resolve_save_path(args[0])}
     if method == "screenshot":
         if len(args) != 1:
             raise ValueError("screenshot needs: PATH")

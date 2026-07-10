@@ -1310,7 +1310,30 @@ local function get_blind_effect_from_ui(blind_config)
     end
   end
 
-  return table.concat(effect_parts, " ")
+  local result = table.concat(effect_parts, " ")
+
+  -- Substitute variables (e.g. #1#, #2#) with their values
+  local vars = blind_config.vars
+  -- Inject dynamic vars for specific boss blinds that lack them in G.P_BLINDS
+  if blind_config.key == "bl_wheel" then
+    vars = { (G.GAME and G.GAME.probabilities.normal) or 1, 7 }
+  elseif blind_config.key == "bl_ox" then
+    vars = { (G.GAME and G.GAME.current_round and G.GAME.current_round.most_played_poker_hand) or "Hand" }
+  end
+
+  if vars and type(vars) == "table" then
+    for i, var in ipairs(vars) do
+      result = result:gsub("#" .. i .. "#", function()
+        -- Handle localization keys if necessary, or just tostring
+        if type(var) == "string" and G.localization and G.localization.misc.poker_hands[var] then
+          return G.localization.misc.poker_hands[var]
+        end
+        return tostring(var)
+      end)
+    end
+  end
+
+  return result
 end
 
 ---Gets tag information using localize function (same approach as Tag:set_text)

@@ -1991,9 +1991,11 @@ def test_act_main_save_prints_success_without_state_refresh(
 ) -> None:
     calls: list[tuple[str, dict]] = []
 
+    from commands import resolve_save_path
+
     def fake_rpc(method: str, params: dict) -> dict:
         calls.append((method, params))
-        return {"success": True, "path": "run.jkr"}
+        return {"success": True, "path": resolve_save_path("run.jkr")}
 
     def fail_execute(method: str, params: dict) -> dict:
         raise AssertionError("save should not refresh gamestate")
@@ -2003,9 +2005,10 @@ def test_act_main_save_prints_success_without_state_refresh(
     monkeypatch.setattr(act.sys, "argv", ["act.py", "save", "run.jkr"])
     rc = act.main()
     assert rc == 0
-    assert calls == [("save", {"path": "run.jkr"})]
+    expected_path = resolve_save_path("run.jkr")
+    assert calls == [("save", {"path": expected_path})]
     out = capsys.readouterr().out
-    assert "save success: run.jkr" in out
+    assert f"save success: {expected_path}" in out
     assert "state=" not in out
     assert "actions:" not in out
     assert "hand:" not in out
@@ -2041,8 +2044,10 @@ def test_act_main_save_json_flag_keeps_play_envelope(
     def fail_rpc(method: str, params: dict) -> dict:
         raise AssertionError("save --json should keep execute path")
 
+    from commands import resolve_save_path
+
     def fake_execute(method: str, params: dict) -> dict:
-        assert (method, params) == ("save", {"path": "run.jkr"})
+        assert (method, params) == ("save", {"path": resolve_save_path("run.jkr")})
         return {"state": "MENU", "money": 0, "round_num": 0, "ante_num": 0}
 
     monkeypatch.setattr(act, "rpc", fail_rpc)

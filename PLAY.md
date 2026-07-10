@@ -99,7 +99,7 @@ The primary command for each state. Full syntax and index rules below.
 | Use       | `use 0 1 2`                          | Consumable `[0]` from `consumables:` + hand targets `[1]` `[2]` from `hand:`. Death same form (2 targets; first target = source (transformed), second target = template (copied)). |
 | Rearrange | `rearrange jokers I J K …`           | **Full** new left-to-right order, every index once. e.g. `rearrange jokers 1 0` puts former `[1]` left of former `[0]`. Needs ≥2 jokers.                                           |
 | Sort      | `sort rank`                          | Modes: `rank` / `rank-desc` / `rank-asc` / `suit` / `suit-desc` / `suit-asc` (aliases `r`/`rd`/`ra`/`s`/`sd`/`sa`).                                                                |
-| Save      | `save PATH`                          | Any in-run state (not `MENU`). e.g. `save run.jkr`. Prints `save success: PATH`; relative paths save under `C:\Users\<username>\AppData\Roaming\Balatro\`.                         |
+| Save      | `save PATH`                          | Any in-run state (not `MENU`). e.g. `save run.jkr`. Prints `save success: PATH`; relative paths are automatically resolved into this project's `saves/` folder.                    |
 
 **Where each inventory action is allowed:**
 
@@ -130,11 +130,11 @@ The primary command for each state. Full syntax and index rules below.
 
 ### Save / load / screenshot (not in `actions:`)
 
-| Command           | When                                                | Notes                                                                                                                      |
-| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `save PATH`       | Active run (rows above; not `MENU`)                 | e.g. `save run.jkr`; prints `save success: PATH`; relative paths save under `C:\Users\<username>\AppData\Roaming\Balatro\` |
-| `load PATH`       | `MENU` (also in `actions:` when a save is detected) | Continue instead of `start`                                                                                                |
-| `screenshot PATH` | When the API allows                                 | Utility; e.g. `screenshot shot.png`                                                                                        |
+| Command           | When                                                | Notes                                                                                                                            |
+| ----------------- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `save PATH`       | Active run (rows above; not `MENU`)                 | e.g. `save run.jkr`; prints `save success: PATH`; relative paths are automatically resolved into this project's `saves/` folder. |
+| `load PATH`       | `MENU` (also in `actions:` when a save is detected) | Continue instead of `start`                                                                                                      |
+| `screenshot PATH` | When the API allows                                 | Utility; e.g. `screenshot shot.png`                                                                                              |
 
 ---
 
