@@ -19,7 +19,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 | State                  | Command                                                                                                                                        |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MENU`                 | `bot.ps1 start DECK STAKE [SEED]` (e.g. `start RED WHITE`; `glance` lists decks/stakes)                                                        |
+| `MENU`                 | `bot.ps1 start DECK STAKE [SEED]` (e.g. `start RED WHITE`) · `bot.ps1 challenges` then `bot.ps1 challenge ID` for an unlocked native challenge |
 | `BLIND_SELECT`         | `bot.ps1 select` · `bot.ps1 skip` (Small/Big only) · `bot.ps1 reroll_boss` (Boss + Director's Cut / Retcon, $10)                               |
 | `SELECTING_HAND`       | `bot.ps1 play 0 1 2 3 4` (1-5 cards) · `discard 0 1` · `use 0 [1 2]` · `sort rank` · *(optional)* `estimate`                                   |
 | `ROUND_EVAL`           | `bot.ps1 cash_out` · after Ante 8 win with victory overlay: `bot.ps1 endless` first                                                            |

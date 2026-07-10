@@ -22,6 +22,8 @@ BB_ENDPOINTS = {
   -- Gameplay endpoints
   "src/lua/endpoints/menu.lua",
   "src/lua/endpoints/start.lua",
+  "src/lua/endpoints/challenges.lua",
+  "src/lua/endpoints/challenge.lua",
   -- Blind selection endpoints
   "src/lua/endpoints/skip.lua",
   "src/lua/endpoints/select.lua",

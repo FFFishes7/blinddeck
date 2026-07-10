@@ -95,6 +95,12 @@ def build_params(method: str, args: list[str]) -> dict:
         if kind not in ("joker", "consumable"):
             raise ValueError("sell kind must be joker or consumable")
         return {kind: int(idx)}
+    if method == "challenge":
+        if len(args) != 1:
+            raise ValueError(
+                "challenge needs: CHALLENGE_ID (run challenges to list IDs)"
+            )
+        return {"id": args[0]}
     if method == "start":
         if len(args) < 2:
             raise ValueError("start needs: DECK STAKE [seed]")
@@ -176,6 +182,10 @@ def format_friendly_action(action: dict) -> str | None:
             if kind in params:
                 return f"sell {kind} {params[kind]}"
         return "sell joker|consumable IDX"
+    if cmd == "challenges":
+        return "challenges"
+    if cmd == "challenge":
+        return f"challenge {params.get('id', 'CHALLENGE_ID')}"
     if cmd == "start":
         deck = params.get("deck", "DECK")
         stake = params.get("stake", "STAKE")

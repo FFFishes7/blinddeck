@@ -36,6 +36,16 @@ def catalog_entries() -> list[CatalogEntry]:
             "Start with a specific seed (restart hint on GAME_OVER uses this form).",
             "play",
         ),
+        CatalogEntry(
+            "challenges",
+            "List native challenges, IDs, unlock status, and completion.",
+            "play",
+        ),
+        CatalogEntry(
+            "challenge CHALLENGE_ID",
+            "Start an unlocked native challenge at its built-in White Stake; run challenges first.",
+            "play",
+        ),
         CatalogEntry("select", "Select the current blind at BLIND_SELECT.", "play"),
         CatalogEntry(
             "skip",

@@ -311,6 +311,9 @@ def _header(state: dict[str, Any]) -> str:
         fields.append(f"deck={state['deck']}")
     if state.get("stake"):
         fields.append(f"stake={state['stake']}")
+    challenge = state.get("challenge") or {}
+    if challenge.get("id"):
+        fields.append(f"challenge={challenge.get('name') or challenge['id']}")
     return " ".join(fields)
 
 
@@ -444,7 +447,7 @@ def _game_over_hint(state: dict[str, Any]) -> str:
 
 
 def _menu_hint(envelope: dict[str, Any]) -> list[str]:
-    lines = ["→ start DECK STAKE [SEED]"]
+    lines = ["→ start DECK STAKE [SEED]", "→ challenges  then  challenge CHALLENGE_ID"]
     deck_ids = _option_ids(envelope, "decks", build_decks)
     stake_ids = _option_ids(envelope, "stakes", build_stakes)
     if deck_ids:

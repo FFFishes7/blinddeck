@@ -30,6 +30,8 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../P
 .\tools\play\bot.ps1 know stats
 .\tools\play\bot.ps1 query hands         # detail query: poker hand level table
 .\tools\play\bot.ps1 query blinds        # detail query: three-blind summary
+.\tools\play\bot.ps1 challenges          # native IDs, unlock/completion status, and setup
+.\tools\play\bot.ps1 challenge c_omelette # start an unlocked native challenge by ID
 .\tools\play\bot.ps1 help                # formatted command catalog + descriptions
 .\tools\play\bot.ps1 help --now          # + valid-now examples when game is running
 .\tools\play\bot.ps1 help --json         # machine-readable help-v2 envelope
@@ -41,10 +43,10 @@ See the root [README](../../README.md#quick-start-windows) and [PLAY.md](../../P
 
 ### What `glance` shows
 
-- **Header:** `state`, `ante`, `round`, `money`, `deck`, `stake`. In **SHOP** with
+- **Header:** `state`, `ante`, `round`, `money`, `deck`, `stake`, and active `challenge` when applicable. In **SHOP** with
     Credit Card (`bankrupt_at != 0`), also **`buy_power=`** (`money - bankrupt_at`).
 
-- **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists; `actions:` lists valid command names (e.g. `start load`).
+- **MENU:** `→ start DECK STAKE [SEED]` plus compact `decks:` / `stakes:` lists and `→ challenges then challenge CHALLENGE_ID`. `challenges` prints native IDs, profile unlock/completion state, and setup details; `challenge ID` starts only an unlocked challenge at its built-in White Stake.
 
 - **BLIND_SELECT:** all three blinds (small/big/boss) with target, status, boss
     effect, and any skip-reward tag; the selectable blind is marked `(current, select)`.

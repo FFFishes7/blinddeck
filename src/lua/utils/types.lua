@@ -219,6 +219,7 @@
 ---| "add" | "buy" | "cash_out" | "discard" | "endless" | "gamestate" | "health" | "load"
 ---| "menu" | "next_round" | "play" | "rearrange" | "reroll" | "save"
 ---| "screenshot" | "select" | "sell" | "set" | "skip" | "sort" | "start" | "use"
+---| "challenge" | "challenges"
 
 ---@alias Request.Endpoint.Test.Method
 ---| "echo" | "endpoint" | "error" | "state" | "validation"
@@ -227,6 +228,8 @@
 ---| Request.Endpoint.Add.Params
 ---| Request.Endpoint.Buy.Params
 ---| Request.Endpoint.CashOut.Params
+---| Request.Endpoint.Challenge.Params
+---| Request.Endpoint.Challenges.Params
 ---| Request.Endpoint.Discard.Params
 ---| Request.Endpoint.Gamestate.Params
 ---| Request.Endpoint.Health.Params
@@ -253,6 +256,7 @@
 ---| Request.Endpoint.Test.Error.Params
 ---| Request.Endpoint.Test.State.Params
 ---| Request.Endpoint.Test.Validation.Params
+---| Request.Endpoint.Test.ChallengeProfile.Params
 
 -- ==========================================================================
 -- Endpoint Response Types
@@ -275,6 +279,9 @@
 ---@alias Response.Endpoint.GameState
 ---| GameState # Return the current game state of the game
 
+---@class Response.Endpoint.Challenges
+---@field challenges table[] Native challenge catalog
+
 ---@class Response.Endpoint.Test
 ---@field success boolean Whether the request was successful
 ---@field received_args table? Arguments received by the endpoint (for test endpoints)
@@ -288,6 +295,7 @@
 ---| Response.Endpoint.Health
 ---| Response.Endpoint.Path
 ---| Response.Endpoint.GameState
+---| Response.Endpoint.Challenges
 ---| Response.Endpoint.Test
 ---| Response.Endpoint.Error
 
@@ -302,7 +310,7 @@
 
 ---@class Response.Server.Success
 ---@field jsonrpc "2.0"
----@field result Response.Endpoint.Health | Response.Endpoint.Path | Response.Endpoint.GameState | Response.Endpoint.Test Response payload
+---@field result Response.Endpoint.Health | Response.Endpoint.Path | Response.Endpoint.GameState | Response.Endpoint.Challenges | Response.Endpoint.Test Response payload
 ---@field id integer|string Request ID (echoed from request)
 
 ---@class Response.Server.Error

@@ -13,6 +13,7 @@ PLAY_FORMAT = "balatrobot-play-v1"
 QUERY_FORMAT = "balatrobot-query-v1"
 KNOW_FORMAT = "balatrobot-know-v1"
 HELP_FORMAT = "balatrobot-help-v2"
+CHALLENGES_FORMAT = "balatrobot-challenges-v1"
 
 
 def detect_save_path() -> str | None:
@@ -64,6 +65,10 @@ def build_query_envelope(name: str, data: dict[str, Any]) -> dict[str, Any]:
 
 def build_know_envelope(payload: dict[str, Any]) -> dict[str, Any]:
     return {"ok": True, "format": KNOW_FORMAT, **payload}
+
+
+def build_challenges_envelope(catalog: list[dict[str, Any]]) -> dict[str, Any]:
+    return {"ok": True, "format": CHALLENGES_FORMAT, "challenges": catalog}
 
 
 def build_help_envelope(

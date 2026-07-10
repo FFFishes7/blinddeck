@@ -10,6 +10,7 @@ table.insert(BB_ENDPOINTS, "src/lua/endpoints/tests/state.lua")
 table.insert(BB_ENDPOINTS, "src/lua/endpoints/tests/error.lua")
 table.insert(BB_ENDPOINTS, "src/lua/endpoints/tests/validation.lua")
 table.insert(BB_ENDPOINTS, "src/lua/endpoints/tests/sticker_blacklist.lua")
+table.insert(BB_ENDPOINTS, "src/lua/endpoints/tests/challenge_profile.lua")
 sendDebugMessage("Loading test endpoints", "BB.BALATROBOT")
 
 -- Helper function to format response as pretty-printed table

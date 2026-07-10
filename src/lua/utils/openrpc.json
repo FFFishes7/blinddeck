@@ -992,6 +992,66 @@
       ]
     },
     {
+      "name": "challenges",
+      "summary": "List native challenges",
+      "description": "List native Balatro challenges with profile-specific unlock and completion status.",
+      "tags": [
+        {
+          "$ref": "#/components/tags/game-control"
+        }
+      ],
+      "params": [],
+      "result": {
+        "name": "challenge_catalog",
+        "schema": {
+          "$ref": "#/components/schemas/ChallengeCatalog"
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/InternalError"
+        }
+      ]
+    },
+    {
+      "name": "challenge",
+      "summary": "Start an unlocked native challenge",
+      "description": "Start an unlocked native challenge by ID. The challenge controls the deck, rules, and White Stake.",
+      "tags": [
+        {
+          "$ref": "#/components/tags/game-control"
+        }
+      ],
+      "params": [
+        {
+          "name": "id",
+          "description": "Native challenge ID returned by challenges",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "result": {
+        "name": "gamestate",
+        "description": "Stable BLIND_SELECT state after challenge setup",
+        "schema": {
+          "$ref": "#/components/schemas/GameState"
+        }
+      },
+      "errors": [
+        {
+          "$ref": "#/components/errors/BadRequest"
+        },
+        {
+          "$ref": "#/components/errors/InvalidState"
+        },
+        {
+          "$ref": "#/components/errors/NotAllowed"
+        }
+      ]
+    },
+    {
       "name": "use",
       "summary": "Use a consumable card",
       "description": "Use a consumable card with optional target cards. Some consumables require card selection. Not available during ROUND_EVAL.",
@@ -1204,6 +1264,10 @@
           "pack_hand_ready": {
             "type": "boolean",
             "description": "When pack_ready: true when hand is dealt for Arcana/Spectral pack targeting (glance waits when false)."
+          },
+          "challenge": {
+            "description": "Active native challenge, when this run was started in Challenge Mode",
+            "$ref": "#/components/schemas/ChallengeActive"
           }
         },
         "required": [
@@ -1638,7 +1702,12 @@
           },
           "rarity": {
             "type": "string",
-            "enum": ["COMMON", "UNCOMMON", "RARE", "LEGENDARY"],
+            "enum": [
+              "COMMON",
+              "UNCOMMON",
+              "RARE",
+              "LEGENDARY"
+            ],
             "description": "Joker rarity (jokers only)"
           },
           "target_min": {
@@ -3426,6 +3495,97 @@
           {
             "$ref": "#/components/schemas/PlayingCardKey"
           }
+        ]
+      },
+      "ChallengeActive": {
+        "type": "object",
+        "description": "Identity of the active native Balatro challenge",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "Challenge": {
+        "type": "object",
+        "description": "Native challenge definition plus its profile-specific availability",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "index": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string"
+          },
+          "unlocked": {
+            "type": "boolean"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "deck": {
+            "type": "object"
+          },
+          "jokers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "consumables": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "vouchers": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "rules": {
+            "type": "object"
+          },
+          "restrictions": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "index",
+          "name",
+          "unlocked",
+          "completed",
+          "jokers",
+          "consumables",
+          "vouchers",
+          "rules",
+          "restrictions"
+        ]
+      },
+      "ChallengeCatalog": {
+        "type": "object",
+        "properties": {
+          "challenges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Challenge"
+            }
+          }
+        },
+        "required": [
+          "challenges"
         ]
       }
     },

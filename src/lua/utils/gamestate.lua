@@ -30,6 +30,7 @@ gamestate.BOSS_REROLL_COST = 10
 
 local consumable = assert(SMODS.load_file("src/lua/utils/consumable.lua"))()
 local cashout_preview = assert(SMODS.load_file("src/lua/utils/cashout_preview.lua"))()
+local challenges = assert(SMODS.load_file("src/lua/utils/challenges.lua"))()
 
 ---@type fun(string, table|nil): { name: string, effect: string }
 local get_tag_info
@@ -1595,6 +1596,10 @@ function gamestate.get_gamestate()
     -- Stake (optional)
     if G.GAME.stake then
       state_data.stake = get_stake_name(G.GAME.stake)
+    end
+
+    if G.GAME.challenge then
+      state_data.challenge = challenges.active(G.GAME.challenge)
     end
 
     -- Seed (optional)

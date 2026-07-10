@@ -3,6 +3,8 @@
 #   .\bot.ps1 glance                      # compact state summary
 #   .\bot.ps1 estimate                    # top playable hands + score estimate
 #   .\bot.ps1 start DECK STAKE [SEED]      # e.g. start RED WHITE (glance lists options)
+#   .\bot.ps1 challenges [--json]            # native challenge IDs and availability
+#   .\bot.ps1 challenge CHALLENGE_ID          # start an unlocked challenge
 #   .\bot.ps1 select                      # select current blind
 #   .\bot.ps1 play 0 1 2 3 4              # play cards at hand indices
 #   .\bot.ps1 discard 0 1                 # discard cards
@@ -38,6 +40,7 @@ if ($BotArgs.Count -eq 0) {
     Write-Host '  .\bot.ps1 start DECK STAKE [SEED]     (e.g. start RED WHITE; glance lists decks/stakes)'
     Write-Host '  .\bot.ps1 play 0 1 2 3 4'
     Write-Host '  .\bot.ps1 buy card 0'
+    Write-Host '  .\bot.ps1 challenges [--json] | challenge CHALLENGE_ID'
     Write-Host '  .\bot.ps1 state | query | know | exec | help [--now] [--json]'
     exit 2
 }
@@ -51,6 +54,7 @@ if ($BotArgs.Count -gt 1) {
 switch ($cmd) {
     'state'  { & $Python (Join-Path $ToolRoot 'state.py') @rest; exit $LASTEXITCODE }
     'query'  { & $Python (Join-Path $ToolRoot 'query.py') @rest; exit $LASTEXITCODE }
+    'challenges' { & $Python (Join-Path $ToolRoot 'challenges.py') @rest; exit $LASTEXITCODE }
     'know'   { & $Python (Join-Path $ToolRoot 'know.py') @rest; exit $LASTEXITCODE }
     'exec'   { & $Python (Join-Path $ToolRoot 'exec.py') @rest; exit $LASTEXITCODE }
     'help'   { & $Python (Join-Path $ToolRoot 'help.py') @rest; exit $LASTEXITCODE }

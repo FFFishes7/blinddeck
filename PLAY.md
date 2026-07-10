@@ -79,15 +79,15 @@ More rules: `know check rule scoring_formula` · `know list rules`
 
 The primary command for each state. Full syntax and index rules below.
 
-| State                  | Primary command                                                 |
-| ---------------------- | --------------------------------------------------------------- |
-| `MENU`                 | `start DECK STAKE [SEED]` (or `load PATH`)                      |
-| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)       |
-| `SELECTING_HAND`       | `play N…` · `discard N…` · `use 0 [1 2]` · `sort rank`          |
-| `ROUND_EVAL`           | `cash_out` (or `endless` / `menu` if `victory_overlay`)         |
-| `SHOP`                 | `buy card\|voucher\|pack N` · `reroll` · `next_round`           |
-| `SMODS_BOOSTER_OPENED` | `pack N [hand…]` while `choices remaining: N > 0` · `pack skip` |
-| `GAME_OVER`            | `menu` → then `start DECK STAKE SEED`                           |
+| State                  | Primary command                                                            |
+| ---------------------- | -------------------------------------------------------------------------- |
+| `MENU`                 | `start DECK STAKE [SEED]` · `challenges` → `challenge ID` (or `load PATH`) |
+| `BLIND_SELECT`         | `select` · `skip` (Small/Big) · `reroll_boss` (Boss, $10)                  |
+| `SELECTING_HAND`       | `play N…` · `discard N…` · `use 0 [1 2]` · `sort rank`                     |
+| `ROUND_EVAL`           | `cash_out` (or `endless` / `menu` if `victory_overlay`)                    |
+| `SHOP`                 | `buy card\|voucher\|pack N` · `reroll` · `next_round`                      |
+| `SMODS_BOOSTER_OPENED` | `pack N [hand…]` while `choices remaining: N > 0` · `pack skip`            |
+| `GAME_OVER`            | `menu` → then `start DECK STAKE SEED`                                      |
 
 ### Common syntax (wherever the items exist)
 
@@ -112,7 +112,7 @@ The primary command for each state. Full syntax and index rules below.
 
 ### Per-state details
 
-**`MENU`** — `start DECK STAKE [SEED]` (deck/stake lists in `glance`); `load PATH` when `actions:` offers it.
+**`MENU`** — `start DECK STAKE [SEED]` (deck/stake lists in `glance`); or run `challenges` to list native challenge IDs, unlock/completion status, and setup details, then `challenge ID` to start an unlocked challenge. Challenges use their native deck, rules, and White Stake; they do not accept a seed, deck, or stake override. `load PATH` is available when `actions:` offers it.
 
 **`BLIND_SELECT`** — `select` · `skip` (Small/Big only) · `reroll_boss` (Boss + Director's Cut / Retcon, $10). Inventory: `sell` and `use` only. `save PATH` allowed.
 

@@ -144,7 +144,18 @@ def _menu_actions() -> list[dict[str, Any]]:
                 "seed": {"type": "string", "required": False},
             },
             example_params={"deck": "RED", "stake": "WHITE"},
-        )
+        ),
+        _action(
+            "challenges",
+            "List native challenges and their unlock status",
+            example_params={},
+        ),
+        _action(
+            "challenge",
+            "Start an unlocked native challenge by ID (run challenges first)",
+            params={"id": {"type": "string", "required": True}},
+            example_params={"id": "CHALLENGE_ID"},
+        ),
     ]
     save_path = detect_save_path()
     if save_path:
