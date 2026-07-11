@@ -590,9 +590,22 @@ def _shop_card_line(slot: str, card: dict[str, Any], state: dict[str, Any]) -> s
     label = card.get("label") or "?"
     cost = (card.get("cost") or {}).get("buy", "?")
     effect = _effect_text(card)
+
+    prefixes: list[str] = []
     mod = card.get("modifier") or {}
-    sticker = _sticker_prefix(mod) if isinstance(mod, dict) else ""
-    name_part = f"{sticker} {label}".strip() if sticker else label
+    if isinstance(mod, dict):
+        sticker = _sticker_prefix(mod)
+        if sticker:
+            prefixes.append(sticker)
+
+    value = card.get("value") or {}
+    if isinstance(value, dict):
+        behavior = _behavior_prefix(value)
+        if behavior:
+            prefixes.append(behavior)
+
+    name_part = " ".join([*prefixes, label])
+
     afford = _shop_buy_suffix(card, cost, state)
     if effect:
         return f"  {slot} {name_part} ${cost}{afford} — {effect}"
