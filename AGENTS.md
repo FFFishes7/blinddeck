@@ -110,7 +110,7 @@ Available make targets:
 
 **Important rules:**
 
-1. **Only run make commands when explicitly asked.** Do not proactively run `make test`, `make quality`, etc.
+1. **Only run make commands when explicitly asked.** Do not proactively run `make test`, `make quality`, etc. Always run `make` commands outside the sandbox; request escalation before the first attempt.
 2. **Never run bare linting/formatting/typechecking tools.** Always use make targets instead:
     - Use `make lint` instead of `ruff check`
     - Use `make format` instead of `ruff format`
