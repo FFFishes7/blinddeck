@@ -2340,6 +2340,22 @@ def _est_state(
     }
 
 
+def _mega_joker(
+    key: str,
+    *,
+    edition: str = "NEGATIVE",
+    rarity: str = "COMMON",
+    stats: dict | None = None,
+) -> dict:
+    return {
+        "label": key,
+        "key": key,
+        "value": {"rarity": rarity, "stats": stats or {}},
+        "modifier": {"edition": edition},
+        "cost": {"sell": 2},
+    }
+
+
 def test_estimate_three_of_a_kind_kings_no_jokers() -> None:
     # 3 Kings + 2 kickers -> Three of a Kind: base 30/3 + 3*10 chips = 60*3 = 180
     hand = _hand_cards(
@@ -2998,6 +3014,216 @@ def test_estimate_photograph_first_face_x2() -> None:
     top = est["estimate"]["top"]
     assert top[0]["mult"] == 4
     assert top[0]["score"] == 120
+
+
+def test_estimate_brainstorm_copies_photograph_per_retrigger() -> None:
+    hand = _hand_cards(
+        ("J", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("J", "S", {}),
+        ("5", "H", {}),
+        ("3", "C", {}),
+        ("2", "D", {}),
+    )
+    jokers = [
+        {"label": "Photograph", "key": "j_photograph", "value": {}},
+        {"label": "Brainstorm", "key": "j_brainstorm", "value": {}},
+        {"label": "Hanging Chad", "key": "j_hanging_chad", "value": {}},
+    ]
+    line = estimate.score_hand_indices(_est_state(hand, jokers=jokers), [0, 1])
+    # GLASS ×2, two Photographs ×2×2, RED + Chad => four triggers.
+    assert line["mult"] == 8192
+    assert line["score"] == 491520
+
+
+def test_estimate_type_jokers_use_contains_flags_for_five_of_a_kind() -> None:
+    hand = _hand_cards(*(("J", suit, {}) for suit in ("S", "H", "D", "C", "S")))
+    jokers = [
+        {"label": "Jolly Joker", "key": "j_jolly", "value": {}},
+        {"label": "The Duo", "key": "j_duo", "value": {}},
+        {"label": "The Trio", "key": "j_trio", "value": {}},
+        {"label": "The Family", "key": "j_family", "value": {}},
+    ]
+    line = estimate.score_hand_indices(_est_state(hand, jokers=jokers), [0, 1, 2, 3, 4])
+    assert line["hand_type"] == "Five of a Kind"
+    assert line["chips"] == 170
+    assert line["mult"] == 480  # (12 + 8) ×2 ×3 ×4
+    assert line["score"] == 81600
+
+
+def test_estimate_mega_scored_card_retrigger_stack() -> None:
+    hand = _hand_cards(
+        ("J", "S", {"edition": "FOIL"}),
+        ("J", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("J", "H", {"enhancement": "MULT", "edition": "HOLO"}),
+        ("J", "D", {"enhancement": "BONUS", "edition": "FOIL"}),
+        ("J", "C", {"enhancement": "WILD", "edition": "POLYCHROME"}),
+    )
+    jokers = [
+        _mega_joker("j_photograph", edition="HOLO"),
+        _mega_joker("j_brainstorm"),
+        _mega_joker("j_blueprint"),
+        _mega_joker("j_hanging_chad", edition="FOIL"),
+        _mega_joker("j_sock_and_buskin", edition="POLYCHROME"),
+        _mega_joker("j_smiley"),
+        _mega_joker("j_scary_face"),
+        _mega_joker("j_dusk"),
+        _mega_joker("j_selzer"),
+        _mega_joker("j_jolly", edition="FOIL"),
+        _mega_joker("j_crafty"),
+        _mega_joker("j_cavendish", edition="POLYCHROME"),
+    ]
+    state = _est_state(hand, jokers=jokers, hands_left=1)
+    top = estimate.estimate(state)["estimate"]["top"][0]
+    reverse = estimate.score_hand_indices(state, [4, 3, 2, 1, 0])
+    no_dusk = estimate.estimate(_est_state(hand, jokers=jokers, hands_left=2))[
+        "estimate"
+    ]["top"][0]
+    assert top["hand_type"] == "Five of a Kind"
+    assert top["indices"] != sorted(top["indices"])
+    assert top["score"] > reverse["score"]
+    assert top["score"] > no_dusk["score"]
+
+
+def test_estimate_mega_held_mime_copy_stack() -> None:
+    hand = _hand_cards(
+        ("5", "H", {"enhancement": "GLASS"}),
+        ("5", "D", {"enhancement": "MULT"}),
+        ("K", "S", {"enhancement": "STEEL", "seal": "RED"}),
+        ("K", "C", {"enhancement": "STEEL"}),
+        ("Q", "S", {"enhancement": "STEEL"}),
+    )
+    jokers = [
+        _mega_joker("j_baron", edition="POLYCHROME"),
+        _mega_joker("j_brainstorm", edition="HOLO"),
+        _mega_joker("j_mime", edition="HOLO"),
+        _mega_joker("j_blueprint", edition="FOIL"),
+        _mega_joker("j_shoot_the_moon"),
+        _mega_joker("j_raised_fist"),
+        _mega_joker(
+            "j_steel_joker",
+            rarity="UNCOMMON",
+            stats={"x_mult": 1.4, "steel_tally": 2},
+        ),
+        _mega_joker("j_abstract"),
+        _mega_joker("j_jolly"),
+        _mega_joker("j_cavendish", edition="POLYCHROME"),
+        _mega_joker("j_baseball"),
+        _mega_joker("j_stuntman"),
+    ]
+    state = _est_state(hand, jokers=jokers)
+    top = estimate.estimate(state)["estimate"]["top"][0]
+    no_mime = [j for j in jokers if j["key"] != "j_mime"]
+    no_mime_top = estimate.estimate(_est_state(hand, jokers=no_mime))["estimate"][
+        "top"
+    ][0]
+    assert top["hand_type"] in {"High Card", "Pair"}
+    assert all(i not in top["indices"] for i in (2, 3, 4))
+    assert top["score"] > no_mime_top["score"]
+
+
+def test_estimate_mega_global_order_edition_baseball_stack() -> None:
+    hand = _hand_cards(
+        ("K", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("K", "H", {"enhancement": "MULT", "edition": "HOLO"}),
+        ("K", "H", {"enhancement": "BONUS", "edition": "FOIL"}),
+        ("5", "H", {"edition": "POLYCHROME"}),
+        ("5", "C", {"enhancement": "WILD"}),
+    )
+    jokers = [
+        _mega_joker("j_jolly", edition="FOIL"),
+        _mega_joker("j_brainstorm", edition="HOLO"),
+        _mega_joker("j_abstract"),
+        _mega_joker("j_swashbuckler", stats={"mult": 30}),
+        _mega_joker("j_bull"),
+        _mega_joker("j_bootstraps"),
+        _mega_joker("j_stuntman", edition="FOIL"),
+        _mega_joker("j_crafty"),
+        _mega_joker("j_acrobat", rarity="UNCOMMON"),
+        _mega_joker("j_tribe"),
+        _mega_joker("j_seeing_double", rarity="UNCOMMON"),
+        _mega_joker("j_blueprint", edition="HOLO"),
+        _mega_joker("j_cavendish", edition="POLYCHROME"),
+        _mega_joker("j_baseball"),
+    ]
+    state = _est_state(hand, jokers=jokers, hands_left=1, money=25)
+    optimal = estimate.score_hand_indices(state, [1, 0, 2, 3, 4])
+    xmult_early = [
+        jokers[0],
+        jokers[1],
+        jokers[11],
+        jokers[12],
+        jokers[8],
+        jokers[9],
+        jokers[10],
+        *jokers[2:8],
+        jokers[13],
+    ]
+    early = estimate.score_hand_indices(
+        _est_state(hand, jokers=xmult_early, hands_left=1, money=25),
+        [1, 0, 2, 3, 4],
+    )
+    no_baseball = [j for j in jokers if j["key"] != "j_baseball"]
+    no_baseball_line = estimate.score_hand_indices(
+        _est_state(hand, jokers=no_baseball, hands_left=1, money=25),
+        [1, 0, 2, 3, 4],
+    )
+    assert optimal["hand_type"] == "Flush House"
+    assert optimal["score"] > early["score"]
+    assert optimal["score"] > no_baseball_line["score"]
+
+
+def test_estimate_optimizes_mult_before_glass_play_order() -> None:
+    hand = _hand_cards(
+        ("5", "S", {"enhancement": "GLASS"}),
+        ("5", "H", {"enhancement": "MULT"}),
+        ("3", "D", {}),
+        ("7", "C", {}),
+        ("2", "S", {}),
+    )
+    top = estimate.estimate(_est_state(hand))["estimate"]["top"][0]
+    assert top["hand_type"] == "Pair"
+    assert top["indices"] == [1, 0]
+    assert top["scoring_indices"] == [1, 0]
+    assert top["score"] == 240
+
+
+def test_estimate_optimizes_photochad_glass_red_play_order() -> None:
+    hand = _hand_cards(
+        ("J", "S", {}),
+        ("J", "H", {"enhancement": "GLASS", "seal": "RED"}),
+        ("5", "H", {}),
+        ("3", "C", {}),
+        ("2", "D", {}),
+    )
+    jokers = [
+        {"label": "Photograph", "key": "j_photograph", "value": {}},
+        {"label": "Hanging Chad", "key": "j_hanging_chad", "value": {}},
+    ]
+    top = estimate.estimate(_est_state(hand, jokers=jokers))["estimate"]["top"][0]
+    assert top["indices"] == [1, 0]
+    assert top["scoring_indices"] == [1, 0]
+    assert top["score"] == 30720
+
+
+def test_estimate_order_tie_prefers_natural_left_to_right() -> None:
+    hand = _hand_cards(
+        ("K", "S", {}),
+        ("K", "H", {}),
+        ("5", "D", {}),
+        ("3", "C", {}),
+        ("2", "S", {}),
+    )
+    top = estimate.estimate(_est_state(hand))["estimate"]["top"][0]
+    assert top["indices"] == [0, 1]
+    assert top["scoring_indices"] == [0, 1]
+
+
+def test_estimate_ordered_candidate_count_and_limit() -> None:
+    assert estimate._ordered_play_candidate_count(8) == 8800
+    assert estimate._ordered_play_candidate_count(14) == 266644
+    hand = _hand_cards(*(("2", "S", {}) for _ in range(14)))
+    with pytest.raises(estimate.EstimateCandidateLimitError, match="266644 candidates"):
+        estimate.estimate(_est_state(hand))
 
 
 def test_estimate_photochad_glass_red_leftmost() -> None:

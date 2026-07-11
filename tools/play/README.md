@@ -180,15 +180,17 @@ RNG jokers (Misprint, 8 Ball, Bloodstone, …) stay `unmodeled`. Full registry +
 **mandatory modeling checklist**: [`estimate_registry.md`](estimate_registry.md).
 Verify new jokers in `%APPDATA%\Balatro\Mods\lovely\game-dump\card.lua` before porting.
 
-`bot.ps1 estimate` is only available in `SELECTING_HAND`. It enumerates 1–5 card
-plays, classifies each poker hand, and scores: hand level + scoring-card chips +
+`bot.ps1 estimate` is only available in `SELECTING_HAND`. It enumerates ordered
+1–5 card plays, classifies each poker hand, and scores: hand level + scoring-card chips +
 enhancement/edition/seal + retriggers + modeled jokers (+Mult before ×Mult) +
 **joker-slot Foil/Holo/Poly** (Foil/Holo before effect, Poly after; Blueprint uses
 its own slot edition) + boss debuff (The Flint) + Plasma balancing.
 
-Prints top-3 lines with **`idx`** = full `bot.ps1 play` indices (includes kickers
-when they change held-card jokers like Blackboard); optional **`scoring=`** when
-kickers differ from scorers; `[BEATS]` / `[short]` vs blind target. Dusk uses API
+Prints top-3 lines with **`idx`** = the ordered `bot.ps1 play` arguments. Pass the
+indices unchanged—do not sort them. The estimator searches order as well as card
+choice and may recommend `idx=[0, 3, 2, 1, 4]`; the list includes kickers when they
+change held-card jokers like Blackboard. Optional **`scoring=`** shows scoring cards
+in trigger order when kickers differ from scorers; `[BEATS]` / `[short]` vs blind target. Dusk uses API
 `hands_left == 1` (= game's internal `0` after decrement). `--json` adds
 `scoring_indices`, `scoring_cards`, `unmodeled_jokers`.
 

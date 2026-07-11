@@ -12,8 +12,6 @@ from estimate_constants import (
     FACE_RANKS,
     FIBONACCI_RANKS,
     ODD_RANKS,
-    RANK_CHIPS,
-    RANK_ORDER,
     TYPE_CHIPS_JOKERS,
     TYPE_MULT_JOKERS,
     TYPE_XMULT_JOKERS,
@@ -116,19 +114,6 @@ RETRIGGER_ONLY_JOKERS = frozenset(
         "j_mime",
     }
 )
-
-# Jokers whose score effect runs in the held-in-hand phase (not joker_main).
-HELD_PHASE_JOKERS = frozenset(
-    {
-        "j_baron",
-        "j_shoot_the_moon",
-        "j_raised_fist",
-    }
-)
-
-# Physical jokers whose edition bonus applies after the held stack (add-only),
-# not during joker_main where it would be multiplied by held ×Mult.
-EDITION_AFTER_HELD_PHYSICAL = RETRIGGER_ONLY_JOKERS | HELD_PHASE_JOKERS
 
 
 def _joker_edition_from(card: dict) -> str:
@@ -313,6 +298,20 @@ def _per_card_joker_bonus(card: dict, key: str, ctx: dict) -> tuple[int, int, fl
         return (0, 7 if _card_is_suit(card, "C", ctx) else 0, 1)
     if key == "j_arrowhead":
         return (50 if _card_is_suit(card, "S", ctx) else 0, 0, 1)
+    if (
+        key == "j_ancient"
+        and ctx.get("ancient_suit")
+        and _card_is_suit(card, ctx["ancient_suit"], ctx)
+    ):
+        return (0, 0, 1.5)
+    if (
+        key == "j_idol"
+        and ctx.get("idol_rank")
+        and ctx.get("idol_suit")
+        and card.get("rank") == ctx["idol_rank"]
+        and _card_is_suit(card, ctx["idol_suit"], ctx)
+    ):
+        return (0, 0, 2)
     fn = PER_CARD_JOKERS.get(key)
     if fn:
         return fn(card)
@@ -531,6 +530,40 @@ EFFECT_XMULT_JOKERS = frozenset(
 _RUNNER_HAND_TYPES = frozenset({"Straight", "Straight Flush"})
 _TROUSERS_HAND_TYPES = frozenset({"Two Pair", "Full House", "Flush House"})
 
+_CONTAINS_HAND_TYPES: dict[str, frozenset[str]] = {
+    "Pair": frozenset(
+        {
+            "Pair",
+            "Two Pair",
+            "Three of a Kind",
+            "Four of a Kind",
+            "Full House",
+            "Five of a Kind",
+            "Flush House",
+            "Flush Five",
+        }
+    ),
+    "Two Pair": frozenset({"Two Pair", "Full House", "Flush House"}),
+    "Three of a Kind": frozenset(
+        {
+            "Three of a Kind",
+            "Four of a Kind",
+            "Full House",
+            "Five of a Kind",
+            "Flush House",
+            "Flush Five",
+        }
+    ),
+    "Four of a Kind": frozenset({"Four of a Kind", "Five of a Kind", "Flush Five"}),
+    "Straight": frozenset({"Straight", "Straight Flush"}),
+    "Flush": frozenset({"Flush", "Straight Flush", "Flush House", "Flush Five"}),
+}
+
+
+def _hand_contains(hand_type: str, required: str) -> bool:
+    """Mirror truthiness of game ``poker_hands[required]`` for the top hand."""
+    return hand_type in _CONTAINS_HAND_TYPES.get(required, frozenset({required}))
+
 
 def _blackboard_held_ok(card: dict) -> bool:
     """Held card counts for Blackboard (Wild satisfies Spade/Club-only rule)."""
@@ -565,28 +598,6 @@ def _project_chips_joker(joker: dict, key: str, ctx: dict) -> int:
     elif key == "j_wee":
         chips += 8 * sum(1 for c in scoring if c.get("rank") == "2")
     return chips
-
-
-def _round_aware_card_xmult(card: dict, jokers: list[dict], ctx: dict) -> float:
-    """Per-card ×Mult from jokers that depend on round scoring targets."""
-    xmult = 1.0
-    for j in jokers:
-        key = j.get("key") or ""
-        if (
-            key == "j_ancient"
-            and ctx.get("ancient_suit")
-            and _card_is_suit(card, ctx["ancient_suit"], ctx)
-        ):
-            xmult *= 1.5
-        if (
-            key == "j_idol"
-            and ctx.get("idol_rank")
-            and ctx.get("idol_suit")
-            and card.get("rank") == ctx["idol_rank"]
-            and _card_is_suit(card, ctx["idol_suit"], ctx)
-        ):
-            xmult *= 2
-    return xmult
 
 
 def _card_is_face(card: dict, ctx: dict) -> bool:
@@ -673,13 +684,13 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
     hand_type = ctx.get("hand_type") or ""
     if key in TYPE_MULT_JOKERS:
         need, bonus = TYPE_MULT_JOKERS[key]
-        return (0, bonus, 1) if hand_type == need else (0, 0, 1)
+        return (0, bonus, 1) if _hand_contains(hand_type, need) else (0, 0, 1)
     if key in TYPE_CHIPS_JOKERS:
         need, bonus = TYPE_CHIPS_JOKERS[key]
-        return (bonus, 0, 1) if hand_type == need else (0, 0, 1)
+        return (bonus, 0, 1) if _hand_contains(hand_type, need) else (0, 0, 1)
     if key in TYPE_XMULT_JOKERS:
         need, bonus = TYPE_XMULT_JOKERS[key]
-        return (0, 0, bonus) if hand_type == need else (0, 0, 1)
+        return (0, 0, bonus) if _hand_contains(hand_type, need) else (0, 0, 1)
     if key == "j_joker":
         return (0, 4, 1)
     if key == "j_abstract":
@@ -711,7 +722,11 @@ def _global_joker_bonus(joker: dict, ctx: dict) -> tuple[int, int, float]:
         scoring = ctx.get("scoring_cards") or []
         return (0, 0, 3) if _flower_pot_active(scoring, ctx) else (0, 0, 1)
     if key == "j_family":  # The Family: X4 if hand contains a 4oak
-        return (0, 0, 4) if ctx["hand_type"] == "Four of a Kind" else (0, 0, 1)
+        return (
+            (0, 0, 4)
+            if _hand_contains(ctx["hand_type"], "Four of a Kind")
+            else (0, 0, 1)
+        )
     if key in EFFECT_XMULT_JOKERS:
         xm = _stat_xmult(joker)
         if key == "j_caino":
@@ -806,69 +821,12 @@ def _joker_rarity(joker: dict) -> str | None:
     return raw if isinstance(raw, str) else None
 
 
-def _mime_owned(jokers: list[dict]) -> bool:
-    for i in range(len(jokers)):
-        _eff, key = _effective_joker_at(i, jokers)
-        if key == "j_mime":
-            return True
-    return False
-
-
 def _baseball_react_xmult(jokers: list[dict], triggered_joker: dict) -> float:
     """×Mult from Baseball Card when an Uncommon joker fires joker_main."""
     if _joker_rarity(triggered_joker) != "UNCOMMON":
         return 1.0
     count = sum(1 for j in jokers if j.get("key") == "j_baseball")
     return BASEBALL_UNCOMMON_XMULT**count if count else 1.0
-
-
-def _held_joker_bonus_once(
-    held_cards: list[dict], jokers: list[dict]
-) -> tuple[int, float]:
-    """One pass of held-in-hand joker effects (Baron, Shoot the Moon, Raised Fist)."""
-    add_mult = 0
-    xmult = 1.0
-    for i in range(len(jokers)):
-        _eff, key = _effective_joker_at(i, jokers)
-        if key == "j_shoot_the_moon":
-            add_mult += 13 * sum(1 for c in held_cards if c.get("rank") == "Q")
-        elif key == "j_baron":
-            for c in held_cards:
-                if c.get("rank") == "K":
-                    xmult *= 1.5
-        elif key == "j_raised_fist" and held_cards:
-            ranked = [c for c in held_cards if c.get("rank")]
-            if ranked:
-                lowest = min(ranked, key=lambda c: RANK_ORDER.get(c["rank"], 99))
-                add_mult += 2 * RANK_CHIPS.get(lowest["rank"], 0)
-    return add_mult, xmult
-
-
-def _held_playing_card_bonus(held_cards: list[dict], mime: bool) -> float:
-    """×Mult from held Steel cards (Mime retriggers held abilities once)."""
-    xmult = 1.0
-    for card in held_cards:
-        if card.get("debuff"):
-            continue
-        if card.get("enhancement") != "STEEL":
-            continue
-        triggers = 1 + (1 if card.get("seal") == "RED" else 0)
-        if mime:
-            triggers *= 2
-        for _ in range(triggers):
-            xmult *= 1.5
-    return xmult
-
-
-def _held_joker_bonus(held_cards: list[dict], jokers: list[dict]) -> tuple[int, float]:
-    """Held-in-hand joker phase: (add_mult, xmult). Mime retriggers once."""
-    mime = _mime_owned(jokers)
-    add_mult, xmult = _held_joker_bonus_once(held_cards, jokers)
-    if mime:
-        add_m2, x_m2 = _held_joker_bonus_once(held_cards, jokers)
-        add_mult += add_m2
-        xmult *= x_m2
-    return add_mult, xmult
 
 
 def _seltzer_active(joker: dict) -> int:
@@ -890,6 +848,7 @@ def _retrigger_config(jokers: list[dict]) -> dict:
         "retrigger_all": 0,
         "retrigger_leftmost": 0,
         "retrigger_face": 0,
+        "retrigger_held": 0,
         "dusk_owned": False,
         "hack_owned": False,
     }
@@ -909,6 +868,8 @@ def _retrigger_config(jokers: list[dict]) -> dict:
             cfg["hack_owned"] = True
         elif key == "j_sock_and_buskin":
             cfg["retrigger_face"] += 1
+        elif key == "j_mime":
+            cfg["retrigger_held"] += 1
     return cfg
 
 

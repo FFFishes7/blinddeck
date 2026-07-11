@@ -64,4 +64,4 @@ class TestEstimateLiveScenarios:
         run_scenario(client, get_scenario(scenario_id))
 
     def test_scenario_count(self) -> None:
-        assert len(_SCENARIO_IDS) == 33
+        assert len(_SCENARIO_IDS) == 36

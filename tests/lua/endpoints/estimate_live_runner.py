@@ -294,7 +294,8 @@ def assert_estimate_matches_play(
     if isinstance(expected, float):
         expected = int(round(expected))
     assert abs(delta - expected) <= 1, (
-        f"estimate={expected} actual={delta} hand={est_line['hand_type']} idx={indices}"
+        f"estimate={expected} actual={delta} hand={est_line['hand_type']} "
+        f"chips={est_line['chips']} mult={est_line['mult']} idx={indices}"
     )
     return delta
 
@@ -355,7 +356,32 @@ def _add_jokers(client: httpx.Client, jokers: tuple[JokerAdd, ...]) -> dict:
     for joker in jokers:
         gs = api(client, "add", joker.to_add_params())["result"]
     assert gs is not None
+    area = gs.get("jokers") or {}
+    assert area.get("count", 0) <= area.get("limit", 0), (
+        f"joker capacity exceeded: count={area.get('count')} limit={area.get('limit')}"
+    )
     return gs
+
+
+def _joker_order_for_specs(
+    added: tuple[JokerAdd, ...], desired: tuple[JokerAdd, ...]
+) -> tuple[int, ...]:
+    """Map key/edition specs to stable indices in the add sequence."""
+    if len(added) != len(desired):
+        raise AssertionError(
+            f"joker order length mismatch: added={len(added)} desired={len(desired)}"
+        )
+    used: set[int] = set()
+    order: list[int] = []
+    for want in desired:
+        for i, have in enumerate(added):
+            if i not in used and have == want:
+                used.add(i)
+                order.append(i)
+                break
+        else:
+            raise AssertionError(f"joker order spec not added: {want}")
+    return tuple(order)
 
 
 def setup_scenario(
@@ -364,10 +390,13 @@ def setup_scenario(
     line: ScenarioLine,
 ) -> dict:
     gs = load_fixture(client, "gamestate", "state-SELECTING_HAND")
+    added_jokers: tuple[JokerAdd, ...] = ()
     if line.jokers is not None:
-        gs = _add_jokers(client, line.jokers)
+        added_jokers = line.jokers
+        gs = _add_jokers(client, added_jokers)
     elif recipe.jokers:
-        gs = _add_jokers(client, recipe.jokers)
+        added_jokers = recipe.jokers
+        gs = _add_jokers(client, added_jokers)
     else:
         joker_keys = (
             line.joker_keys if line.joker_keys is not None else recipe.joker_keys
@@ -384,6 +413,13 @@ def setup_scenario(
         gs = _debuff_cards(client, gs, debuff)
     if line.joker_order is not None:
         gs = _rearrange_jokers(client, line.joker_order)
+    if line.joker_order_specs is not None:
+        if line.joker_order is not None:
+            raise ValueError("use joker_order or joker_order_specs, not both")
+        gs = _rearrange_jokers(
+            client,
+            _joker_order_for_specs(added_jokers, line.joker_order_specs),
+        )
     if line.hand_order:
         raise ValueError(
             "hand_order is no longer supported because rearrange hand was removed"

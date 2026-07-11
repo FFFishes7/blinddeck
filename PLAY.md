@@ -75,6 +75,11 @@ face card), Hanging Chad (the first scoring card), and each scoring card's
 enhancement, edition, and seal. With base Mult 4, a Mult Card before a Glass
 Card gives `(4+4)×2=16` Mult; Glass before Mult gives `4×2+4=12`.
 
+When using the optional `estimate` helper, treat its `idx=[…]` result as an
+ordered command, not a set: pass the indices to `play` unchanged. The estimator
+searches card order and may intentionally recommend a non-sorted sequence such
+as `play 0 3 2 1 4`.
+
 **Order rule:** stack **+Mult before ×Mult** — put +Mult jokers (and +Mult cards/editions) **left** of ×Mult jokers and ×Mult editions (Ramen, Polychrome, …). Joker slot order matters (`rearrange jokers`).
 
 Example (40 chips, base mult 4, +4 Mult joker + ×2 Ramen): joker **left** of Ramen → 40×((4+4)×2)=**640**; reversed → 40×((4×2)+4)=**480**.

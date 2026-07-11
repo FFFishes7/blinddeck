@@ -1,7 +1,7 @@
 """Score estimator: `bot.ps1 estimate` — top playable hands + estimated score.
 
-Read-only local computation over the current gamestate. Enumerates 1–5 card plays
-from the hand, classifies each poker hand, and scores with hand levels + card
+Read-only local computation over the current gamestate. Enumerates ordered 1–5
+card plays from the hand, classifies each poker hand, and scores with hand levels + card
 buffs + retriggers + modeled jokers + boss debuff + Plasma balancing.
 
 Deterministic-only principle
@@ -21,9 +21,9 @@ source → implement in ``estimate_jokers.py`` → test → document). See also 
 
 Output
 ------
-- ``indices`` — pass directly to ``bot.ps1 play`` (includes kickers when they change
-  held-card jokers such as Blackboard).
-- ``scoring_indices`` — cards that contribute to the poker hand type only.
+- ``indices`` — ordered list to pass unchanged to ``bot.ps1 play`` (includes kickers
+  when they change held-card jokers such as Blackboard).
+- ``scoring_indices`` — scoring cards in actual trigger order.
 - ``unmodeled_jokers`` — present but not modeled; treat score as lower bound only.
 
 Usage:
@@ -35,13 +35,13 @@ from __future__ import annotations
 
 import json
 import sys
-from itertools import combinations
+from itertools import combinations, permutations
+from math import perm
 
 from bot_client import APIError
 from envelope import build_error_envelope
 from estimate_constants import LOW_RANKS, RANK_CHIPS, RANK_ORDER
 from estimate_jokers import (
-    EDITION_AFTER_HELD_PHYSICAL,
     NO_SCORE_JOKERS,
     PER_CARD_JOKERS,
     RETRIGGER_ONLY_JOKERS,
@@ -53,20 +53,17 @@ from estimate_jokers import (
     _effective_joker_at,
     _enhancement_scores_on_play,
     _global_joker_bonus,
-    _held_joker_bonus,
-    _held_playing_card_bonus,
     _joker_edition_from,
-    _mime_owned,
     _modeled,
     _per_card_joker_bonus,
     _retrigger_config,
-    _round_aware_card_xmult,
 )
 from state import fetch_stable_gamestate
 from view import card_label
 
 ESTIMATE_FORMAT = "balatrobot-estimate-v1"
 JSON_FLAG = "--json"
+MAX_ORDERED_CANDIDATES = 250_000
 
 
 class InvalidEstimateState(Exception):
@@ -77,6 +74,18 @@ class InvalidEstimateState(Exception):
             f"estimate is only available in SELECTING_HAND, current state is {state}"
         )
         self.state = state
+
+
+class EstimateCandidateLimitError(Exception):
+    """Raised when exhaustive ordered-play search would be unexpectedly large."""
+
+    def __init__(self, hand_size: int, candidate_count: int):
+        super().__init__(
+            f"ordered estimate search for {hand_size} visible cards would evaluate "
+            f"{candidate_count} candidates (limit {MAX_ORDERED_CANDIDATES})"
+        )
+        self.hand_size = hand_size
+        self.candidate_count = candidate_count
 
 
 # --- card parsing -----------------------------------------------------------
@@ -130,7 +139,6 @@ def _straight_indices(
     shortcut: bool,
 ) -> list[int] | None:
     """Indices of one best straight of at least ``min_len`` cards, if any."""
-    from itertools import combinations
 
     rank_groups: dict[str, list[int]] = {}
     for i in idx_with_rank:
@@ -270,58 +278,67 @@ def _classify_flags(jokers: list[dict]) -> tuple[bool, bool, bool]:
 # --- scoring ----------------------------------------------------------------
 
 
-def _card_trigger_chips_mult(
+def _apply_card_trigger(
+    chips: float,
+    mult: float,
     card: dict,
-    per_card_keys: list[str],
     ctx: dict,
     jokers: list[dict],
     *,
-    photograph_x2: bool = False,
-) -> tuple[int, int, float]:
-    """One trigger of a scoring card: (add_chips, add_mult, xmult)."""
-    chips = 0
-    mult = 0
-    xmult = 1.0
+    photograph_active: bool = False,
+) -> tuple[float, float]:
+    """Apply one scoring-card trigger in game order to running totals."""
+    if card["debuff"]:
+        return chips, mult
+
+    add_chips = 0
+    add_mult = 0
+    card_xmult = 1.0
     if card["enhancement"] == "STONE":
-        chips += 50
+        add_chips += 50
     else:
-        chips += RANK_CHIPS.get(card["rank"], 0)
+        add_chips += RANK_CHIPS.get(card["rank"], 0)
         enh = card["enhancement"]
         if _enhancement_scores_on_play(card, ctx):
             if enh == "BONUS":
-                chips += 30
+                add_chips += 30
             elif enh == "MULT":
-                mult += 4
+                add_mult += 4
             elif enh == "GLASS":
-                xmult *= 2
+                card_xmult *= 2
             # LUCKY: 1-in-5 +20 Mult proc — unknown at glance; not modeled
             # WILD / GOLD / STEEL: no on-score chip/mult when played
     ed = card["edition"]
     if ed == "FOIL":
-        chips += 50
+        add_chips += 50
     elif ed in ("HOLO", "HOLOGRAPHIC"):
-        mult += 10
+        add_mult += 10
     elif ed == "POLYCHROME":
-        xmult *= 1.5
-    # per-card joker bonuses (fire once per trigger)
-    for key in per_card_keys:
-        c_add, m_add, x = _per_card_joker_bonus(card, key, ctx)
-        chips += c_add
-        mult += m_add
-        xmult *= x
+        card_xmult *= 1.5
+
+    chips += add_chips
+    mult += add_mult
+    mult *= card_xmult
+
+    # Per-card Joker effects fire left-to-right after the playing card's own
+    # enhancement/edition. Copycats occupy their physical slot in this order.
     for i in range(len(jokers)):
         _eff, jkey = _effective_joker_at(i, jokers)
-        if jkey == "j_scary_face" and _card_is_face(card, ctx):
-            chips += 30
+        c_add = 0
+        m_add = 0
+        xmult = 1.0
+        if jkey in PER_CARD_JOKERS or jkey in {"j_ancient", "j_idol"}:
+            c_add, m_add, xmult = _per_card_joker_bonus(card, jkey, ctx)
+        elif jkey == "j_scary_face" and _card_is_face(card, ctx):
+            c_add = 30
         elif jkey == "j_smiley" and _card_is_face(card, ctx):
-            mult += 5
-    xmult *= _round_aware_card_xmult(card, jokers, ctx)
-    if photograph_x2:
-        xmult *= 2
-    if card["debuff"]:
-        # Debuffed cards score 0 chips/mult and don't trigger effects.
-        return 0, 0, 1
-    return chips, mult, xmult
+            m_add = 5
+        elif jkey == "j_photograph" and photograph_active:
+            xmult = 2
+        chips += c_add
+        mult += m_add
+        mult *= xmult
+    return chips, mult
 
 
 def _score_combo(
@@ -344,23 +361,15 @@ def _score_combo(
     chips = base_chips
     mult = base_mult
 
-    per_card_keys: list[str] = []
-    for i, _j in enumerate(jokers):
-        _eff, key = _effective_joker_at(i, jokers)
-        if key in PER_CARD_JOKERS:
-            per_card_keys.append(key)
     retrigger_all = cfg.get("retrigger_all", 0)
     retrigger_leftmost = cfg.get("retrigger_leftmost", 0)
     if dusk_active and cfg.get("dusk_owned"):
         # Dusk: "triggers all played cards in the final hand twice" => +1 retrigger.
         retrigger_all += 1
 
-    # Splash: every played card scores (all cards in the combo).
-    eff_scoring = list(range(len(cards))) if cfg.get("splash") else scoring_idx
-    # Play-order: scoring cards follow selection order in ``cards`` (not sorted indices).
-    if not cfg.get("splash"):
-        scoring_set = set(scoring_idx)
-        eff_scoring = [i for i in range(len(cards)) if i in scoring_set]
+    eff_scoring = _ordered_scoring_indices(
+        scoring_idx, len(cards), splash=bool(cfg.get("splash"))
+    )
     # Leftmost scoring card = first scored in play order (Hanging Chad).
     leftmost = eff_scoring[0] if eff_scoring else -1
     photograph_owned = any(
@@ -376,7 +385,7 @@ def _score_combo(
                     first_face_scoring_idx = i
                     break
 
-    for pos, i in enumerate(eff_scoring):
+    for i in eff_scoring:
         card = cards[i]
         triggers = 1 + retrigger_all
         if card["seal"] == "RED":
@@ -388,18 +397,50 @@ def _score_combo(
         if i == leftmost:
             triggers += retrigger_leftmost
         for _ in range(triggers):
-            c_add, m_add, x = _card_trigger_chips_mult(
+            chips, mult = _apply_card_trigger(
+                chips,
+                mult,
                 card,
-                per_card_keys,
                 ctx,
                 jokers,
-                photograph_x2=photograph_owned and i == first_face_scoring_idx,
+                photograph_active=i == first_face_scoring_idx,
             )
-            chips += c_add
-            mult += m_add
-            mult *= x
 
-    # Joker phase (global), left to right.
+    # Held-card phase runs before joker_main. This includes held playing-card
+    # effects (Steel) and jokers reacting to held cards (Baron, Shoot the Moon,
+    # Raised Fist); physical Joker editions still fire later in their own slot.
+    held = ctx.get("held_cards") or []
+    ranked_held = [c for c in held if c.get("rank")]
+    lowest_held = None
+    if ranked_held:
+        lowest_value = min(RANK_ORDER.get(c["rank"], 99) for c in ranked_held)
+        # Game uses <= while scanning left-to-right, so the last tied low card wins.
+        lowest_held = next(
+            c
+            for c in reversed(ranked_held)
+            if RANK_ORDER.get(c["rank"], 99) == lowest_value
+        )
+    for card in held:
+        if card.get("debuff"):
+            continue
+        triggers = 1 + cfg.get("retrigger_held", 0)
+        if card.get("seal") == "RED":
+            triggers += 1
+        for _ in range(triggers):
+            if card.get("enhancement") == "STEEL":
+                mult *= 1.5
+            for i in range(len(jokers)):
+                _eff, key = _effective_joker_at(i, jokers)
+                if key == "j_shoot_the_moon" and card.get("rank") == "Q":
+                    mult += 13
+                elif key == "j_baron" and card.get("rank") == "K":
+                    mult *= 1.5
+                elif key == "j_raised_fist" and card is lowest_held:
+                    mult += 2 * RANK_CHIPS.get(card["rank"], 0)
+
+    # Joker phase (global), left to right. Every physical slot applies its
+    # edition here even when its ability fired earlier in the held phase or is
+    # repetition-only.
     ctx2 = {
         **ctx,
         "hand_type": hand_type,
@@ -412,12 +453,9 @@ def _score_combo(
     }
     for i, j in enumerate(jokers):
         physical = j
-        phys_key = physical.get("key") or ""
         eff, key = _effective_joker_at(i, jokers)
         edition = _joker_edition_from(physical)
-        apply_edition = phys_key not in EDITION_AFTER_HELD_PHYSICAL
-        if apply_edition:
-            chips, mult = _apply_joker_edition_before(edition, chips, mult)
+        chips, mult = _apply_joker_edition_before(edition, chips, mult)
         if (
             eff
             and key not in NO_SCORE_JOKERS
@@ -428,24 +466,10 @@ def _score_combo(
             chips += add_c
             mult += add_m
             mult *= xm
-            mult *= _baseball_react_xmult(jokers, eff)
-        if apply_edition:
-            mult = _apply_joker_edition_after(edition, mult)
-
-    held = ctx.get("held_cards") or []
-    mime = _mime_owned(jokers)
-    h_add_m, h_xm = _held_joker_bonus(held, jokers)
-    mult += h_add_m
-    mult *= h_xm
-    mult *= _held_playing_card_bonus(held, mime)
-    for physical in jokers:
-        phys_key = physical.get("key") or ""
-        if phys_key not in EDITION_AFTER_HELD_PHYSICAL:
-            continue
-        edition = _joker_edition_from(physical)
-        if not edition:
-            continue
-        chips, mult = _apply_joker_edition_before(edition, chips, mult)
+        # Baseball's other_joker reaction fires unconditionally for every
+        # physical joker in the joker_main loop, even retrigger-only /
+        # no-score jokers whose own ability doesn't fire in joker_main.
+        mult *= _baseball_react_xmult(jokers, physical)
         mult = _apply_joker_edition_after(edition, mult)
 
     if ctx.get("plasma"):
@@ -454,6 +478,21 @@ def _score_combo(
         mult = balanced
 
     return chips, mult, int(round(chips * mult))
+
+
+def _ordered_scoring_indices(
+    scoring_idx: list[int], card_count: int, *, splash: bool
+) -> list[int]:
+    """Return scoring-card positions in the same order Balatro will trigger them."""
+    if splash:
+        return list(range(card_count))
+    scoring_set = set(scoring_idx)
+    return [i for i in range(card_count) if i in scoring_set]
+
+
+def _ordered_play_candidate_count(hand_size: int) -> int:
+    """Number of exhaustive ordered plays of one through five visible cards."""
+    return sum(perm(hand_size, n) for n in range(1, min(5, hand_size) + 1))
 
 
 def _hand_levels(state: dict) -> dict:
@@ -603,66 +642,87 @@ def estimate(state: dict) -> dict:
     _, unmodeled = _modeled(jokers)
 
     max_play = min(5, len(parsed))
-    combos = [
-        combo
-        for n in range(1, max_play + 1)
-        for combo in combinations(range(len(parsed)), n)
-    ]
+    candidate_count = _ordered_play_candidate_count(len(parsed))
+    if candidate_count > MAX_ORDERED_CANDIDATES:
+        raise EstimateCandidateLimitError(len(parsed), candidate_count)
 
     results: list[dict] = []
     # Dusk: game checks hands_left == 0 during evaluate_play (after
     # ease_hands_played(-1)); API still shows hands_left == 1 before you play.
     dusk_now = cfg.get("dusk_owned", False) and ctx.get("hands_left") == 1
-    for combo in combos:
-        cards = [parsed[i] for i in combo]
-        hand_type, scoring_idx = _classify(
-            cards, four_fingers=four_fingers, shortcut=shortcut
-        )
-        level = levels.get(hand_type, {"chips": 0, "mult": 0, "level": 1})
-        combo_set = set(combo)
-        combo_ctx = {
-            **ctx,
-            "held_cards": [parsed[i] for i in range(len(parsed)) if i not in combo_set],
-        }
-        chips, mult, score = _score_combo(
-            cards,
-            scoring_idx,
-            hand_type,
-            level,
-            jokers,
-            cfg,
-            combo_ctx,
-            dusk_active=dusk_now,
-        )
-        scoring_play_indices = [parsed[combo[i]]["hand_index"] for i in scoring_idx]
-        play_indices = [parsed[i]["hand_index"] for i in combo]
-        scoring_labels = [parsed[combo[i]]["label"] for i in scoring_idx]
-        play_labels = [parsed[i]["label"] for i in combo]
-        results.append(
-            {
-                "hand_type": hand_type,
-                "indices": play_indices,
-                "cards": play_labels,
-                "scoring_indices": scoring_play_indices,
-                "scoring_cards": scoring_labels,
-                "chips": chips,
-                "mult": mult,
-                "score": score,
-                "level": level.get("level", 1),
+    for n in range(1, max_play + 1):
+        for combo in permutations(range(len(parsed)), n):
+            cards = [parsed[i] for i in combo]
+            hand_type, scoring_idx = _classify(
+                cards, four_fingers=four_fingers, shortcut=shortcut
+            )
+            level = levels.get(hand_type, {"chips": 0, "mult": 0, "level": 1})
+            combo_set = set(combo)
+            combo_ctx = {
+                **ctx,
+                "held_cards": [
+                    parsed[i] for i in range(len(parsed)) if i not in combo_set
+                ],
             }
-        )
+            chips, mult, score = _score_combo(
+                cards,
+                scoring_idx,
+                hand_type,
+                level,
+                jokers,
+                cfg,
+                combo_ctx,
+                dusk_active=dusk_now,
+            )
+            ordered_scoring_idx = _ordered_scoring_indices(
+                scoring_idx, len(cards), splash=bool(cfg.get("splash"))
+            )
+            scoring_play_indices = [
+                parsed[combo[i]]["hand_index"] for i in ordered_scoring_idx
+            ]
+            play_indices = [parsed[i]["hand_index"] for i in combo]
+            scoring_labels = [parsed[combo[i]]["label"] for i in ordered_scoring_idx]
+            play_labels = [parsed[i]["label"] for i in combo]
+            results.append(
+                {
+                    "hand_type": hand_type,
+                    "indices": play_indices,
+                    "cards": play_labels,
+                    "scoring_indices": scoring_play_indices,
+                    "scoring_cards": scoring_labels,
+                    "chips": chips,
+                    "mult": mult,
+                    "score": score,
+                    "level": level.get("level", 1),
+                }
+            )
 
-    # Drop duplicate scoring sets from different kicker choices. Prefer the
-    # higher-scoring play; on ties, prefer playing fewer cards.
+    # Drop duplicate scoring sets from different kicker/order choices. Prefer
+    # higher score, then fewer cards, then natural left-to-right order, then a
+    # stable lexicographic order.
     deduped: dict[tuple[str, tuple[int, ...]], dict] = {}
     for r in results:
         key = (r["hand_type"], tuple(sorted(r["scoring_indices"])))
         prev = deduped.get(key)
+        r_natural = r["indices"] == sorted(r["indices"])
+        prev_natural = prev is not None and prev["indices"] == sorted(prev["indices"])
         if (
             prev is None
             or r["score"] > prev["score"]
             or (
                 r["score"] == prev["score"] and len(r["indices"]) < len(prev["indices"])
+            )
+            or (
+                r["score"] == prev["score"]
+                and len(r["indices"]) == len(prev["indices"])
+                and r_natural
+                and not prev_natural
+            )
+            or (
+                r["score"] == prev["score"]
+                and len(r["indices"]) == len(prev["indices"])
+                and r_natural == prev_natural
+                and tuple(r["indices"]) < tuple(prev["indices"])
             )
         ):
             deduped[key] = r
@@ -728,6 +788,14 @@ def main() -> int:
         print(
             json.dumps(
                 build_error_envelope("INVALID_STATE", str(e), fmt=ESTIMATE_FORMAT),
+                ensure_ascii=False,
+            )
+        )
+        return 1
+    except EstimateCandidateLimitError as e:
+        print(
+            json.dumps(
+                build_error_envelope("BAD_REQUEST", str(e), fmt=ESTIMATE_FORMAT),
                 ensure_ascii=False,
             )
         )

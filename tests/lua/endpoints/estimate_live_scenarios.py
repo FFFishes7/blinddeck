@@ -26,6 +26,7 @@ class ScenarioLine:
     play_order_cards: tuple[CardAdd, ...] | None = None
     pick: str = ""
     joker_order: tuple[int, ...] | None = None
+    joker_order_specs: tuple[JokerAdd, ...] | None = None
     hand_order: str = ""  # "", "queen_left", "queen_right", "two_left", "two_right"
     cards: tuple[CardAdd, ...] | None = None
     joker_keys: tuple[str, ...] | None = None
@@ -62,14 +63,6 @@ BONUS_FOIL_5 = CardAdd("S_5", enhancement="BONUS", edition="FOIL")
 MULT_HOLO_J = CardAdd("H_J", enhancement="MULT", edition="HOLO")
 STONE_CARD = CardAdd("S_2", enhancement="STONE")
 RETRIGGER_BUFF = CardAdd("S_4", enhancement="GLASS", seal="RED")
-FLUSH_D_MULT_GLASS = (
-    CardAdd("D_5", enhancement="MULT"),
-    CardAdd("D_7", enhancement="GLASS"),
-    CardAdd("D_9"),
-    CardAdd("D_J"),
-    CardAdd("D_K"),
-)
-
 BLACKBOARD_HAND = (
     CardAdd("S_K"),
     CardAdd("C_Q"),
@@ -90,12 +83,122 @@ FACE_LINE = (
 )
 
 
+def _negative_first(jokers: tuple[JokerAdd, ...]) -> tuple[JokerAdd, ...]:
+    """Add Negative jokers first so every later physical card fits legally."""
+    return tuple(j for j in jokers if j.edition == "NEGATIVE") + tuple(
+        j for j in jokers if j.edition != "NEGATIVE"
+    )
+
+
+MEGA_FACE_CARDS = (
+    CardAdd("S_J", edition="FOIL"),
+    GLASS_RED_J,
+    MULT_HOLO_J,
+    CardAdd("D_J", enhancement="BONUS", edition="FOIL"),
+    CardAdd("C_J", enhancement="WILD", edition="POLYCHROME"),
+)
+MEGA_FACE_NO_RED = (
+    CardAdd("S_J", edition="FOIL"),
+    GLASS_J,
+    MULT_HOLO_J,
+    CardAdd("D_J", enhancement="BONUS", edition="FOIL"),
+    CardAdd("C_J", enhancement="WILD", edition="POLYCHROME"),
+)
+MEGA_FACE_JOKERS = (
+    JokerAdd("j_photograph", edition="HOLO"),
+    JokerAdd("j_brainstorm", edition="NEGATIVE"),
+    JokerAdd("j_blueprint", edition="NEGATIVE"),
+    JokerAdd("j_hanging_chad", edition="FOIL"),
+    JokerAdd("j_sock_and_buskin", edition="POLYCHROME"),
+    JokerAdd("j_smiley", edition="NEGATIVE"),
+    JokerAdd("j_scary_face", edition="NEGATIVE"),
+    JokerAdd("j_dusk", edition="NEGATIVE"),
+    JokerAdd("j_selzer", edition="NEGATIVE"),
+    JokerAdd("j_jolly", edition="FOIL"),
+    JokerAdd("j_crafty", edition="NEGATIVE"),
+    JokerAdd("j_cavendish", edition="POLYCHROME"),
+)
+
+MEGA_HELD_CARDS = (
+    CardAdd("H_5", enhancement="GLASS"),
+    CardAdd("D_5", enhancement="MULT"),
+    CardAdd("S_K", enhancement="STEEL", seal="RED"),
+    CardAdd("C_K", enhancement="STEEL"),
+    CardAdd("S_Q", enhancement="STEEL"),
+)
+MEGA_HELD_PLAIN_KINGS = (
+    CardAdd("H_5", enhancement="GLASS"),
+    CardAdd("D_5", enhancement="MULT"),
+    CardAdd("S_K"),
+    CardAdd("C_K"),
+    CardAdd("S_Q", enhancement="STEEL"),
+)
+MEGA_HELD_JOKERS = (
+    JokerAdd("j_baron", edition="POLYCHROME"),
+    JokerAdd("j_brainstorm", edition="HOLO"),
+    JokerAdd("j_mime", edition="HOLO"),
+    JokerAdd("j_blueprint", edition="FOIL"),
+    JokerAdd("j_shoot_the_moon", edition="NEGATIVE"),
+    JokerAdd("j_raised_fist", edition="NEGATIVE"),
+    JokerAdd("j_steel_joker", edition="NEGATIVE"),
+    JokerAdd("j_abstract", edition="NEGATIVE"),
+    JokerAdd("j_jolly", edition="NEGATIVE"),
+    JokerAdd("j_cavendish", edition="POLYCHROME"),
+    JokerAdd("j_baseball", edition="NEGATIVE"),
+    JokerAdd("j_stuntman", edition="NEGATIVE"),
+)
+MEGA_HELD_NO_MIME = tuple(j for j in MEGA_HELD_JOKERS if j.key != "j_mime")
+MEGA_HELD_NO_SCORE_EDITIONS = tuple(
+    JokerAdd(j.key, edition="NEGATIVE") for j in MEGA_HELD_JOKERS
+)
+
+MEGA_GLOBAL_CARDS = (
+    CardAdd("H_K", enhancement="GLASS", seal="RED"),
+    CardAdd("H_K", enhancement="MULT", edition="HOLO"),
+    CardAdd("H_K", enhancement="BONUS", edition="FOIL"),
+    CardAdd("H_5", edition="POLYCHROME"),
+    CardAdd("C_5", enhancement="WILD"),
+)
+MEGA_GLOBAL_JOKERS = (
+    JokerAdd("j_jolly", edition="FOIL"),
+    JokerAdd("j_brainstorm", edition="HOLO"),
+    JokerAdd("j_abstract", edition="NEGATIVE"),
+    JokerAdd("j_swashbuckler", edition="NEGATIVE"),
+    JokerAdd("j_bull", edition="NEGATIVE"),
+    JokerAdd("j_bootstraps", edition="NEGATIVE"),
+    JokerAdd("j_stuntman", edition="FOIL"),
+    JokerAdd("j_crafty", edition="NEGATIVE"),
+    JokerAdd("j_acrobat", edition="NEGATIVE"),
+    JokerAdd("j_tribe", edition="NEGATIVE"),
+    JokerAdd("j_seeing_double", edition="NEGATIVE"),
+    JokerAdd("j_blueprint", edition="HOLO"),
+    JokerAdd("j_cavendish", edition="POLYCHROME"),
+    JokerAdd("j_baseball", edition="NEGATIVE"),
+)
+MEGA_GLOBAL_XMULT_EARLY = (
+    MEGA_GLOBAL_JOKERS[0],
+    MEGA_GLOBAL_JOKERS[1],
+    MEGA_GLOBAL_JOKERS[11],
+    MEGA_GLOBAL_JOKERS[12],
+    MEGA_GLOBAL_JOKERS[8],
+    MEGA_GLOBAL_JOKERS[9],
+    MEGA_GLOBAL_JOKERS[10],
+    *MEGA_GLOBAL_JOKERS[2:8],
+    MEGA_GLOBAL_JOKERS[13],
+)
+MEGA_GLOBAL_NO_BASEBALL = tuple(j for j in MEGA_GLOBAL_JOKERS if j.key != "j_baseball")
+MEGA_GLOBAL_NO_SCORE_EDITIONS = tuple(
+    JokerAdd(j.key, edition="NEGATIVE") for j in MEGA_GLOBAL_JOKERS
+)
+
+
 def _line(
     line_id: str,
     *,
     play_order_cards: tuple[CardAdd, ...] | None = None,
     pick: str = "",
     joker_order: tuple[int, ...] | None = None,
+    joker_order_specs: tuple[JokerAdd, ...] | None = None,
     hand_order: str = "",
     cards: tuple[CardAdd, ...] | None = None,
     joker_keys: tuple[str, ...] | None = None,
@@ -109,6 +212,7 @@ def _line(
         play_order_cards=play_order_cards,
         pick=pick,
         joker_order=joker_order,
+        joker_order_specs=joker_order_specs,
         hand_order=hand_order,
         debuff=debuff,
         cards=cards,
@@ -483,18 +587,18 @@ def build_scenarios() -> list[ScenarioRecipe]:
         # --- D. Retrigger + buff ---
         ScenarioRecipe(
             scenario_id="S02",
-            description="PhotoChad POLY face leftmost",
+            description="Estimator reorders PhotoChad POLY face leftmost",
             category="retrigger",
             joker_keys=("j_photograph", "j_hanging_chad"),
             cards=(
-                POLY_J,
                 CardAdd("S_J"),
+                POLY_J,
                 CardAdd("H_5"),
                 CardAdd("C_3"),
                 CardAdd("D_2"),
             ),
             lines=(
-                _line("optimal", play_order_cards=(POLY_J, CardAdd("S_J"))),
+                _line("optimized", pick="estimate_top"),
                 _line(
                     "face_not_left",
                     play_order_cards=(CardAdd("S_J"), POLY_J),
@@ -580,12 +684,18 @@ def build_scenarios() -> list[ScenarioRecipe]:
         # --- E. Hand type ---
         ScenarioRecipe(
             scenario_id="S11",
-            description="Flush MULT then GLASS position",
+            description="Estimator reorders flush MULT before GLASS",
             category="hand_type",
             joker_keys=("j_crafty",),
-            cards=FLUSH_D_MULT_GLASS,
+            cards=(
+                CardAdd("D_7", enhancement="GLASS"),
+                CardAdd("D_5", enhancement="MULT"),
+                CardAdd("D_9"),
+                CardAdd("D_J"),
+                CardAdd("D_K"),
+            ),
             lines=(
-                _line("optimal", play_order_cards=FLUSH_D_MULT_GLASS),
+                _line("optimized", pick="estimate_top"),
                 _line(
                     "glass_left",
                     play_order_cards=(
@@ -726,18 +836,18 @@ def build_scenarios() -> list[ScenarioRecipe]:
         ),
         ScenarioRecipe(
             scenario_id="S33",
-            description="PhotoChad GLASS+RED top tier",
+            description="Estimator reorders PhotoChad GLASS+RED top tier",
             category="buffed_joker",
             joker_keys=("j_photograph", "j_hanging_chad"),
             cards=(
-                GLASS_RED_J,
                 CardAdd("S_J"),
+                GLASS_RED_J,
                 CardAdd("H_5"),
                 CardAdd("C_3"),
                 CardAdd("D_2"),
             ),
             lines=(
-                _line("optimal", play_order_cards=(GLASS_RED_J, CardAdd("S_J"))),
+                _line("optimized", pick="estimate_top"),
                 _line(
                     "no_red",
                     cards=(
@@ -768,6 +878,112 @@ def build_scenarios() -> list[ScenarioRecipe]:
             debuff=(CardAdd("H_K", enhancement="WILD"),),
             lines=(_line("optimal", pick="play_added"),),
             check_unmodeled=False,
+        ),
+        # --- H. Mega stress: many jokers + buffs + phase interactions ---
+        ScenarioRecipe(
+            scenario_id="S36",
+            description="Mega scored-card order/retrigger/copy stress",
+            category="mega",
+            jokers=_negative_first(MEGA_FACE_JOKERS),
+            cards=MEGA_FACE_CARDS,
+            set_state={"hands": 1},
+            lines=(
+                _line(
+                    "optimized",
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_FACE_JOKERS,
+                ),
+                _line(
+                    "reverse_play",
+                    play_order_cards=tuple(reversed(MEGA_FACE_CARDS)),
+                    joker_order_specs=MEGA_FACE_JOKERS,
+                    expect_lower=True,
+                ),
+                _line(
+                    "no_dusk",
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_FACE_JOKERS,
+                    set_state={"hands": 2},
+                    expect_lower=True,
+                ),
+                _line(
+                    "no_red",
+                    cards=MEGA_FACE_NO_RED,
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_FACE_JOKERS,
+                    expect_lower=True,
+                ),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S37",
+            description="Mega held-card Mime/copy/Baseball stress",
+            category="mega",
+            jokers=_negative_first(MEGA_HELD_JOKERS),
+            cards=MEGA_HELD_CARDS,
+            lines=(
+                _line(
+                    "optimized",
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_HELD_JOKERS,
+                ),
+                _line(
+                    "no_mime",
+                    jokers=_negative_first(MEGA_HELD_NO_MIME),
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_HELD_NO_MIME,
+                    expect_lower=True,
+                ),
+                _line(
+                    "plain_kings",
+                    cards=MEGA_HELD_PLAIN_KINGS,
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_HELD_JOKERS,
+                    expect_lower=True,
+                ),
+                _line(
+                    "no_score_editions",
+                    jokers=_negative_first(MEGA_HELD_NO_SCORE_EDITIONS),
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_HELD_NO_SCORE_EDITIONS,
+                    expect_lower=True,
+                ),
+            ),
+        ),
+        ScenarioRecipe(
+            scenario_id="S38",
+            description="Mega global joker order/edition/Baseball stress",
+            category="mega",
+            jokers=_negative_first(MEGA_GLOBAL_JOKERS),
+            cards=MEGA_GLOBAL_CARDS,
+            set_state={"money": 25, "hands": 1},
+            lines=(
+                _line(
+                    "optimized",
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_GLOBAL_JOKERS,
+                ),
+                _line(
+                    "xmult_early",
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_GLOBAL_XMULT_EARLY,
+                    expect_lower=True,
+                ),
+                _line(
+                    "no_baseball",
+                    jokers=_negative_first(MEGA_GLOBAL_NO_BASEBALL),
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_GLOBAL_NO_BASEBALL,
+                    expect_lower=True,
+                ),
+                _line(
+                    "no_score_editions",
+                    jokers=_negative_first(MEGA_GLOBAL_NO_SCORE_EDITIONS),
+                    pick="estimate_top",
+                    joker_order_specs=MEGA_GLOBAL_NO_SCORE_EDITIONS,
+                    expect_lower=True,
+                ),
+            ),
         ),
     ]
 

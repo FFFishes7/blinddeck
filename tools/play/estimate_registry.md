@@ -39,7 +39,9 @@ If any check fails → add to **Never model** below; leave `unmodeled`; **stop**
 - [ ] Add logic in `tools/play/estimate_jokers.py` (`PER_CARD_JOKERS`, `_global_joker_bonus`, `_retrigger_config`, or `NO_SCORE_JOKERS`).
 - [ ] Register key in `_modeled()` or it stays `unmodeled`.
 - [ ] If kicker choice matters (Blackboard): enumerate play sizes; **`indices`** = full `bot.ps1 play` list.
-- [ ] Dedupe candidates by `(hand_type, sorted scoring_indices)`; keep the highest score and prefer fewer played cards on ties.
+- [ ] Search ordered 1–5 card plays. Dedupe candidates by
+    `(hand_type, sorted scoring_indices)`; keep the highest score, then prefer
+    fewer played cards and natural left-to-right order on ties.
 
 ### 3. Test
 
@@ -79,8 +81,8 @@ There is no single `score.lua`. Scoring is a **pipeline** split across vanilla +
 
 1. Classify hand → set base `hand_chips` / `mult` from `G.GAME.hands[handname]`
 2. `Blind:modify_hand` (Flint, etc.)
-3. **`SMODS.calculate_main_scoring`** — loop **scoring** cards in `G.play`; each card via `score_card` → `eval_card` → per-card jokers → **`SMODS.calculate_repetitions`** (Dusk, Seltzer, Red Seal, Hanging Chad)
-4. **Joker main phase** — loop jokers with `joker_main` context (Blackboard reads **`G.hand.cards`**, not played cards)
+3. **`SMODS.calculate_main_scoring`** — loop **scoring** cards in `G.play`, then held cards in `G.hand`; each card via `score_card` → `eval_card` → per-card/held jokers → **`SMODS.calculate_repetitions`** (Dusk, Seltzer, Red Seal, Hanging Chad, Mime)
+4. **Joker main phase** — loop physical Joker slots left-to-right; Foil/Holo run before that slot's ability and Poly after it. Blackboard reads **`G.hand.cards`**, not played cards.
 5. `final_scoring_step` (deck back, e.g. Plasma balance)
 6. **`SMODS.calculate_round_score()`** → add to `G.GAME.chips`
 
@@ -167,7 +169,7 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_supernova`                                                                                                                           | +Mult = lifetime `hands.*.played` for scoring hand type                                                                          | Global                                                                                                                                    |
 | `j_seeing_double`                                                                                                                       | ×2 Mult if scoring cards include ♣ + another suit                                                                                | Global                                                                                                                                    |
 | `j_ceremonial` / `j_flash` / `j_popcorn` / `j_green_joker` / `j_red_card` / `j_fortune_teller` / `j_ride_the_bus` / `j_trousers`        | +Mult from `value.stats.mult` (fallback: effect text)                                                                            | Global                                                                                                                                    |
-| `j_duo` / `j_trio` / `j_order` / `j_tribe`                                                                                              | ×Mult when hand type matches (Pair / 3oak / Straight / Flush)                                                                    | Global                                                                                                                                    |
+| `j_duo` / `j_trio` / `j_order` / `j_tribe`                                                                                              | ×Mult when hand **contains** Pair / 3oak / Straight / Flush (`poker_hands` flags, including stronger hands)                      | Global                                                                                                                                    |
 | `j_cavendish`                                                                                                                           | ×3 Mult while alive                                                                                                              | Global (destruction is RNG)                                                                                                               |
 | `j_bull`                                                                                                                                | +2 chips × `state.money`                                                                                                         | Global                                                                                                                                    |
 | `j_photograph`                                                                                                                          | ×2 Mult on first face card scored                                                                                                | Per scoring card                                                                                                                          |
@@ -198,7 +200,7 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 | `j_four_fingers`                                                                                                                        | Straights/flushes need 4 cards (not 5)                                                                                           | Hand classifier                                                                                                                           |
 | `j_shortcut`                                                                                                                            | Straights may contain one rank gap                                                                                               | Hand classifier                                                                                                                           |
 | `j_mime`                                                                                                                                | Retriggers held card/joker effects once (Steel ×1.5, Baron, …)                                                                   | Held phase                                                                                                                                |
-| `j_baseball`                                                                                                                            | ×1.5 Mult per Baseball when an Uncommon joker fires joker_main                                                                   | Global; needs `value.rarity`                                                                                                              |
+| `j_baseball`                                                                                                                            | ×1.5 Mult per Baseball for each Uncommon joker in the joker phase (unconditional)                                                | Global; needs `value.rarity`                                                                                                              |
 | `j_smeared`                                                                                                                             | Hearts≈Diamonds, Spades≈Clubs for suit jokers / Flower Pot / Seeing Double                                                       | Modifier                                                                                                                                  |
 | `j_popcorn`                                                                                                                             | +Mult from `value.stats.mult` (starts 20, −4/round)                                                                              | Global; live `play` validated                                                                                                             |
 | `j_ice_cream`                                                                                                                           | +chips from `value.stats.chips` (starts 100, −5/hand)                                                                            | Global; live `play` validated                                                                                                             |
@@ -213,8 +215,8 @@ Cross-checked against `game-dump/card.lua` and/or live `play` validation.
 
 **Output fields**
 
-- `indices` — full list for `bot.ps1 play` (includes kickers when they improve a modeled effect).
-- `scoring_indices` / `scoring_cards` — poker hand scorers only (kickers do not add chip value).
+- `indices` — ordered list for `bot.ps1 play`; pass unchanged (includes kickers when they improve a modeled effect).
+- `scoring_indices` / `scoring_cards` — poker hand scorers in actual trigger order (kickers do not add chip value).
 
 ---
 
@@ -301,65 +303,69 @@ Integration tests: `tests/lua/endpoints/test_estimate_live.py` — parametrized 
 `estimate(state)` → `play` same `indices` → `round.chips` delta must match.
 
 Multi-joker **interaction scenarios** live in `tests/lua/endpoints/estimate_live_scenarios.py`
-and run via `TestEstimateLiveScenarios` (33 scenarios, 64 total lines).
+and run via `TestEstimateLiveScenarios` (36 scenarios defined; S36–S38 mega validation pending live rerun).
 
 **Live coverage (2026-07-10):**
 
-| Suite                 |  Count | Notes                                                                                            |
-| --------------------- | -----: | ------------------------------------------------------------------------------------------------ |
-| Scoring jokers        |     99 | One recipe per deterministic scoring key (`NO_SCORE` and `j_misprint` / `j_bloodstone` excluded) |
-| Card buffs            |     15 | Playing-card buffs (12) + joker edition foil/holo/poly live (3)                                  |
-| Interaction scenarios |     33 | 31 contrast scenarios plus 2 single-line Wild/debuff classification scenarios                    |
-| Runtime               | ~6 min | Single Balatro instance; do not parallelize with other lua suites (OOM)                          |
+| Suite                 |        Count | Notes                                                                                                     |
+| --------------------- | -----------: | --------------------------------------------------------------------------------------------------------- |
+| Scoring jokers        |           99 | One recipe per deterministic scoring key (`NO_SCORE` and `j_misprint` / `j_bloodstone` excluded)          |
+| Card buffs            |           15 | Playing-card buffs (12) + joker edition foil/holo/poly live (3)                                           |
+| Interaction scenarios | 33+3 pending | 31 contrast + 2 classification scenarios live-validated; S36–S38 mega scenarios defined but pending rerun |
+| Runtime               |       ~6 min | Single Balatro instance; do not parallelize with other lua suites (OOM)                                   |
 
 `j_loyalty_card` skips when countdown is not active at glance time.
 
-### Live interaction scenarios (33)
+### Live interaction scenarios (36 defined; 3 pending live validation)
 
 **Division of labor:** single-joker matrix = full smoke coverage; scenarios = order / held /
 retrigger / combo regression. S01–S33 use **contrast assertions** (optimal line:
 `estimate == play`; suboptimal line: same match **and** score strictly lower). S34–S35
-are single-line classification regressions.
+are single-line classification regressions. S36–S38 are four-line mega stress
+scenarios and remain pending until their targeted live run passes.
 
 Runner: `estimate_live_runner.run_scenario` — each line reloads the fixture independently;
 optional `rearrange` jokers/hand; play order follows **hand slot order** (leftmost scoring card first).
 Scenarios may use [`JokerAdd`](../../tests/lua/endpoints/estimate_live_recipes.py) for joker editions.
 
-| Cat            | ID  | Description                    | Jokers                                | Contrast                              |
-| -------------- | --- | ------------------------------ | ------------------------------------- | ------------------------------------- |
-| A steel/held   | S04 | Steel K Baron+Mime base        | Baron, Mime                           | STEEL+RED K held vs plain K           |
-| A              | S13 | Two steel kings held           | Baron, Mime                           | 2× STEEL+RED K vs 1 steel + plain K   |
-| A              | S14 | High Card vs pair              | Baron, Mime                           | Pair vs 1-card High Card              |
-| A              | S15 | Shoot the Moon + Steel         | Shoot, Mime                           | Steel K held vs plain K               |
-| A              | S16 | Raised Fist + Steel            | Raised Fist, Mime                     | Steel 3 held vs plain 3               |
-| A              | S17 | Steel Joker deck scale         | Steel Joker, Mime                     | Held steel vs no held steel           |
-| B scored buff  | S20 | MULT→GLASS play order          | Jolly                                 | MULT left vs GLASS left               |
-| B              | S21 | BONUS+FOIL pair                | Abstract                              | Enhanced pair vs plain pair           |
-| B              | S22 | Stone+Splash                   | Stone, Splash                         | 5-card all-score vs 2-card pair       |
-| B              | S23 | Vampire strips BONUS           | Vampire                               | BONUS pair vs plain pair              |
-| B              | S24 | POLY+GLASS pair                | Jolly                                 | GLASS+POLY pair vs plain pair         |
-| B              | S26 | MULT+HOLO Jack                 | Smiley                                | Face pair vs non-face pair            |
-| C joker combo  | S01 | +Mult→×Mult order              | Jolly, Cavendish                      | Jolly left vs reversed                |
-| C              | S05 | Brainstorm copy                | Brainstorm, Jolly, Abstract           | Jolly leftmost vs wrong slot          |
-| C              | S06 | Blueprint trap                 | Blueprint, Jolly, Cavendish           | Copy Cavendish vs copy Jolly          |
-| C              | S08 | Blackboard kicker              | Blackboard, Abstract                  | With Blackboard vs Abstract only      |
-| C              | S10 | Flower Pot Splash              | Flower Pot, Splash, Seeing Double     | Full straight vs 2 cards              |
-| C              | S12 | Baseball ×Mult order           | Jolly, Cavendish, Baseball            | Cavendish before Baseball vs reversed |
-| D retrigger    | S02 | PhotoChad POLY                 | Photograph, Hanging Chad              | Face leftmost vs not                  |
-| D              | S03 | PhotoChad + kicker             | Photograph, Hanging Chad              | With Chad vs Photograph only          |
-| D              | S07 | Dusk+Seltzer+Chad              | Dusk, Seltzer, Hanging Chad           | `hands=1` vs `hands=2`                |
-| D              | S09 | Face retrigger                 | Sock, Smiley, Scary Face              | 4 faces vs 3 faces                    |
-| E hand type    | S11 | Flush MULT/GLASS               | Crafty                                | GLASS right vs GLASS left             |
-| E              | S18 | PhotoChad POLY (dup archetype) | Photograph, Hanging Chad              | Face leftmost vs not                  |
-| F buffed joker | S27 | Blueprint Holo + Cavendish     | Blueprint **HOLO** + Cavendish        | With Holo vs plain Blueprint          |
-| F              | S28 | Jolly Foil + Cavendish         | Jolly **FOIL** + Cavendish            | Order (0,1) vs reversed               |
-| F              | S29 | Cavendish Poly                 | Jolly + Cavendish **POLY**            | Poly vs plain Cavendish               |
-| F              | S30 | PhotoChad Holo joker           | Photograph **HOLO** + Chad            | POLY face left vs not                 |
-| F              | S31 | Mime Holo + held steel         | Baron + Mime **HOLO** + STEEL+RED K   | Holo vs plain Mime                    |
-| F              | S32 | Baseball + Poly Cavendish      | Jolly + Cavendish **POLY** + Baseball | Order vs reversed                     |
-| F              | S33 | **PhotoChad GLASS+RED 顶配**   | Photograph + Chad                     | GLASS+RED J left vs GLASS only        |
-| G wild         | S34 | Five Wild Kings                | —                                     | Classifies as Flush Five              |
-| G              | S35 | Debuffed Wild printed suit     | —                                     | Does not create a diamond flush       |
+| Cat            | ID  | Description                    | Jokers                                | Contrast                                          |
+| -------------- | --- | ------------------------------ | ------------------------------------- | ------------------------------------------------- |
+| A steel/held   | S04 | Steel K Baron+Mime base        | Baron, Mime                           | STEEL+RED K held vs plain K                       |
+| A              | S13 | Two steel kings held           | Baron, Mime                           | 2× STEEL+RED K vs 1 steel + plain K               |
+| A              | S14 | High Card vs pair              | Baron, Mime                           | Pair vs 1-card High Card                          |
+| A              | S15 | Shoot the Moon + Steel         | Shoot, Mime                           | Steel K held vs plain K                           |
+| A              | S16 | Raised Fist + Steel            | Raised Fist, Mime                     | Steel 3 held vs plain 3                           |
+| A              | S17 | Steel Joker deck scale         | Steel Joker, Mime                     | Held steel vs no held steel                       |
+| B scored buff  | S20 | MULT→GLASS play order          | Jolly                                 | MULT left vs GLASS left                           |
+| B              | S21 | BONUS+FOIL pair                | Abstract                              | Enhanced pair vs plain pair                       |
+| B              | S22 | Stone+Splash                   | Stone, Splash                         | 5-card all-score vs 2-card pair                   |
+| B              | S23 | Vampire strips BONUS           | Vampire                               | BONUS pair vs plain pair                          |
+| B              | S24 | POLY+GLASS pair                | Jolly                                 | GLASS+POLY pair vs plain pair                     |
+| B              | S26 | MULT+HOLO Jack                 | Smiley                                | Face pair vs non-face pair                        |
+| C joker combo  | S01 | +Mult→×Mult order              | Jolly, Cavendish                      | Jolly left vs reversed                            |
+| C              | S05 | Brainstorm copy                | Brainstorm, Jolly, Abstract           | Jolly leftmost vs wrong slot                      |
+| C              | S06 | Blueprint trap                 | Blueprint, Jolly, Cavendish           | Copy Cavendish vs copy Jolly                      |
+| C              | S08 | Blackboard kicker              | Blackboard, Abstract                  | With Blackboard vs Abstract only                  |
+| C              | S10 | Flower Pot Splash              | Flower Pot, Splash, Seeing Double     | Full straight vs 2 cards                          |
+| C              | S12 | Baseball ×Mult order           | Jolly, Cavendish, Baseball            | Cavendish before Baseball vs reversed             |
+| D retrigger    | S02 | Estimator puts POLY face first | Photograph, Hanging Chad              | Optimized order vs plain face first               |
+| D              | S03 | PhotoChad + kicker             | Photograph, Hanging Chad              | With Chad vs Photograph only                      |
+| D              | S07 | Dusk+Seltzer+Chad              | Dusk, Seltzer, Hanging Chad           | `hands=1` vs `hands=2`                            |
+| D              | S09 | Face retrigger                 | Sock, Smiley, Scary Face              | 4 faces vs 3 faces                                |
+| E hand type    | S11 | Estimator orders Flush buffs   | Crafty                                | Optimized MULT→GLASS vs reversed                  |
+| E              | S18 | PhotoChad POLY (dup archetype) | Photograph, Hanging Chad              | Face leftmost vs not                              |
+| F buffed joker | S27 | Blueprint Holo + Cavendish     | Blueprint **HOLO** + Cavendish        | With Holo vs plain Blueprint                      |
+| F              | S28 | Jolly Foil + Cavendish         | Jolly **FOIL** + Cavendish            | Order (0,1) vs reversed                           |
+| F              | S29 | Cavendish Poly                 | Jolly + Cavendish **POLY**            | Poly vs plain Cavendish                           |
+| F              | S30 | PhotoChad Holo joker           | Photograph **HOLO** + Chad            | POLY face left vs not                             |
+| F              | S31 | Mime Holo + held steel         | Baron + Mime **HOLO** + STEEL+RED K   | Holo vs plain Mime                                |
+| F              | S32 | Baseball + Poly Cavendish      | Jolly + Cavendish **POLY** + Baseball | Order vs reversed                                 |
+| F              | S33 | **PhotoChad GLASS+RED 顶配**   | Photograph + Chad                     | Optimized order vs GLASS only                     |
+| G wild         | S34 | Five Wild Kings                | —                                     | Classifies as Flush Five                          |
+| G              | S35 | Debuffed Wild printed suit     | —                                     | Does not create a diamond flush                   |
+| H mega         | S36 | Scored-card/retrigger/copy     | 12 Jokers + card/Joker editions       | optimized / reverse / no Dusk / no Red            |
+| H              | S37 | Held/Mime/copy/Baseball        | 12 Jokers + Steel/Red held cards      | full / no Mime / plain Kings / no editions        |
+| H              | S38 | Global order/edition/Baseball  | 14 Jokers + Flush House buffs         | optimal / ×Mult early / no Baseball / no editions |
 
 **PhotoChad + GLASS + RED (S33):** leftmost scoring face with GLASS (×2/trigger) + RED (+1 retrigger)
 
@@ -391,13 +397,12 @@ See **Scoring architecture** for file paths. Runtime order:
 1. `ease_hands_played(-1)` — **before** `evaluate_play()`
 2. Move highlighted cards `G.hand` → `G.play`
 3. Hand base chips/mult (+ Flint debuff)
-4. Per **scoring** card triggers (`SMODS.calculate_main_scoring` / `score_card`; retriggers via `calculate_repetitions`)
-5. Joker main phase left-to-right (`joker_main`) — per slot: **Foil +50 chips /
-    Holo +10 mult before** the joker effect, **Poly ×1.5 mult after** (edition read
-    from the physical card at that slot, including Blueprint/Brainstorm); then held
-    jokers (Baron, Mime, …). **Held/retrigger jokers** (Mime, Baron, Shoot the Moon,
-    Raised Fist, Dusk, …) apply edition **after** the held ×Mult stack so Holo is
-    add-only, not re-multiplied. Blackboard reads **`G.hand.cards`**
+4. Per **scoring** card triggers, then held-card triggers (`G.hand`) including Steel,
+    Baron, Shoot the Moon, Raised Fist, and Mime retriggers.
+5. Joker main phase left-to-right (`joker_main`) — every physical slot applies
+    **Foil +50 chips / Holo +10 mult before** its ability and **Poly ×1.5 mult after**.
+    Thus held/repetition-only Joker editions still occur in their physical slot,
+    after the held stack but relative to neighboring global Jokers.
 6. Final scoring step / deck back effects / Plasma balance → **`SMODS.calculate_round_score()`**
 
 Retriggers (Dusk, Seltzer, Red Seal, Hanging Chad) apply to **scoring** card loops in
