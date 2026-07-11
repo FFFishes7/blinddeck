@@ -1902,6 +1902,33 @@ def test_print_summary_pack_opened(capsys: pytest.CaptureFixture[str]) -> None:
     assert "pack skip" not in out or "actions: pack" in out
 
 
+def test_print_summary_pack_mr_bones_shows_self_destruct(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    raw = {
+        "state": "SMODS_BOOSTER_OPENED",
+        "pack": {
+            "count": 1,
+            "limit": 2,
+            "choices_remaining": 1,
+            "cards": [
+                {
+                    "label": "Mr. Bones",
+                    "key": "j_mr_bones",
+                    "value": {
+                        "effect": "Prevents Death at 25% of required chips",
+                        "self_destructs_on": "SAVES_FROM_GAME_OVER",
+                    },
+                    "modifier": {"perishable": 5},
+                }
+            ],
+        },
+    }
+    print_summary(_envelope(raw))
+    out = capsys.readouterr().out
+    assert "pack[0] (perishable 5r) (self-destructs on save) Mr. Bones" in out
+
+
 @pytest.mark.parametrize(
     ("edition", "expected"),
     [

@@ -601,9 +601,15 @@ def _pack_card_label(card: dict[str, Any]) -> str:
         return card_label(card)
 
     label = str(card.get("label") or "?")
+    prefixes: list[str] = []
     mod = card.get("modifier") or {}
     sticker = _sticker_prefix(mod) if isinstance(mod, dict) else ""
-    return f"{sticker} {label}".strip() if sticker else label
+    if sticker:
+        prefixes.append(sticker)
+    behavior = _behavior_prefix(value) if isinstance(value, dict) else ""
+    if behavior:
+        prefixes.append(behavior)
+    return " ".join([*prefixes, label])
 
 
 def _shop_block(state: dict[str, Any]) -> str:
