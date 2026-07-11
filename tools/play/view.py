@@ -616,7 +616,7 @@ def _shop_block(state: dict[str, Any]) -> str:
     parts: list[str] = []
     shop = (state.get("shop") or {}).get("cards") or []
     for i, c in enumerate(shop):
-        parts.append(_shop_card_line(f"shop[{i}]", c, state))
+        parts.append(_shop_card_line(f"card[{i}]", c, state))
     vouchers = (state.get("vouchers") or {}).get("cards") or []
     for i, c in enumerate(vouchers):
         label = c.get("label") or "?"

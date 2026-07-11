@@ -1129,8 +1129,8 @@ def test_shop_affordability(capsys: pytest.CaptureFixture[str]) -> None:
     }
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
-    assert "shop[0]" in out and "[ok]" in out
-    assert "shop[1]" in out and "[need $3]" in out
+    assert "card[0]" in out and "[ok]" in out
+    assert "card[1]" in out and "[need $3]" in out
     assert "reroll=$5 [need $2]" in out
 
 
@@ -1168,7 +1168,7 @@ def test_shop_slots_full_joker(capsys: pytest.CaptureFixture[str]) -> None:
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "jokers (5/5)" in out
-    assert "shop[0]" in out and "[slots full]" in out
+    assert "card[0]" in out and "[slots full]" in out
     assert "actions: buy" in out and "reroll" in out and "next_round" in out
 
 
@@ -1809,7 +1809,7 @@ def test_print_summary_shop(capsys: pytest.CaptureFixture[str]) -> None:
     print_summary(_envelope(raw))
     out = capsys.readouterr().out
     assert "state=SHOP" in out
-    assert "shop[0] Joker" in out
+    assert "card[0] Joker" in out
     assert "[ok]" in out
     assert "actions: buy" in out and "reroll" in out and "next_round" in out
     raw = {
